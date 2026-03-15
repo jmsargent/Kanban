@@ -48,12 +48,14 @@ func (a *GitAdapter) CommitMessagesInRange(from, to string) ([]string, error) {
 }
 
 // CommitFiles stages the given paths and creates a commit with the supplied message.
+// "[skip ci]" is always appended to the message to prevent CI recursion.
 func (a *GitAdapter) CommitFiles(repoRoot, message string, paths []string) error {
 	addArgs := append([]string{"add", "--"}, paths...)
 	if err := runGitIn(repoRoot, addArgs...); err != nil {
 		return fmt.Errorf("git add: %w", err)
 	}
-	if err := runGitIn(repoRoot, "commit", "-m", message); err != nil {
+	annotated := message + " [skip ci]"
+	if err := runGitIn(repoRoot, "commit", "-m", annotated); err != nil {
 		return fmt.Errorf("git commit: %w", err)
 	}
 	return nil
