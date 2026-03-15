@@ -61,13 +61,21 @@ func (a *GitAdapter) CommitFiles(repoRoot, message string, paths []string) error
 
 // InstallHook writes the kanban commit-msg hook script to .git/hooks/commit-msg
 // and sets it executable (0755). Overwrites any existing hook.
+// The hook uses the absolute path of the currently running kanban binary so it
+// works regardless of $PATH.
 func (a *GitAdapter) InstallHook(repoRoot string) error {
 	hooksDir := filepath.Join(repoRoot, ".git", "hooks")
 	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
 		return fmt.Errorf("create hooks dir: %w", err)
 	}
+
+	exe, err := os.Executable()
+	if err != nil {
+		exe = "kanban" // fallback to PATH lookup
+	}
+
 	hookPath := filepath.Join(hooksDir, "commit-msg")
-	script := "#!/bin/sh\nkanban _hook commit-msg \"$1\"\n"
+	script := fmt.Sprintf("#!/bin/sh\n%s _hook commit-msg \"$1\"\n", exe)
 	if err := os.WriteFile(hookPath, []byte(script), 0o755); err != nil {
 		return fmt.Errorf("write hook: %w", err)
 	}

@@ -16,6 +16,10 @@ type TaskRepository interface {
 	// ListAll returns every task stored under repoRoot.
 	ListAll(repoRoot string) ([]domain.Task, error)
 
+	// Update overwrites the persisted task. Returns ErrTaskNotFound when no
+	// file exists for the task ID.
+	Update(repoRoot string, task domain.Task) error
+
 	// Delete removes the task identified by taskID.
 	Delete(repoRoot, taskID string) error
 

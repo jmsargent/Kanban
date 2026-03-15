@@ -45,8 +45,7 @@ func taskFilePath(repoRoot, taskID string) string {
 }
 
 // Save writes the task to disk using an atomic .tmp → rename pattern.
-// For new tasks it uses O_CREATE|O_EXCL on the final path to prevent ID
-// collisions.  Updates (file already exists) are allowed via atomic overwrite.
+// Returns an error wrapping os.ErrExist if the task file already exists.
 func (r *TaskRepository) Save(repoRoot string, task domain.Task) error {
 	dir := tasksDir(repoRoot)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -65,7 +64,23 @@ func (r *TaskRepository) Save(repoRoot string, task domain.Task) error {
 		return fmt.Errorf("marshal task: %w", err)
 	}
 
-	return atomicWrite(finalPath, content)
+	return atomicOverwrite(finalPath, content)
+}
+
+// Update overwrites an existing task file atomically.
+// Returns ErrTaskNotFound if no file exists for the task ID.
+func (r *TaskRepository) Update(repoRoot string, task domain.Task) error {
+	finalPath := taskFilePath(repoRoot, task.ID)
+	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
+		return ports.ErrTaskNotFound
+	}
+
+	content, err := marshalTask(task)
+	if err != nil {
+		return fmt.Errorf("marshal task: %w", err)
+	}
+
+	return atomicOverwrite(finalPath, content)
 }
 
 // FindByID reads the task file for the given ID.
@@ -229,33 +244,19 @@ func unmarshalTask(data []byte) (domain.Task, error) {
 	return task, nil
 }
 
-// atomicWrite writes content to a .tmp file then renames it to finalPath.
-func atomicWrite(finalPath string, content []byte) error {
+// atomicOverwrite writes content to a .tmp file then renames it to finalPath.
+// Overwrites any existing file at finalPath atomically.
+func atomicOverwrite(finalPath string, content []byte) error {
 	tmpPath := finalPath + ".tmp"
-	f, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
-	if err != nil {
-		return fmt.Errorf("open tmp file: %w", err)
-	}
-
-	if _, err = f.Write(content); err != nil {
-		_ = f.Close()
-		_ = os.Remove(tmpPath)
+	if err := os.WriteFile(tmpPath, content, 0o644); err != nil {
 		return fmt.Errorf("write tmp file: %w", err)
 	}
-
-	if err = f.Close(); err != nil {
-		_ = os.Remove(tmpPath)
-		return fmt.Errorf("close tmp file: %w", err)
-	}
-
-	if err = os.Rename(tmpPath, finalPath); err != nil {
+	if err := os.Rename(tmpPath, finalPath); err != nil {
 		_ = os.Remove(tmpPath)
 		return fmt.Errorf("rename tmp to final: %w", err)
 	}
-
 	return nil
 }
 
 // ensure compile-time interface compliance
 var _ ports.TaskRepository = (*TaskRepository)(nil)
-

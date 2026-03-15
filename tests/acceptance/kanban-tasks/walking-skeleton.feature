@@ -6,7 +6,7 @@ Feature: Developer tracks work end-to-end without leaving the terminal
   Background:
     Given I am working in a git repository
 
-  @walking_skeleton @skip
+  @walking_skeleton
   Scenario: Developer completes the full task lifecycle from creation to done
     Given the repository has no kanban setup
     When I run "kanban init"

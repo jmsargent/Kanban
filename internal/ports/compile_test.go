@@ -37,6 +37,11 @@ func (r *fakeTaskRepo) ListAll(repoRoot string) ([]domain.Task, error) {
 	return out, nil
 }
 
+func (r *fakeTaskRepo) Update(repoRoot string, task domain.Task) error {
+	r.tasks[task.ID] = task
+	return nil
+}
+
 func (r *fakeTaskRepo) Delete(repoRoot, taskID string) error {
 	delete(r.tasks, taskID)
 	return nil

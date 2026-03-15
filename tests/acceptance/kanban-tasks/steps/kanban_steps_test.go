@@ -36,13 +36,26 @@ type kanbanCtx struct {
 func newKanbanCtx(t *testing.T) *kanbanCtx {
 	bin := os.Getenv("KANBAN_BIN")
 	if bin == "" {
-		bin = "../../bin/kanban"
+		bin = resolveDefaultBin()
 	}
 	return &kanbanCtx{
 		t:       t,
 		binPath: bin,
 		env:     os.Environ(),
 	}
+}
+
+// resolveDefaultBin returns the absolute path to the kanban binary.
+// It resolves ../../bin/kanban relative to this source file so that
+// the binary is found regardless of the process working directory.
+func resolveDefaultBin() string {
+	// filepath.Abs resolves relative to the current working directory of the
+	// test process, which go test sets to the package directory.
+	abs, err := filepath.Abs("../../bin/kanban")
+	if err != nil {
+		return "../../bin/kanban"
+	}
+	return abs
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -706,7 +719,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 		// Set binary path from environment or default.
 		bin := os.Getenv("KANBAN_BIN")
 		if bin == "" {
-			bin = "../../bin/kanban"
+			bin = resolveDefaultBin()
 		}
 		k.binPath = bin
 		return ctx, nil
@@ -742,7 +755,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^no file exists for "([^"]*)"$`, func(id string) error { return nil })
 
 	// When
-	sc.Step(`^I run "kanban (.*)"$`, k.iRunKanban)
+	sc.Step(`^I run "kanban ([^"]*)"$`, k.iRunKanban)
 	sc.Step(`^I run "kanban add" with title "([^"]*)"$`, k.iRunKanbanAddWithTitle)
 	sc.Step(`^I run "kanban add" with title "([^"]*)" and priority "([^"]*)" and due date "([^"]*)" and assignee "([^"]*)"$`,
 		k.iRunKanbanAddWithTitleAndPriorityAndDueDateAndAssignee)
@@ -826,5 +839,51 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the commit output contains no kanban lines$`, k.outputContainsNoKanbanLines)
 	sc.Step(`^the commit output contains a warning about "([^"]*)"$`, func(text string) error {
 		return k.outputContains("Warning")
+	})
+
+	// Walking skeleton — CI transition steps
+	// These verify task status advanced after a git commit / CI event.
+	sc.Step(`^the task status advances to "([^"]*)"$`, func(expectedStatus string) error {
+		if k.lastTaskID == "" {
+			return fmt.Errorf("no task ID in context")
+		}
+		return k.theTaskStatusIs(k.lastTaskID, expectedStatus)
+	})
+	sc.Step(`^the board shows the task under IN PROGRESS$`, func() error {
+		if k.lastTaskID == "" {
+			return fmt.Errorf("no task ID in context")
+		}
+		return k.theBoardShowsTitleUnderHeading(k.lastTaskID, "IN PROGRESS")
+	})
+	sc.Step(`^the board shows the task under DONE$`, func() error {
+		if k.lastTaskID == "" {
+			return fmt.Errorf("no task ID in context")
+		}
+		return k.theBoardShowsTitleUnderHeading(k.lastTaskID, "DONE")
+	})
+
+	// Walking skeleton — output assertions for add command
+	sc.Step(`^output shows the created task ID and title$`, func() error {
+		if k.lastTaskID == "" {
+			return fmt.Errorf("no task ID found in output: %s", k.lastOutput)
+		}
+		return k.outputContains(k.lastTaskID)
+	})
+	sc.Step(`^output contains a commit tip referencing the task ID$`, func() error {
+		if k.lastTaskID == "" {
+			return fmt.Errorf("no task ID in context")
+		}
+		return k.outputContains(k.lastTaskID)
+	})
+	sc.Step(`^output groups tasks under TODO, IN PROGRESS, and DONE headings$`, func() error {
+		for _, heading := range []string{"TODO", "IN PROGRESS", "DONE"} {
+			if !strings.Contains(strings.ToUpper(k.lastOutput), heading) {
+				return fmt.Errorf("expected heading %q in board output:\n%s", heading, k.lastOutput)
+			}
+		}
+		return nil
+	})
+	sc.Step(`^"([^"]*)" appears under TODO$`, func(title string) error {
+		return k.theBoardShowsTitleUnderHeading(title, "TODO")
 	})
 }

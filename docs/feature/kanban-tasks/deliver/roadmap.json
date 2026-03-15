@@ -1,0 +1,242 @@
+{
+  "roadmap": {
+    "project_id": "kanban-tasks",
+    "created_at": "2026-03-15T20:29:40Z",
+    "total_steps": 9,
+    "phases": 3
+  },
+  "phases": [
+    {
+      "id": "01",
+      "name": "Foundation — domain, ports, filesystem adapters",
+      "steps": [
+        {
+          "id": "01-01",
+          "name": "Domain core — Task, Board, rules",
+          "description": "Define Task, TaskStatus, Board, Transition, and Column types plus ValidateNewTask, CanTransitionTo, and IsOverdue business rules. No external dependencies — pure Go stdlib only. This layer is the invariant boundary for the entire system.",
+          "criteria": [
+            "Task created with valid title and future due date is accepted",
+            "Task with empty title is rejected with a descriptive error",
+            "Task with past due date is rejected with a descriptive error",
+            "CanTransitionTo returns false for todo->done and in-progress->todo",
+            "IsOverdue returns true only for tasks whose due date is before today"
+          ],
+          "test_file": "tests/acceptance/kanban-tasks/milestone-1-task-crud.feature",
+          "scenario_name": "Developer sets up kanban in a new git repository",
+          "files_to_modify": [
+            "internal/domain/task.go",
+            "internal/domain/rules.go"
+          ],
+          "implementation_notes": "internal/domain must have zero imports from any non-stdlib package. Enforce with dependency-cruiser or go vet + import analysis in CI. TaskStatus must be a defined type with exhaustive const values. All business rule errors returned as typed error values, not strings.",
+          "estimated_hours": 3,
+          "dependencies": []
+        },
+        {
+          "id": "01-02",
+          "name": "Port interfaces — TaskRepository, ConfigRepository, GitPort",
+          "description": "Declare the driven-port interfaces TaskRepository, ConfigRepository, and GitPort in internal/ports. These are the only contracts adapters may implement. No concrete logic here — interfaces only.",
+          "criteria": [
+            "All use cases can be wired with in-memory fakes that satisfy port interfaces",
+            "No adapter type leaks into internal/ports or internal/domain",
+            "Port interfaces compile with zero external dependencies"
+          ],
+          "test_file": "tests/acceptance/kanban-tasks/walking-skeleton.feature",
+          "scenario_name": "Developer initialises kanban and immediately creates and views a task",
+          "files_to_modify": [
+            "internal/ports/repositories.go",
+            "internal/ports/git.go"
+          ],
+          "implementation_notes": "Interfaces must express the full contract needed by all use cases (init, add, board, edit, delete, transition). GitPort covers RepoRoot, CommitMessagesInRange, CommitFiles, and InstallHook. Dependency direction: ports import domain, never adapters.",
+          "estimated_hours": 2,
+          "dependencies": ["01-01"]
+        },
+        {
+          "id": "01-03",
+          "name": "Filesystem and Config adapters",
+          "description": "Implement task_repository.go reading and writing Markdown files with YAML front matter and config_repository.go reading and writing .kanban/config.yaml. All writes must be atomic via a .tmp intermediate file and os.Rename.",
+          "criteria": [
+            "Task file created by the adapter begins with a valid YAML front matter block containing id, title, status, priority, due, and assignee fields",
+            "No partial or temporary files remain in the tasks directory after a write",
+            "Task file round-trip preserves all field values exactly",
+            "Second create with the same ID fails without overwriting the existing file"
+          ],
+          "test_file": "tests/acceptance/kanban-tasks/integration-checkpoints.feature",
+          "scenario_name": "Created task file contains valid YAML front matter",
+          "files_to_modify": [
+            "internal/adapters/filesystem/task_repository.go",
+            "internal/adapters/filesystem/config_repository.go"
+          ],
+          "implementation_notes": "Atomic write: open .tmp with os.O_CREATE|os.O_EXCL, write, then os.Rename to final path. Use O_CREATE|O_EXCL for new task files to prevent ID collision. YAML front matter delimited by ---. Body (description) is plain Markdown after the closing delimiter.",
+          "estimated_hours": 4,
+          "dependencies": ["01-01", "01-02"]
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "name": "CLI — use cases, commands, binary wiring",
+      "steps": [
+        {
+          "id": "02-01",
+          "name": "kanban init — InitRepo use case + CLI command",
+          "description": "Implement the InitRepo use case creating .kanban/tasks/, writing default config, appending the hook log path to .gitignore, and installing the commit-msg hook via GitPort.InstallHook. Wire the kanban init CLI command in cmd/kanban/main.go.",
+          "criteria": [
+            "kanban init creates .kanban/tasks/ and a default config file",
+            "Running kanban init twice produces no changes to existing files and exits 0",
+            "kanban init outside a git repository exits 1 with message containing 'Not a git repository'",
+            ".kanban/hook.log path is appended to .gitignore",
+            "Output confirms 'Initialised kanban at .kanban/'"
+          ],
+          "test_file": "tests/acceptance/kanban-tasks/milestone-1-task-crud.feature",
+          "scenario_name": "Developer sets up kanban in a new git repository",
+          "files_to_modify": [
+            "internal/usecases/init_repo.go",
+            "internal/adapters/cli/init.go",
+            "internal/adapters/cli/root.go",
+            "internal/adapters/git/git_adapter.go",
+            "cmd/kanban/main.go"
+          ],
+          "implementation_notes": "kanban binary must never auto-commit — InstallHook writes the hook script, it does not commit. GitAdapter.InstallHook writes .git/hooks/commit-msg and sets executable bit. Idempotency: check for existing .kanban/ before creating. All errors surface as exit code 1.",
+          "estimated_hours": 4,
+          "dependencies": ["01-01", "01-02", "01-03"]
+        },
+        {
+          "id": "02-02",
+          "name": "kanban add + kanban board use cases",
+          "description": "Implement AddTask use case validating the new task via domain rules and persisting via TaskRepository. Implement GetBoard use case reading all tasks and grouping by status. Wire kanban add and kanban board CLI commands.",
+          "criteria": [
+            "kanban add with a valid title creates a task file and prints the task ID, title, and a commit tip",
+            "kanban add with empty title exits 2 with message 'Task title is required'",
+            "kanban add with a past due date exits 2 with message 'Due date must be today or in the future'",
+            "kanban board groups tasks under TODO, IN PROGRESS, and DONE headings with per-group counts",
+            "kanban board on an empty workspace prints a message suggesting kanban add",
+            "kanban board suppresses ANSI colour codes when NO_COLOR is set or output is piped"
+          ],
+          "test_file": "tests/acceptance/kanban-tasks/walking-skeleton.feature",
+          "scenario_name": "Developer completes the full task lifecycle from creation to done",
+          "files_to_modify": [
+            "internal/usecases/add_task.go",
+            "internal/usecases/get_board.go",
+            "internal/adapters/cli/add.go",
+            "internal/adapters/cli/board.go"
+          ],
+          "implementation_notes": "ID generation uses O_CREATE|O_EXCL to prevent collision — no lock files or counters needed. Board output respects NO_COLOR env var and isatty detection for piped output. --json flag on kanban board emits a JSON array with fields id, title, status, priority, due, assignee.",
+          "estimated_hours": 5,
+          "dependencies": ["02-01"]
+        },
+        {
+          "id": "02-03",
+          "name": "kanban edit + kanban delete use cases",
+          "description": "Implement EditTask use case opening the task in $EDITOR with current field values pre-filled and persisting changed fields. Implement DeleteTask use case removing the task file after confirmation. Wire kanban edit and kanban delete CLI commands.",
+          "criteria": [
+            "kanban edit on a valid task opens an editor pre-filled with current values and confirms changed fields on save",
+            "kanban edit with no changes reports 'No changes made.' and exits 0",
+            "kanban edit on a non-existent task exits 1 with 'Task TASK-NNN not found' and a board suggestion",
+            "kanban delete prompts for confirmation and removes the task file on 'y', leaving it intact on 'n' or empty input",
+            "kanban delete --force removes the task without prompting and exits 0",
+            "kanban delete prints a suggested git commit command; it does not auto-commit"
+          ],
+          "test_file": "tests/acceptance/kanban-tasks/walking-skeleton.feature",
+          "scenario_name": "Developer edits a task and then removes it when the work is cancelled",
+          "files_to_modify": [
+            "internal/usecases/edit_task.go",
+            "internal/usecases/delete_task.go",
+            "internal/adapters/cli/edit.go",
+            "internal/adapters/cli/delete.go"
+          ],
+          "implementation_notes": "kanban binary never auto-commits — delete outputs a suggested git commit command only. Atomic write on edit: same .tmp + os.Rename pattern as filesystem adapter. Default confirmation input (Enter with no text) is treated as 'n'. Edit change detection compares field values before and after editor; no diff if values identical.",
+          "estimated_hours": 5,
+          "dependencies": ["02-02"]
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "name": "Auto-transitions — commit hook and CI pipeline",
+      "steps": [
+        {
+          "id": "03-01",
+          "name": "GitAdapter — full implementation",
+          "description": "Implement all GitPort methods in git_adapter.go: RepoRoot (git rev-parse), CommitMessagesInRange (git log), CommitFiles (git add + git commit with [skip ci]), and InstallHook (write + chmod hook script). These are the only points where the system executes git commands.",
+          "criteria": [
+            "RepoRoot returns an error when invoked outside a git repository",
+            "CommitMessagesInRange returns all commit messages between two refs inclusive",
+            "CommitFiles stages the given file paths and creates a commit annotated with [skip ci]",
+            "InstallHook writes an executable commit-msg script that delegates to the kanban binary"
+          ],
+          "test_file": "tests/acceptance/kanban-tasks/integration-checkpoints.feature",
+          "scenario_name": "Every command exits with code 0 on success",
+          "files_to_modify": [
+            "internal/adapters/git/git_adapter.go"
+          ],
+          "implementation_notes": "CommitFiles appends '[skip ci]' to commit message to prevent CI recursion. All git commands invoked via exec.Command — no libgit2 or go-git dependency (OSS licence is acceptable, but stdlib exec is sufficient and keeps the dependency tree minimal). InstallHook is idempotent: overwrite if already present.",
+          "estimated_hours": 3,
+          "dependencies": ["01-02"]
+        },
+        {
+          "id": "03-02",
+          "name": "commit-msg hook — ToInProgress use case + GitHookAdapter",
+          "description": "Implement TransitionToInProgress use case scanning the commit message for a task ID matching the configured pattern and advancing a matching todo task to in-progress. Wire via the kanban _hook commit-msg internal command invoked by the installed hook script. Hook must always exit 0.",
+          "criteria": [
+            "Commit referencing a todo task advances it to in-progress and prints the transition line",
+            "Commit referencing a non-existent task exits 0 and logs a warning without blocking the commit",
+            "Commit referencing a task already in-progress or done produces no transition and exits 0",
+            "Commit with no matching task ID produces no kanban output and exits 0",
+            "Any internal error is written to .kanban/hook.log and the commit still succeeds"
+          ],
+          "test_file": "tests/acceptance/kanban-tasks/milestone-2-auto-transitions.feature",
+          "scenario_name": "First commit referencing a task advances it to in-progress",
+          "files_to_modify": [
+            "internal/usecases/transition.go",
+            "internal/adapters/cli/hook.go"
+          ],
+          "implementation_notes": "Hook must always exit 0 — wrap entire execution body in recover(); log panics and all errors to .kanban/hook.log via append-only open. Task pattern read from ConfigRepository; default TASK-[0-9]+. Transition write uses atomic .tmp + os.Rename. Hook script installed by kanban init delegates via: exec kanban _hook commit-msg \"$1\".",
+          "estimated_hours": 4,
+          "dependencies": ["02-02", "03-01"]
+        },
+        {
+          "id": "03-03",
+          "name": "kanban ci-done — ToDone use case + CIPipelineAdapter",
+          "description": "Implement TransitionToDone use case reading commit messages between the CI range (via CommitMessagesInRange), finding in-progress tasks referenced, advancing them to done, and committing the updated files back via CommitFiles. Wire the kanban ci-done CLI command.",
+          "criteria": [
+            "kanban ci-done advances all in-progress tasks referenced in the pipeline's commits to done and logs each transition",
+            "kanban ci-done leaves todo tasks unchanged even when referenced in commits",
+            "kanban ci-done leaves done tasks unchanged when referenced in commits",
+            "Updated task files are committed back to the repository with [skip ci] annotation",
+            "CI log output contains no ANSI colour codes and requires no interactive input"
+          ],
+          "test_file": "tests/acceptance/kanban-tasks/milestone-2-auto-transitions.feature",
+          "scenario_name": "CI step advances an in-progress task to done when all tests pass",
+          "files_to_modify": [
+            "internal/usecases/transition.go",
+            "internal/adapters/cli/ci.go"
+          ],
+          "implementation_notes": "kanban ci-done is the only command that auto-commits. CommitFiles must append [skip ci] to prevent recursive pipeline triggers. CI commit range supplied via --from and --to flags (SHA or ref); default to CI env vars (GITHUB_SHA, etc.) as fallback. Output is plain text (no colour) unconditionally — CI environments must not require NO_COLOR.",
+          "estimated_hours": 4,
+          "dependencies": ["02-02", "03-01"]
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": [
+      "cmd/kanban/",
+      "internal/domain/",
+      "internal/ports/",
+      "internal/usecases/",
+      "internal/adapters/"
+    ],
+    "test_directories": [
+      "tests/acceptance/kanban-tasks/"
+    ],
+    "excluded_patterns": [
+      "vendor/**",
+      "*.pb.go"
+    ]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "solution-architect-reviewer",
+    "approved_at": "2026-03-15T20:45:00Z"
+  }
+}

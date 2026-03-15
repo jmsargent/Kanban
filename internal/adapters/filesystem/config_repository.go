@@ -84,7 +84,7 @@ func (r *ConfigRepository) Write(repoRoot string, config ports.Config) error {
 	}
 
 	finalPath := configFilePath(repoRoot)
-	return atomicWrite(finalPath, content)
+	return atomicOverwrite(finalPath, content)
 }
 
 // ensure compile-time interface compliance

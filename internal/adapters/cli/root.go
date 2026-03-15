@@ -17,6 +17,10 @@ func NewRootCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Com
 	}
 
 	root.AddCommand(NewInitCommand(git, config))
+	root.AddCommand(NewAddCommand(git, config))
+	root.AddCommand(NewBoardCommand(git, config))
+	root.AddCommand(NewHookCommand(git, config))
+	root.AddCommand(NewCIDoneCommand(git, config))
 
 	return root
 }
