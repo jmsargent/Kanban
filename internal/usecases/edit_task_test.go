@@ -13,10 +13,11 @@ import (
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
-// Test Budget: 2 behaviors x 2 = 4 max unit tests (using 3)
+// Test Budget: 3 behaviors x 2 = 6 max unit tests (using 5)
 // Behaviors:
 //  1. Edit task returns diff with changed fields when fields are modified
 //  2. Edit task returns ErrTaskNotFound when task does not exist
+//  3. Edit task rejects empty title after editor clears it
 
 // ─── Fakes ───────────────────────────────────────────────────────────────────
 
@@ -126,6 +127,29 @@ func TestEditTask_ReturnsErrTaskNotFound_WhenTaskDoesNotExist(t *testing.T) {
 
 	if !errors.Is(err, ports.ErrTaskNotFound) {
 		t.Errorf("expected ErrTaskNotFound, got: %v", err)
+	}
+}
+
+func TestEditTask_ReturnsError_WhenEditorClearsTitle(t *testing.T) {
+	repoRoot := tmpRepo(t)
+	original := domain.Task{ID: "TASK-001", Title: "Has a title"}
+	repo := &editTaskRepo{findResult: original}
+
+	dir := t.TempDir()
+	script := filepath.Join(dir, "clear-title.sh")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\nsed -i.bak 's/^title: .*/title: /' \"$1\"\n"), 0755); err != nil {
+		t.Fatalf("write clear-title editor: %v", err)
+	}
+	t.Setenv("EDITOR", script)
+
+	uc := usecases.NewEditTask(repo)
+	_, err := uc.Execute(repoRoot, "TASK-001")
+
+	if err == nil {
+		t.Fatal("expected error when editor clears the title, got nil")
+	}
+	if repo.updated != nil {
+		t.Error("expected Update NOT to be called when title is invalid")
 	}
 }
 
