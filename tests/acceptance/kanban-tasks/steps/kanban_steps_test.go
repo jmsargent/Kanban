@@ -281,9 +281,11 @@ func (k *kanbanCtx) aTaskFileExistsAs(taskID string) error {
 }
 
 func (k *kanbanCtx) theGitCommitHookIsInstalled() error {
-	k.run("install-hook")
+	// kanban init installs the commit-msg hook as part of its setup.
+	// Re-running init is idempotent; this step ensures the hook is present.
+	k.run("init")
 	if k.lastExit != 0 {
-		return fmt.Errorf("kanban install-hook failed: %s", k.lastOutput)
+		return fmt.Errorf("kanban init (to install hook) failed: %s", k.lastOutput)
 	}
 	return nil
 }
@@ -1038,5 +1040,8 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	})
 	sc.Step(`^"([^"]*)" appears under TODO$`, func(title string) error {
 		return k.theBoardShowsTitleUnderHeading(title, "TODO")
+	})
+	sc.Step(`^"([^"]*)" shows "([^"]*)" under IN PROGRESS$`, func(_, taskID string) error {
+		return k.theBoardShowsTitleUnderHeading(taskID, "IN PROGRESS")
 	})
 }
