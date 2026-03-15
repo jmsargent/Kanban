@@ -14,7 +14,6 @@ Feature: Automatic task status transitions via git commit hook and CI pipeline
   # Driving port: GitHookAdapter (kanban _hook commit-msg)
   # ---------------------------------------------------------------------------
 
-  @skip
   Scenario: First commit referencing a task advances it to in-progress
     Given a task "Fix OAuth login bug" exists with status "todo" as "TASK-001"
     And the git commit hook is installed

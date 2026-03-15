@@ -3,6 +3,8 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -24,7 +26,8 @@ func NewHookCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Com
 }
 
 // newCommitMsgHookCommand handles "kanban _hook commit-msg <msg-file>".
-// It reads the commit message, finds TASK-NNN references, and advances tasks.
+// It reads the commit message, finds TASK-NNN references, and advances todo tasks to in-progress.
+// The hook ALWAYS exits 0 — panics and errors are written to .kanban/hook.log.
 func newCommitMsgHookCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Command {
 	return &cobra.Command{
 		Use:    "commit-msg <msg-file>",
@@ -33,25 +36,36 @@ func newCommitMsgHookCommand(git ports.GitPort, config ports.ConfigRepository) *
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			msgFile := args[0]
-			data, err := os.ReadFile(msgFile)
-			if err != nil {
-				// Hook must not block commits; log and exit 0.
-				fmt.Fprintf(os.Stderr, "kanban hook: cannot read commit-msg file: %v\n", err)
-				return nil
-			}
 
 			repoRoot, err := git.RepoRoot()
 			if err != nil {
 				return nil // not in a git repo; silently skip
 			}
 
+			data, readErr := os.ReadFile(msgFile)
+			if readErr != nil {
+				appendHookLog(repoRoot, fmt.Sprintf("cannot read commit-msg file: %v", readErr))
+				return nil
+			}
+
 			tasks := filesystem.NewTaskRepository()
-			uc := usecases.NewTransitionTask(config, tasks)
-			if err := uc.AdvanceByCommitMessage(repoRoot, string(data)); err != nil {
-				// Log but do not block the commit.
-				fmt.Fprintf(os.Stderr, "kanban hook: %v\n", err)
+			uc := usecases.NewTransitionToInProgress(config, tasks, cmd.OutOrStdout())
+			if execErr := uc.Execute(repoRoot, string(data)); execErr != nil {
+				appendHookLog(repoRoot, fmt.Sprintf("transition error: %v", execErr))
 			}
 			return nil
 		},
 	}
+}
+
+// appendHookLog appends msg to {repoRoot}/.kanban/hook.log in append-only mode.
+// Silently discards write errors to prevent blocking the commit.
+func appendHookLog(repoRoot, msg string) {
+	logPath := filepath.Join(repoRoot, ".kanban", "hook.log")
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fmt.Fprintf(f, "[%s] %s\n", time.Now().UTC().Format(time.RFC3339), msg)
 }
