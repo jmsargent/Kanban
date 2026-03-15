@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/kanban-tasks/kanban/internal/adapters/cli"
-	gitadapter "github.com/kanban-tasks/kanban/internal/adapters/git"
 	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
+	gitadapter "github.com/kanban-tasks/kanban/internal/adapters/git"
 )
 
 func main() {

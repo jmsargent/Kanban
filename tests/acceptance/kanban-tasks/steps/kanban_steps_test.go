@@ -235,7 +235,28 @@ func (k *kanbanCtx) aTaskExistsWithStatus(title, status string) error {
 }
 
 func (k *kanbanCtx) aTaskExistsWithStatusAs(title, status, taskID string) error {
-	return k.aTaskExistsWithStatus(title, status)
+	if err := k.aTaskExistsWithStatus(title, status); err != nil {
+		return err
+	}
+	// If a specific taskID was requested, rename the auto-generated file to match.
+	if taskID != "" && k.lastTaskID != "" && k.lastTaskID != taskID {
+		oldPath := k.taskFilePath(k.lastTaskID)
+		newPath := k.taskFilePath(taskID)
+		// Update the ID field inside the file content.
+		content, err := os.ReadFile(oldPath)
+		if err != nil {
+			return fmt.Errorf("read task file: %w", err)
+		}
+		updated := strings.ReplaceAll(string(content), "id: "+k.lastTaskID, "id: "+taskID)
+		if err := os.WriteFile(newPath, []byte(updated), 0644); err != nil {
+			return fmt.Errorf("write renamed task file: %w", err)
+		}
+		if err := os.Remove(oldPath); err != nil {
+			return fmt.Errorf("remove old task file: %w", err)
+		}
+		k.lastTaskID = taskID
+	}
+	return nil
 }
 
 func (k *kanbanCtx) noTasksExistYet() error {
@@ -273,8 +294,14 @@ func (k *kanbanCtx) theEnvironmentVariableIsSet(varName string) error {
 }
 
 func (k *kanbanCtx) thePipelineRunIncludesACommitWith(taskID string) error {
-	// Record in context — used by CI step invocation
+	// Record in context and create a real git commit referencing the task so that
+	// CommitMessagesInRange can find it.
 	k.lastTaskID = taskID
+	// Stage any pending changes first (e.g. the task file written by aTaskExistsWithStatusAs).
+	_, _ = k.git("add", "-A")
+	if _, err := k.git("commit", "--allow-empty", "-m", taskID+": work in progress"); err != nil {
+		return fmt.Errorf("create pipeline commit referencing %s: %w", taskID, err)
+	}
 	return nil
 }
 

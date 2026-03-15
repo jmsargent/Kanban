@@ -7,14 +7,18 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
-	"github.com/kanban-tasks/kanban/internal/domain"
 	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
 // NewCIDoneCommand builds the "kanban ci-done" command.
-// It advances all in-progress tasks that are referenced by recent commits to done.
+// It advances all in-progress tasks referenced by commits in the pipeline range to done
+// and commits the updated files back with [skip ci] to prevent CI recursion.
 func NewCIDoneCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Command {
-	return &cobra.Command{
+	var fromRef string
+	var toRef string
+
+	cmd := &cobra.Command{
 		Use:   "ci-done",
 		Short: "Advance in-progress tasks to done after CI pipeline succeeds",
 		Args:  cobra.NoArgs,
@@ -25,23 +29,43 @@ func NewCIDoneCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.C
 				os.Exit(1)
 			}
 
-			tasks := filesystem.NewTaskRepository()
-			allTasks, err := tasks.ListAll(repoRoot)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error listing tasks: %v\n", err)
-				os.Exit(1)
-			}
+			from := resolveFrom(fromRef)
+			to := resolveTo(toRef)
 
-			for _, t := range allTasks {
-				if t.Status != domain.StatusInProgress {
-					continue
-				}
-				t.Status = domain.StatusDone
-				if updateErr := tasks.Update(repoRoot, t); updateErr != nil {
-					fmt.Fprintf(os.Stderr, "Error updating %s: %v\n", t.ID, updateErr)
-				}
+			tasks := filesystem.NewTaskRepository()
+			uc := usecases.NewTransitionToDone(git, tasks, config, os.Stdout)
+			if execErr := uc.Execute(repoRoot, from, to); execErr != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", execErr)
+				os.Exit(1)
 			}
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&fromRef, "from", "", "Start of commit range (defaults to GITHUB_BASE_SHA or CI_COMMIT_BEFORE_SHA env vars, then HEAD^)")
+	cmd.Flags().StringVar(&toRef, "to", "HEAD", "End of commit range (default: HEAD)")
+
+	return cmd
+}
+
+// resolveFrom returns the --from value or falls back to CI environment variables,
+// then to HEAD^ when nothing is configured.
+func resolveFrom(flag string) string {
+	if flag != "" {
+		return flag
+	}
+	for _, envVar := range []string{"GITHUB_BASE_SHA", "CI_COMMIT_BEFORE_SHA"} {
+		if val := os.Getenv(envVar); val != "" {
+			return val
+		}
+	}
+	return "HEAD^"
+}
+
+// resolveTo returns the --to value, defaulting to HEAD.
+func resolveTo(flag string) string {
+	if flag != "" {
+		return flag
+	}
+	return "HEAD"
 }

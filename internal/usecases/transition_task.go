@@ -48,15 +48,12 @@ func (u *TransitionTask) AdvanceByCommitMessage(repoRoot, message string) error 
 			return fmt.Errorf("find task %s: %w", id, findErr)
 		}
 
-		var next domain.TaskStatus
-		switch task.Status {
-		case domain.StatusTodo:
-			next = domain.StatusInProgress
-		case domain.StatusInProgress:
-			next = domain.StatusDone
-		default:
+		// The commit-msg hook only handles todo → in-progress.
+		// In-progress → done is managed exclusively by the CI pipeline (kanban ci-done).
+		if task.Status != domain.StatusTodo {
 			continue
 		}
+		next := domain.StatusInProgress
 
 		if !domain.CanTransitionTo(task.Status, next) {
 			continue
