@@ -37,7 +37,7 @@ Feature: Developer tracks work end-to-end without leaving the terminal
     And "Write integration tests" appears under TODO
     And the exit code is 0
 
-  @walking_skeleton @skip
+  @walking_skeleton
   Scenario: Developer edits a task and then removes it when the work is cancelled
     Given the repository is initialised with kanban
     And a task "Migrate database schema" exists with status "todo"

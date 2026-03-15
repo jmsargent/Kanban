@@ -339,6 +339,122 @@ func (k *kanbanCtx) iRunKanbanEditOnThatTaskAndAddADescription() error {
 	return os.WriteFile(k.taskFilePath(taskID), []byte(content), 0644)
 }
 
+// iRunKanbanEditOnThatTaskAndUpdateTitleTo invokes "kanban edit <taskID>" with a
+// mock EDITOR script that rewrites the title field in the temp file.
+func (k *kanbanCtx) iRunKanbanEditOnThatTaskAndUpdateTitleTo(_, newTitle string) error {
+	taskID := k.lastTaskID
+	if taskID == "" {
+		taskID = k.findTaskIDByTitle("Migrate database schema")
+	}
+	if taskID == "" {
+		return fmt.Errorf("could not find task ID in context or on disk")
+	}
+
+	// Write a small shell script that acts as $EDITOR: it reads the temp file,
+	// replaces the title line, and writes it back.
+	scriptDir, err := os.MkdirTemp("", "kanban-editor-*")
+	if err != nil {
+		return fmt.Errorf("create editor script dir: %w", err)
+	}
+	k.cleanupDirs = append(k.cleanupDirs, scriptDir)
+
+	scriptPath := filepath.Join(scriptDir, "editor.sh")
+	// The script receives the temp file path as $1, rewrites the title line.
+	script := fmt.Sprintf("#!/bin/sh\nsed -i.bak 's/^title: .*/title: %s/' \"$1\"\n", newTitle)
+	if err := os.WriteFile(scriptPath, []byte(script), 0755); err != nil {
+		return fmt.Errorf("write editor script: %w", err)
+	}
+
+	env := append(k.env, "EDITOR="+scriptPath)
+	cmd := exec.Command(k.binPath, "edit", taskID)
+	cmd.Dir = k.repoDir
+	cmd.Env = env
+
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+	runErr := cmd.Run()
+	k.lastOutput = buf.String()
+	k.lastStdout = k.lastOutput
+	k.lastStderr = ""
+	k.lastExit = 0
+	if exitErr, ok := runErr.(*exec.ExitError); ok {
+		k.lastExit = exitErr.ExitCode()
+	} else if runErr != nil {
+		k.lastExit = 1
+	}
+	// Track the edited task ID for subsequent steps
+	if taskID != "" {
+		k.lastTaskID = taskID
+	}
+	return nil
+}
+
+// iRunKanbanDeleteOnThatTaskAndConfirmWith runs "kanban delete <taskID>" and
+// pipes the confirmation character to stdin.
+func (k *kanbanCtx) iRunKanbanDeleteOnThatTaskAndConfirmWith(_, confirm string) error {
+	taskID := k.lastTaskID
+	if taskID == "" {
+		return fmt.Errorf("no task ID in context")
+	}
+
+	cmd := exec.Command(k.binPath, "delete", taskID)
+	cmd.Dir = k.repoDir
+	cmd.Env = k.env
+	cmd.Stdin = strings.NewReader(confirm + "\n")
+
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+	runErr := cmd.Run()
+	k.lastOutput = buf.String()
+	k.lastStdout = k.lastOutput
+	k.lastStderr = ""
+	k.lastExit = 0
+	if exitErr, ok := runErr.(*exec.ExitError); ok {
+		k.lastExit = exitErr.ExitCode()
+	} else if runErr != nil {
+		k.lastExit = 1
+	}
+	return nil
+}
+
+func (k *kanbanCtx) outputConfirmsWhichFieldsChanged() error {
+	if !strings.Contains(k.lastOutput, "title") {
+		return fmt.Errorf("expected output to report changed fields (title), got:\n%s", k.lastOutput)
+	}
+	return nil
+}
+
+func (k *kanbanCtx) theBoardShowsUpdatedTitle() error {
+	k.run("board")
+	if !strings.Contains(k.lastOutput, "Migrate user table schema") {
+		return fmt.Errorf("expected board to show updated title 'Migrate user table schema', got:\n%s", k.lastOutput)
+	}
+	return nil
+}
+
+func (k *kanbanCtx) theTaskIsNoLongerOnTheBoard() error {
+	taskID := k.lastTaskID
+	// Save the current output (from delete command) before running board
+	savedOutput := k.lastOutput
+	k.run("board")
+	boardOutput := k.lastOutput
+	// Restore the delete output so subsequent assertions can check it
+	k.lastOutput = savedOutput
+	if strings.Contains(boardOutput, taskID) {
+		return fmt.Errorf("expected task %s to be absent from board, but found it:\n%s", taskID, boardOutput)
+	}
+	return nil
+}
+
+func (k *kanbanCtx) outputSuggestsGitCommitCommand() error {
+	if !strings.Contains(k.lastOutput, "git commit") {
+		return fmt.Errorf("expected output to suggest a git commit command, got:\n%s", k.lastOutput)
+	}
+	return nil
+}
+
 func (k *kanbanCtx) iRunKanbanDeleteOnTaskAndEnterY(taskID string) error {
 	cmd := exec.Command(k.binPath, "delete", taskID)
 	cmd.Dir = k.repoDir
@@ -765,6 +881,16 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^I run "kanban board" with the machine output flag$`, k.iRunKanbanBoardWithMachineOutputFlag)
 	sc.Step(`^I run "kanban board" with output piped to another process$`, k.iRunKanbanBoardWithOutputPiped)
 	sc.Step(`^I run "kanban edit" on that task and add a description in the editor$`, k.iRunKanbanEditOnThatTaskAndAddADescription)
+	sc.Step(`^I run "kanban edit" on that task and update the title to "([^"]*)"$`, func(newTitle string) error {
+		return k.iRunKanbanEditOnThatTaskAndUpdateTitleTo("kanban edit", newTitle)
+	})
+	sc.Step(`^I run "kanban delete" on that task and confirm with "([^"]*)"$`, func(confirm string) error {
+		return k.iRunKanbanDeleteOnThatTaskAndConfirmWith("kanban delete", confirm)
+	})
+	sc.Step(`^output confirms which fields changed$`, k.outputConfirmsWhichFieldsChanged)
+	sc.Step(`^the board shows the updated title$`, k.theBoardShowsUpdatedTitle)
+	sc.Step(`^the task is no longer on the board$`, k.theTaskIsNoLongerOnTheBoard)
+	sc.Step(`^output suggests a git commit command to record the deletion$`, k.outputSuggestsGitCommitCommand)
 	sc.Step(`^I run "kanban delete" on "([^"]*)" and enter "y" at the confirmation prompt$`, k.iRunKanbanDeleteOnTaskAndEnterY)
 	sc.Step(`^I run "kanban delete" on "([^"]*)" and enter "n" at the confirmation prompt$`, k.iRunKanbanDeleteOnTaskAndEnterN)
 	sc.Step(`^I run "kanban delete" on "([^"]*)" with the force flag$`, k.iRunKanbanDeleteOnTaskWithForceFlag)
