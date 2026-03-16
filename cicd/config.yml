@@ -100,7 +100,7 @@ jobs:
       - go/load-cache
       - go/mod-download
       - run:
-          name: go unit tests
+          name: unit tests
           command: go test ./internal/...
 
   # -------------------------------------------------------------------------
@@ -133,7 +133,9 @@ jobs:
           at: .
       - run:
           name: Add binary to PATH
-          command: echo 'export PATH=$PWD:$PATH' >> $BASH_ENV
+          command: |
+            echo "export PATH=$PWD:$PATH" >> $BASH_ENV
+            echo "export KANBAN_BIN=$PWD/kanban" >> $BASH_ENV
       - go/load-cache
       - go/mod-download
       - run:
