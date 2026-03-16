@@ -14,6 +14,7 @@ Feature: Automatic task status transitions via git commit hook and CI pipeline
   # Driving port: GitHookAdapter (kanban _hook commit-msg)
   # ---------------------------------------------------------------------------
 
+  @ported
   Scenario: First commit referencing a task advances it to in-progress
     Given a task "Fix OAuth login bug" exists with status "todo" as "TASK-001"
     And the git commit hook is installed
@@ -85,6 +86,7 @@ Feature: Automatic task status transitions via git commit hook and CI pipeline
   # Driving port: CIPipelineAdapter (kanban ci-done)
   # ---------------------------------------------------------------------------
 
+  @ported
   Scenario: CI step advances an in-progress task to done when all tests pass
     Given a task "Implement throttle middleware" exists with status "in-progress" as "TASK-003"
     And the pipeline run includes a commit with "TASK-003" in the message

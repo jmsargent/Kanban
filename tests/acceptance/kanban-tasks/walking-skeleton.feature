@@ -6,7 +6,7 @@ Feature: Developer tracks work end-to-end without leaving the terminal
   Background:
     Given I am working in a git repository
 
-  @walking_skeleton
+  @walking_skeleton @ported
   Scenario: Developer completes the full task lifecycle from creation to done
     Given the repository has no kanban setup
     When I run "kanban init"
@@ -37,7 +37,7 @@ Feature: Developer tracks work end-to-end without leaving the terminal
     And "Write integration tests" appears under TODO
     And the exit code is 0
 
-  @walking_skeleton
+  @walking_skeleton @ported
   Scenario: Developer edits a task and then removes it when the work is cancelled
     Given the repository is initialised with kanban
     And a task "Migrate database schema" exists with status "todo"
