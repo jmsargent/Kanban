@@ -186,7 +186,11 @@ jobs:
       - run:
           name: goreleaser release
           command: |
-            curl -sfL https://goreleaser.com/static/run | VERSION=v2.3.2 bash -s -- release --config cicd/goreleaser.yml --clean
+            SNAPSHOT_FLAG=""
+            if ! git describe --exact-match --tags HEAD 2>/dev/null; then
+              SNAPSHOT_FLAG="--snapshot"
+            fi
+            curl -sfL https://goreleaser.com/static/run | VERSION=v2.3.2 bash -s -- release --config cicd/goreleaser.yml --clean $SNAPSHOT_FLAG
           # Environment variables injected from release-context:
           #   GITHUB_TOKEN              — Contents read+write (create Release, upload assets, push tag)
           #   HOMEBREW_TAP_GITHUB_TOKEN — push formula to homebrew-kanban repo
