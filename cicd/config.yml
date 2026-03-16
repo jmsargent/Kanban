@@ -38,17 +38,39 @@ executors:
 # Commands
 # ---------------------------------------------------------------------------
 commands:
-  install-tools:
-    description: "Install golangci-lint and go-arch-lint"
+  install-golangci-lint:
+    description: "Install golangci-lint v1.57.2 (cached)"
     steps:
+      - restore_cache:
+          keys:
+            - golangci-lint-v1.57.2
       - run:
           name: Install golangci-lint
           command: |
-            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-              | sh -s -- -b $(go env GOPATH)/bin v1.57.2
+            if [ ! -f "$(go env GOPATH)/bin/golangci-lint" ]; then
+              curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+                | sh -s -- -b $(go env GOPATH)/bin v1.57.2
+            fi
+      - save_cache:
+          key: golangci-lint-v1.57.2
+          paths:
+            - /home/circleci/go/bin/golangci-lint
+  install-go-arch-lint:
+    description: "Install go-arch-lint v1.14.0 (cached)"
+    steps:
+      - restore_cache:
+          keys:
+            - go-arch-lint-v1.14.0
       - run:
           name: Install go-arch-lint
-          command: go install github.com/fe3dback/go-arch-lint@latest
+          command: |
+            if [ ! -f "$(go env GOPATH)/bin/go-arch-lint" ]; then
+              go install github.com/fe3dback/go-arch-lint@v1.14.0
+            fi
+      - save_cache:
+          key: go-arch-lint-v1.14.0
+          paths:
+            - /home/circleci/go/bin/go-arch-lint
 
 # ---------------------------------------------------------------------------
 # Jobs
@@ -66,7 +88,7 @@ jobs:
       - go/load-cache
       - go/mod-download
       - go/save-cache
-      - install-tools
+      - install-go-arch-lint
       - run:
           name: go-arch-lint check
           command: go-arch-lint check
@@ -81,7 +103,7 @@ jobs:
       - checkout
       - go/load-cache
       - go/mod-download
-      - install-tools
+      - install-golangci-lint
       - run:
           name: go vet
           command: go vet ./...
