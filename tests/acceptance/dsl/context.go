@@ -12,7 +12,6 @@ import (
 // Fields repoDir, lastStdout, lastStderr, lastOutput, and lastExit are populated
 // by run() and read by step factories added in subsequent steps (01-02+).
 //
-//nolint:unused
 type Context struct {
 	t          *testing.T
 	repoDir    string // set by InAGitRepo setup step

@@ -34,6 +34,6 @@ func Then(ctx *Context, step Step) {
 func And(ctx *Context, step Step) {
 	ctx.t.Helper()
 	if err := step.Run(ctx); err != nil {
-		ctx.t.Fatalf("Then: %s: %v", step.Description, err)
+		ctx.t.Fatalf("And: %s: %v", step.Description, err)
 	}
 }

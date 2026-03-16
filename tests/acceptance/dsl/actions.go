@@ -157,17 +157,7 @@ func runWithEditor(ctx *Context, scriptPath, taskID string) error {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
-	ctx.lastStdout = stdout.String()
-	ctx.lastStderr = stderr.String()
-	ctx.lastOutput = ctx.lastStdout + ctx.lastStderr
-	ctx.lastExit = 0
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		ctx.lastExit = exitErr.ExitCode()
-	} else if err != nil {
-		ctx.lastExit = 1
-	}
-
+	captureResult(ctx, cmd.Run(), &stdout, &stderr)
 	if taskID != "" {
 		ctx.lastTaskID = taskID
 	}
@@ -191,16 +181,7 @@ func IRunKanbanDelete(taskID, confirmInput string) Step {
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
 
-			err := cmd.Run()
-			ctx.lastStdout = stdout.String()
-			ctx.lastStderr = stderr.String()
-			ctx.lastOutput = ctx.lastStdout + ctx.lastStderr
-			ctx.lastExit = 0
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				ctx.lastExit = exitErr.ExitCode()
-			} else if err != nil {
-				ctx.lastExit = 1
-			}
+			captureResult(ctx, cmd.Run(), &stdout, &stderr)
 			return nil
 		},
 	}
@@ -230,20 +211,11 @@ func ICommitWithMessage(message string) Step {
 			cmd.Dir = ctx.repoDir
 			cmd.Env = ctx.env
 
-			var buf bytes.Buffer
-			cmd.Stdout = &buf
-			cmd.Stderr = &buf
+			var stdout, stderr bytes.Buffer
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
 
-			err := cmd.Run()
-			ctx.lastOutput = strings.TrimSpace(buf.String())
-			ctx.lastStdout = ctx.lastOutput
-			ctx.lastStderr = ""
-			ctx.lastExit = 0
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				ctx.lastExit = exitErr.ExitCode()
-			} else if err != nil {
-				ctx.lastExit = 1
-			}
+			captureResult(ctx, cmd.Run(), &stdout, &stderr)
 			return nil
 		},
 	}

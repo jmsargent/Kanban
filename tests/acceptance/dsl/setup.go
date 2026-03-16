@@ -126,7 +126,7 @@ func ATaskWithStatus(title, status string) Step {
 				return fmt.Errorf("could not determine task ID from output: %s", ctx.lastOutput)
 			}
 			if status != "todo" {
-				taskPath := filepath.Join(ctx.repoDir, ".kanban", "tasks", taskID+".md")
+				taskPath := taskFilePath(ctx, taskID)
 				content, err := os.ReadFile(taskPath)
 				if err != nil {
 					return fmt.Errorf("read task file: %w", err)
@@ -151,8 +151,8 @@ func ATaskWithStatusAs(title, status, taskID string) Step {
 				return err
 			}
 			if taskID != "" && ctx.lastTaskID != "" && ctx.lastTaskID != taskID {
-				oldPath := filepath.Join(ctx.repoDir, ".kanban", "tasks", ctx.lastTaskID+".md")
-				newPath := filepath.Join(ctx.repoDir, ".kanban", "tasks", taskID+".md")
+				oldPath := taskFilePath(ctx, ctx.lastTaskID)
+				newPath := taskFilePath(ctx, taskID)
 				content, err := os.ReadFile(oldPath)
 				if err != nil {
 					return fmt.Errorf("read task file: %w", err)
@@ -204,8 +204,7 @@ func TaskFileExistsAs(taskID string) Step {
 	return Step{
 		Description: fmt.Sprintf("task file %s.md exists", taskID),
 		Run: func(ctx *Context) error {
-			taskPath := filepath.Join(ctx.repoDir, ".kanban", "tasks", taskID+".md")
-			if _, err := os.Stat(taskPath); os.IsNotExist(err) {
+			if _, err := os.Stat(taskFilePath(ctx, taskID)); os.IsNotExist(err) {
 				return fmt.Errorf("expected task file %s.md to exist", taskID)
 			}
 			return nil
