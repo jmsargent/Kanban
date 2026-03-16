@@ -191,9 +191,8 @@ func TestActionCIStepRunsFail(t *testing.T) {
 	dsl.Given(ctx, dsl.ATaskWithStatusAs("CI fail task", "in-progress", "TASK-011"))
 	dsl.Given(ctx, dsl.PipelineCommitWith("TASK-011"))
 	dsl.When(ctx, dsl.CIStepRunsFail())
-	// ci-done with KANBAN_TEST_EXIT=1 should still exit 0 (non-blocking) or non-zero
-	// depending on implementation; we assert the step completes without panic.
-	// The observable behavior is that the step runs without error in the DSL sense.
+	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.TaskHasStatus("TASK-011", "done"))
 }
 
 // TestActionIRunKanbanEditTitle verifies that IRunKanbanEditTitle runs kanban edit

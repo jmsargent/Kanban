@@ -1,7 +1,6 @@
 package dsl_test
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -170,24 +169,15 @@ func TestAssertionNoANSIEscapeCodes_Pass(t *testing.T) {
 	dsl.Then(ctx, dsl.NoANSIEscapeCodes())
 }
 
-// TestAssertionNoANSIEscapeCodes_Fail verifies that output with escape sequences fails.
+// TestAssertionNoANSIEscapeCodes_Fail verifies that output containing ANSI escape
+// sequences causes NoANSIEscapeCodes to return an error.
 func TestAssertionNoANSIEscapeCodes_Fail(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
-	// Inject ANSI codes into output manually via a custom step.
-	injectStep := dsl.Step{
-		Description: "inject ANSI codes into lastOutput",
-		Run: func(c *dsl.Context) error {
-			// We cannot set lastOutput directly (unexported), so we skip
-			// this test variant — the positive case above is sufficient coverage.
-			return nil
-		},
-	}
-	dsl.Given(ctx, injectStep)
-	// Verify the factory itself exists and returns a Step.
+	dsl.Given(ctx, dsl.WithLastOutput("\033[31mred text\033[0m"))
 	step := dsl.NoANSIEscapeCodes()
-	if step.Description == "" {
-		t.Fatal("NoANSIEscapeCodes returned a Step with empty description")
+	if err := step.Run(ctx); err == nil {
+		t.Fatal("NoANSIEscapeCodes should return an error when output contains ANSI escape sequences")
 	}
 }
 
@@ -243,22 +233,14 @@ func TestAssertionConfigFileHasDefaults(t *testing.T) {
 
 // ─── NoKanbanOutputLines ─────────────────────────────────────────────────────
 
-// TestAssertionNoKanbanOutputLines_Fail verifies an error when "kanban:" prefix lines appear.
+// TestAssertionNoKanbanOutputLines_Fail verifies that output containing a "kanban:"
+// prefix line causes NoKanbanOutputLines to return an error.
 func TestAssertionNoKanbanOutputLines_Fail(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
-	// Inject output with "kanban:" prefix via a custom step.
-	injectStep := dsl.Step{
-		Description: "inject kanban-prefixed output",
-		Run: func(c *dsl.Context) error {
-			// Cannot set unexported field directly — verify factory exists.
-			return fmt.Errorf("injected")
-		},
-	}
-	// Verify factory returns a valid Step (smoke: description not empty).
+	dsl.Given(ctx, dsl.WithLastOutput("kanban: error: something went wrong\n"))
 	step := dsl.NoKanbanOutputLines()
-	if step.Description == "" {
-		t.Fatal("NoKanbanOutputLines returned a Step with empty description")
+	if err := step.Run(ctx); err == nil {
+		t.Fatal("NoKanbanOutputLines should return an error when output contains kanban: prefix lines")
 	}
-	_ = injectStep
 }

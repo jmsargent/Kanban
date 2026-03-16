@@ -255,3 +255,15 @@ func PipelineCommitWith(taskID string) Step {
 		},
 	}
 }
+
+// WithLastOutput sets ctx.lastOutput to the given string, allowing assertion
+// step factories to be tested in isolation without invoking a subprocess.
+func WithLastOutput(output string) Step {
+	return Step{
+		Description: fmt.Sprintf("with last output %q", output),
+		Run: func(ctx *Context) error {
+			ctx.lastOutput = output
+			return nil
+		},
+	}
+}
