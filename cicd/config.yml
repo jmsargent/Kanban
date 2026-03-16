@@ -12,7 +12,7 @@
 #
 #   Job order:
 #     arch-gate → static-analysis ─┐
-#                                   ├→ build → acceptance → release
+#                                   ├→ build → acceptance → tag → release
 #                test ──────────────┘
 #
 # Contexts required (configure in CircleCI org settings):
@@ -71,6 +71,22 @@ commands:
           key: go-arch-lint-v1.14.0
           paths:
             - /home/circleci/go/bin/go-arch-lint
+  install-go-semver-release:
+    description: "Install go-semver-release v6.1.0 (cached)"
+    steps:
+      - restore_cache:
+          keys:
+            - go-semver-release-v6.1.0
+      - run:
+          name: Install go-semver-release
+          command: |
+            if [ ! -f "$(go env GOPATH)/bin/go-semver-release" ]; then
+              go install github.com/s0ders/go-semver-release/v6/cmd/go-semver-release@v6.1.0
+            fi
+      - save_cache:
+          key: go-semver-release-v6.1.0
+          paths:
+            - /home/circleci/go/bin/go-semver-release
 
 # ---------------------------------------------------------------------------
 # Jobs
@@ -165,33 +181,59 @@ jobs:
           command: go test ./tests/acceptance/...
 
   # -------------------------------------------------------------------------
+  # tag: compute next semver from conventional commits and push the tag.
+  # Runs after acceptance. go-semver-release reads commits since the last
+  # tag, bumps major/minor/patch per the commit types, and pushes the new tag.
+  # The release job then runs goreleaser against that tag.
+  # Secrets injected via CircleCI "release-context" (needs GITHUB_TOKEN to push tag).
+  # -------------------------------------------------------------------------
+  tag:
+    executor: go-executor
+    steps:
+      - checkout
+      - run:
+          name: Fetch full git history and tags
+          command: git fetch --unshallow --tags || git fetch --tags
+      - go/load-cache
+      - go/mod-download
+      - install-go-semver-release
+      - run:
+          name: Compute and push semver tag
+          command: |
+            git config user.email "ci-bot@users.noreply.github.com"
+            git config user.name "ci-bot"
+            go-semver-release run \
+              --git-path . \
+              --tag-prefix v \
+              --remote origin \
+              --token $GITHUB_TOKEN \
+              --branch main
+          # GITHUB_TOKEN injected from release-context (Contents read+write)
+
+  # -------------------------------------------------------------------------
   # release: goreleaser — cross-compile 6 targets, publish GitHub Release,
   # update Homebrew formula in homebrew-kanban repo.
   #
-  # Runs only after acceptance passes. This is the CD step.
+  # Runs only after tag pushes a new semver tag. This is the CD step.
   # Secrets injected via CircleCI "release-context".
   #
-  # goreleaser creates a semver tag and pushes it. The Homebrew formula
-  # commit uses [skip ci] in its message to prevent a re-trigger loop
-  # in the homebrew-kanban repo.
+  # The Homebrew formula commit uses [skip ci] in its message to prevent
+  # a re-trigger loop in the homebrew-kanban repo.
   # -------------------------------------------------------------------------
   release:
     executor: go-executor
     steps:
       - checkout
-      - attach_workspace:
-          at: .
+      - run:
+          name: Fetch tags
+          command: git fetch --tags
       - go/load-cache
       - go/mod-download
       - run:
           name: goreleaser release
           command: |
             export GITHUB_REPOSITORY_OWNER=$CIRCLE_PROJECT_USERNAME
-            SNAPSHOT_FLAG=""
-            if ! git describe --exact-match --tags HEAD 2>/dev/null; then
-              SNAPSHOT_FLAG="--snapshot"
-            fi
-            curl -sfL https://goreleaser.com/static/run | VERSION=v2.3.2 bash -s -- release --config cicd/goreleaser.yml --clean $SNAPSHOT_FLAG
+            curl -sfL https://goreleaser.com/static/run | VERSION=v2.3.2 bash -s -- release --config cicd/goreleaser.yml --clean
           # Environment variables injected from release-context:
           #   GITHUB_TOKEN              — Contents read+write (create Release, upload assets, push tag)
           #   HOMEBREW_TAP_GITHUB_TOKEN — push formula to homebrew-kanban repo
@@ -243,10 +285,20 @@ workflows:
             branches:
               only: main
 
-      # Step 5: Release via goreleaser (CD — after acceptance passes)
-      - release:
+      # Step 5: Compute and push semver tag from conventional commits
+      - tag:
           requires:
             - acceptance
+          context:
+            - release-context
+          filters:
+            branches:
+              only: main
+
+      # Step 6: Release via goreleaser (CD — after tag is pushed)
+      - release:
+          requires:
+            - tag
           context:
             - release-context
           filters:
