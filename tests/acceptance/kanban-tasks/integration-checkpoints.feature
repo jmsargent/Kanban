@@ -20,7 +20,7 @@ Feature: Exit codes, error handling, file format integrity, and CI/CD smoke test
     When I run each of the following commands successfully:
       | command                         |
       | kanban board                    |
-      | kanban add "Verify exit codes"  |
+      | kanban new "Verify exit codes"  |
     Then each command exits with code 0
 
   @skip
@@ -51,15 +51,15 @@ Feature: Exit codes, error handling, file format integrity, and CI/CD smoke test
 
     Examples:
       | command                                    |
-      | kanban add with empty title                |
-      | kanban add with past due date 2025-01-01   |
+      | kanban new with empty title                |
+      | kanban new with past due date 2025-01-01   |
 
   @skip
   Scenario: All commands support --help with usage and at least one example
     When I run each kanban command with the help flag:
       | command        |
       | kanban init    |
-      | kanban add     |
+      | kanban new     |
       | kanban board   |
       | kanban edit    |
       | kanban delete  |
@@ -87,20 +87,20 @@ Feature: Exit codes, error handling, file format integrity, and CI/CD smoke test
     Examples:
       | command                    |
       | kanban init                |
-      | kanban add "Test task"     |
+      | kanban new "Test task"     |
       | kanban board               |
       | kanban edit TASK-001       |
       | kanban delete TASK-001     |
 
   # ---------------------------------------------------------------------------
   # Task file format integrity
-  # Driving port: CLI (kanban add, then file content assertions)
+  # Driving port: CLI (kanban new, then file content assertions)
   # ---------------------------------------------------------------------------
 
   @skip
   Scenario: Created task file contains valid YAML front matter
     Given the repository is initialised with kanban
-    When I run "kanban add" with title "Format validation task"
+    When I run "kanban new" with title "Format validation task"
     Then the created task file begins with a YAML front matter block
     And the front matter contains the fields: id, title, status, priority, due, assignee
 
@@ -115,7 +115,7 @@ Feature: Exit codes, error handling, file format integrity, and CI/CD smoke test
   @skip
   Scenario: Task file written atomically -- no partial writes visible
     Given the repository is initialised with kanban
-    When I run "kanban add" with title "Atomic write test"
+    When I run "kanban new" with title "Atomic write test"
     Then the task file is complete and parseable immediately after the command exits
     And no partial or temporary files remain in the tasks directory
 
@@ -158,7 +158,7 @@ Feature: Exit codes, error handling, file format integrity, and CI/CD smoke test
     When the CI pipeline executes the following sequence:
       | step                                              |
       | kanban init                                       |
-      | kanban add "Pipeline smoke test task"             |
+      | kanban new "Pipeline smoke test task"             |
       | commit with message referencing the task ID       |
       | kanban ci-done after simulated test pass          |
     Then "kanban board" shows the task under DONE

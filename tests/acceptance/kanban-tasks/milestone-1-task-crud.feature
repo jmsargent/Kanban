@@ -39,14 +39,14 @@ Feature: Task creation, viewing, editing, and deletion
 
   # ---------------------------------------------------------------------------
   # US-02: Create Task
-  # Driving port: CLI (kanban add)
+  # Driving port: CLI (kanban new)
   # ---------------------------------------------------------------------------
 
   @skip
   Scenario: Developer creates a task with title only
     Given the repository is initialised with kanban
     And no tasks exist yet
-    When I run "kanban add" with title "Fix OAuth login bug"
+    When I run "kanban new" with title "Fix OAuth login bug"
     Then a task file "TASK-001.md" is created in the tasks directory
     And the task file records status "todo" and title "Fix OAuth login bug"
     And output shows "Created" with the task ID "TASK-001" and title
@@ -56,7 +56,7 @@ Feature: Task creation, viewing, editing, and deletion
   @skip
   Scenario: Developer creates a task with all optional fields
     Given the repository is initialised with kanban
-    When I run "kanban add" with title "API rate limiting" and priority "P1" and due date "2026-03-20" and assignee "Alex Kim"
+    When I run "kanban new" with title "API rate limiting" and priority "P1" and due date "2026-03-20" and assignee "Alex Kim"
     Then the task file records priority "P1", due date "2026-03-20", and assignee "Alex Kim"
     And "kanban board" shows all four fields on that task line
     And the exit code is 0
@@ -65,14 +65,14 @@ Feature: Task creation, viewing, editing, and deletion
   Scenario: Task IDs increment sequentially
     Given the repository is initialised with kanban
     And a task "First task" exists as "TASK-001"
-    When I run "kanban add" with title "Second task"
+    When I run "kanban new" with title "Second task"
     Then a task file "TASK-002.md" is created
     And output shows "Created" with task ID "TASK-002"
 
   @skip
   Scenario: Creating a task fails when no title is provided
     Given the repository is initialised with kanban
-    When I run "kanban add" with an empty title
+    When I run "kanban new" with an empty title
     Then the exit code is 2
     And output contains "Task title is required"
     And no new task file is created in the tasks directory
@@ -80,7 +80,7 @@ Feature: Task creation, viewing, editing, and deletion
   @skip
   Scenario: Creating a task fails when the due date is in the past
     Given the repository is initialised with kanban
-    When I run "kanban add" with title "Old work" and due date "2025-01-01"
+    When I run "kanban new" with title "Old work" and due date "2025-01-01"
     Then the exit code is 2
     And output contains "Due date must be today or in the future"
     And no new task file is created in the tasks directory
@@ -88,7 +88,7 @@ Feature: Task creation, viewing, editing, and deletion
   @skip
   Scenario: Creating a task fails outside a git repository
     Given the current directory is not a git repository
-    When I run "kanban add" with title "Should not work"
+    When I run "kanban new" with title "Should not work"
     Then the exit code is 1
     And output contains "Not a git repository"
 
@@ -130,7 +130,7 @@ Feature: Task creation, viewing, editing, and deletion
     And no tasks exist yet
     When I run "kanban board"
     Then output contains "No tasks found in .kanban/tasks/"
-    And output contains a suggestion to run "kanban add"
+    And output contains a suggestion to run "kanban new"
 
   @skip
   Scenario: Board outputs valid machine-readable format when requested

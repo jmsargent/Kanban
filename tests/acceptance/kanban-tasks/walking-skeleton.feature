@@ -11,7 +11,7 @@ Feature: Developer tracks work end-to-end without leaving the terminal
     Given the repository has no kanban setup
     When I run "kanban init"
     Then the kanban workspace is ready for use
-    And I run "kanban add" with title "Fix OAuth login bug"
+    And I run "kanban new" with title "Fix OAuth login bug"
     Then a new task is created with status "todo"
     And I run "kanban board"
     Then the board shows "Fix OAuth login bug" under TODO
@@ -28,7 +28,7 @@ Feature: Developer tracks work end-to-end without leaving the terminal
     When I run "kanban init"
     Then output confirms "Initialised kanban at .kanban/"
     And the exit code is 0
-    When I run "kanban add" with title "Write integration tests"
+    When I run "kanban new" with title "Write integration tests"
     Then output shows the created task ID and title
     And output contains a commit tip referencing the task ID
     And the exit code is 0
