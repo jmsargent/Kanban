@@ -1,0 +1,229 @@
+# CircleCI Pipeline Configuration — kanban-tasks
+#
+# IMPORTANT: This file is at a custom path (cicd/config.yml, not .circleci/config.yml).
+# One-time setup required in CircleCI Project Settings:
+#   Project Settings → Advanced → Config File Path → set to: cicd/config.yml
+#
+# Pipeline design:
+#   Single workflow "ci-cd" — all jobs run sequentially on push to main.
+#   The release job (goreleaser) is the final step; it runs only when all
+#   preceding gates pass. This implements "every CI pass → release" without
+#   the complexity of the CircleCI continuation orb.
+#
+#   Job order:
+#     arch-gate → static-analysis ─┐
+#                                   ├→ build → acceptance → release
+#                test ──────────────┘
+#
+# Contexts required (configure in CircleCI org settings):
+#   release-context — must contain:
+#     GITHUB_TOKEN              (scoped to: Contents read+write on kanban repo)
+#     HOMEBREW_TAP_GITHUB_TOKEN (scoped to: homebrew-kanban repo contents only)
+
+version: 2.1
+
+orbs:
+  go: circleci/go@1.11.0
+
+# ---------------------------------------------------------------------------
+# Executors
+# ---------------------------------------------------------------------------
+executors:
+  go-executor:
+    docker:
+      - image: cimg/go:1.22
+    resource_class: medium
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+commands:
+  install-tools:
+    description: "Install golangci-lint and go-arch-lint"
+    steps:
+      - run:
+          name: Install golangci-lint
+          command: |
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+              | sh -s -- -b $(go env GOPATH)/bin v1.57.2
+      - run:
+          name: Install go-arch-lint
+          command: go install github.com/fe3dback/go-arch-lint@latest
+
+# ---------------------------------------------------------------------------
+# Jobs
+# ---------------------------------------------------------------------------
+jobs:
+  # -------------------------------------------------------------------------
+  # arch-gate: fail fast on architecture violations
+  # Runs first — cheapest check (<5s), eliminates the rest of the pipeline
+  # immediately on architecture violations.
+  # -------------------------------------------------------------------------
+  arch-gate:
+    executor: go-executor
+    steps:
+      - checkout
+      - go/load-cache
+      - go/mod-download
+      - go/save-cache
+      - install-tools
+      - run:
+          name: go-arch-lint check
+          command: go-arch-lint check
+
+  # -------------------------------------------------------------------------
+  # static-analysis: go vet + golangci-lint
+  # Runs in parallel with test after arch-gate passes.
+  # -------------------------------------------------------------------------
+  static-analysis:
+    executor: go-executor
+    steps:
+      - checkout
+      - go/load-cache
+      - go/mod-download
+      - install-tools
+      - run:
+          name: go vet
+          command: go vet ./...
+      - run:
+          name: golangci-lint
+          command: golangci-lint run
+
+  # -------------------------------------------------------------------------
+  # test: unit tests + integration tests
+  # Runs in parallel with static-analysis after arch-gate passes.
+  # -------------------------------------------------------------------------
+  test:
+    executor: go-executor
+    steps:
+      - checkout
+      - go/load-cache
+      - go/mod-download
+      - run:
+          name: go test
+          command: go test ./...
+
+  # -------------------------------------------------------------------------
+  # build: compile binary, persist to workspace
+  # Runs after both static-analysis and test pass.
+  # -------------------------------------------------------------------------
+  build:
+    executor: go-executor
+    steps:
+      - checkout
+      - go/load-cache
+      - go/mod-download
+      - run:
+          name: Build binary (linux/amd64 for CI executor)
+          command: go build -o kanban ./cmd/kanban
+      - persist_to_workspace:
+          root: .
+          paths:
+            - kanban
+
+  # -------------------------------------------------------------------------
+  # acceptance: E2E tests — invoke compiled binary as subprocess
+  # Requires the binary from the build job via workspace attachment.
+  # -------------------------------------------------------------------------
+  acceptance:
+    executor: go-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Add binary to PATH
+          command: echo 'export PATH=$PWD:$PATH' >> $BASH_ENV
+      - go/load-cache
+      - go/mod-download
+      - run:
+          name: Acceptance tests (E2E)
+          command: go test ./tests/acceptance/...
+
+  # -------------------------------------------------------------------------
+  # release: goreleaser — cross-compile 6 targets, publish GitHub Release,
+  # update Homebrew formula in homebrew-kanban repo.
+  #
+  # Runs only after acceptance passes. This is the CD step.
+  # Secrets injected via CircleCI "release-context".
+  #
+  # goreleaser creates a semver tag and pushes it. The Homebrew formula
+  # commit uses [skip ci] in its message to prevent a re-trigger loop
+  # in the homebrew-kanban repo.
+  # -------------------------------------------------------------------------
+  release:
+    executor: go-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - go/load-cache
+      - go/mod-download
+      - run:
+          name: Install goreleaser v2
+          command: |
+            curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh \
+              | sh -s -- -b $(go env GOPATH)/bin v2.3.2
+      - run:
+          name: goreleaser release
+          command: goreleaser release --config cicd/goreleaser.yml --clean
+          # Environment variables injected from release-context:
+          #   GITHUB_TOKEN              — Contents read+write (create Release, upload assets, push tag)
+          #   HOMEBREW_TAP_GITHUB_TOKEN — push formula to homebrew-kanban repo
+
+# ---------------------------------------------------------------------------
+# Workflows
+# ---------------------------------------------------------------------------
+workflows:
+  # Single "ci-cd" workflow: CI gates → build → acceptance → release (CD).
+  # Every push to main runs the full pipeline. Release is the final step.
+  ci-cd:
+    jobs:
+      # Step 1: Architecture gate (runs first, standalone)
+      - arch-gate:
+          filters:
+            branches:
+              only: main
+
+      # Step 2a: Static analysis (parallel with test, after arch-gate)
+      - static-analysis:
+          requires:
+            - arch-gate
+          filters:
+            branches:
+              only: main
+
+      # Step 2b: Unit + integration tests (parallel with static-analysis)
+      - test:
+          requires:
+            - arch-gate
+          filters:
+            branches:
+              only: main
+
+      # Step 3: Build binary (after both static-analysis and test pass)
+      - build:
+          requires:
+            - static-analysis
+            - test
+          filters:
+            branches:
+              only: main
+
+      # Step 4: Acceptance tests E2E (after build, uses workspace binary)
+      - acceptance:
+          requires:
+            - build
+          filters:
+            branches:
+              only: main
+
+      # Step 5: Release via goreleaser (CD — after acceptance passes)
+      - release:
+          requires:
+            - acceptance
+          context:
+            - release-context
+          filters:
+            branches:
+              only: main

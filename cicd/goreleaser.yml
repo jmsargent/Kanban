@@ -1,0 +1,162 @@
+# goreleaser v2 configuration — kanban-tasks
+#
+# Invoked by CircleCI CD step: goreleaser release --config cicd/goreleaser.yml --clean
+#
+# Produces:
+#   - GitHub Release with auto-generated changelog
+#   - 6 cross-compiled binary archives (tar.gz / zip)
+#   - checksums.txt (sha256)
+#   - Homebrew formula pushed to homebrew-kanban repo
+#
+# Required environment variables (injected by CircleCI release-context):
+#   GITHUB_TOKEN              — GitHub Release creation, asset upload, tag push
+#   HOMEBREW_TAP_GITHUB_TOKEN — push formula commit to homebrew-kanban repo
+
+version: 2
+
+# ---------------------------------------------------------------------------
+# Project metadata
+# ---------------------------------------------------------------------------
+project_name: kanban
+
+# ---------------------------------------------------------------------------
+# Builds: cross-compile 6 targets from cmd/kanban
+# ---------------------------------------------------------------------------
+builds:
+  - id: kanban
+    main: ./cmd/kanban
+    binary: kanban
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Exclude combinations not in the target matrix (none needed here —
+    # all 6 combinations of [linux, darwin, windows] x [amd64, arm64] are valid)
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+# ---------------------------------------------------------------------------
+# Archives: tar.gz for unix, zip for windows
+# ---------------------------------------------------------------------------
+archives:
+  - id: default
+    ids:
+      - kanban
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - README.md
+      - LICENSE
+    # Silently skip README.md and LICENSE if not present in repo root
+    wrap_in_directory: false
+
+# ---------------------------------------------------------------------------
+# Checksums: one sha256 file covering all archives
+# ---------------------------------------------------------------------------
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+# ---------------------------------------------------------------------------
+# Changelog: auto-generate from commits since last tag
+# Each commit to main is a release; changelog shows all commits since
+# the previous goreleaser tag.
+# ---------------------------------------------------------------------------
+changelog:
+  sort: asc
+  use: git
+  filters:
+    exclude:
+      - "^Merge"
+      - "^\\[skip ci\\]"
+      - "^chore\\(release\\)"
+  groups:
+    - title: Features
+      regexp: "^feat"
+      order: 0
+    - title: Bug Fixes
+      regexp: "^fix"
+      order: 1
+    - title: Tests
+      regexp: "^test"
+      order: 2
+    - title: Refactoring
+      regexp: "^refactor"
+      order: 3
+    - title: Other
+      order: 999
+
+# ---------------------------------------------------------------------------
+# GitHub Releases
+# ---------------------------------------------------------------------------
+release:
+  github:
+    owner: "{{ .Env.GITHUB_REPOSITORY_OWNER }}"
+    name: kanban-tasks
+  # Draft: false — publish immediately (continuous deployment)
+  draft: false
+  prerelease: auto
+  # Auto-generate release name from version tag
+  name_template: "kanban {{.Version}}"
+  # Include the auto-generated changelog in the release body
+  header: |
+    ## kanban {{.Version}}
+
+    Install via Homebrew:
+    ```sh
+    brew tap {{ .Env.GITHUB_REPOSITORY_OWNER }}/kanban
+    brew install kanban
+    ```
+
+    Install via go install:
+    ```sh
+    go install github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/kanban-tasks/cmd/kanban@{{.Version}}
+    ```
+
+    Or download a binary below for your platform.
+
+# ---------------------------------------------------------------------------
+# Homebrew tap: push formula to homebrew-kanban repo
+# ---------------------------------------------------------------------------
+brews:
+  - name: kanban
+    # Repository: the homebrew-kanban tap repo
+    repository:
+      owner: "{{ .Env.GITHUB_REPOSITORY_OWNER }}"
+      name: homebrew-kanban
+      # Authenticate with the tap-specific token (narrower scope than GITHUB_TOKEN)
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    # Commit author for the formula update in homebrew-kanban repo
+    commit_author:
+      name: goreleaser-bot
+      email: goreleaser-bot@users.noreply.github.com
+    # [skip ci] prevents CI in the homebrew-kanban repo from re-triggering
+    # on the automated formula commit. Critical: prevents infinite CI loops.
+    commit_msg_template: "chore(formula): update kanban to {{.Version}} [skip ci]"
+    homepage: "https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/kanban-tasks"
+    description: "Git-native kanban task management CLI — board state driven by commits and CI"
+    license: "MIT"
+    folder: Formula
+    # Formula class name
+    # goreleaser generates: class Kanban < Formula
+    # Install block: installs the binary
+    install: |
+      bin.install "kanban"
+    # Smoke test: verify the installed binary responds to --version
+    test: |
+      system "#{bin}/kanban", "--version"

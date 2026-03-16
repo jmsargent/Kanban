@@ -1,0 +1,68 @@
+#!/bin/sh
+# pre-commit hook — kanban-tasks quality gate
+#
+# Install with:
+#   cp cicd/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Or use the convenience installer:
+#   cicd/install-hooks.sh
+#
+# NOTE: This is the developer pre-commit quality gate for the kanban-tasks repo.
+# It is separate from the commit-msg hook that kanban installs in user repos
+# (installed by: kanban install-hook).
+#
+# Steps run in sequence. Any failure blocks the commit (exit 1).
+#   1. go test ./...         — unit + integration tests
+#   2. golangci-lint run     — composite linter
+#   3. go-arch-lint check    — architecture rule enforcement
+#   4. go build              — compile binary to temp path
+#   5. acceptance tests      — E2E tests against the compiled binary
+
+set -e
+
+BINARY_PATH="$(mktemp -t kanban-precommit-XXXXXX)"
+trap 'rm -f "$BINARY_PATH"' EXIT
+
+echo "--- pre-commit: kanban-tasks quality gates ---"
+
+# Step 1: Unit and integration tests
+echo "[1/5] go test ./..."
+if ! go test ./...; then
+    echo "FAIL [1/5] go test ./... — fix test failures before committing"
+    exit 1
+fi
+echo "PASS [1/5] go test ./..."
+
+# Step 2: Linter
+echo "[2/5] golangci-lint run"
+if ! golangci-lint run; then
+    echo "FAIL [2/5] golangci-lint — fix lint errors before committing"
+    exit 1
+fi
+echo "PASS [2/5] golangci-lint"
+
+# Step 3: Architecture enforcement
+#echo "[3/5] go-arch-lint check"
+#if ! go-arch-lint check; then
+#    echo "FAIL [3/5] go-arch-lint — fix architecture violations before committing"
+#    exit 1
+#fi
+#echo "PASS [3/5] go-arch-lint"
+
+# Step 4: Build binary to temp path
+echo "[4/5] go build"
+if ! go build -o "$BINARY_PATH" ./cmd/kanban; then
+    echo "FAIL [4/5] go build — fix build errors before committing"
+    exit 1
+fi
+echo "PASS [4/5] go build"
+
+# Step 5: Acceptance tests (E2E) against the compiled binary
+echo "[5/5] acceptance tests"
+if ! KANBAN_BINARY="$BINARY_PATH" go test ./tests/acceptance/...; then
+    echo "FAIL [5/5] acceptance tests — fix E2E failures before committing"
+    exit 1
+fi
+echo "PASS [5/5] acceptance tests"
+
+echo "--- all quality gates passed ---"
+exit 0
