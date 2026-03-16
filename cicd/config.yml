@@ -184,13 +184,9 @@ jobs:
       - go/load-cache
       - go/mod-download
       - run:
-          name: Install goreleaser v2
-          command: |
-            curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh \
-              | sh -s -- -b $(go env GOPATH)/bin v2.3.2
-      - run:
           name: goreleaser release
-          command: goreleaser release --config cicd/goreleaser.yml --clean
+          command: |
+            curl -sfL https://goreleaser.com/static/run | VERSION=v2.3.2 bash -s -- release --config cicd/goreleaser.yml --clean
           # Environment variables injected from release-context:
           #   GITHUB_TOKEN              — Contents read+write (create Release, upload assets, push tag)
           #   HOMEBREW_TAP_GITHUB_TOKEN — push formula to homebrew-kanban repo
