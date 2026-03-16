@@ -105,7 +105,7 @@ func (a *GitAdapter) AppendToGitignore(repoRoot, entry string) error {
 	if err != nil {
 		return fmt.Errorf("open .gitignore: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	line := entry + "\n"
 	if len(content) > 0 && !strings.HasSuffix(string(content), "\n") {

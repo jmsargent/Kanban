@@ -27,9 +27,9 @@ type spyGitPort struct {
 	commitFilesCalled bool
 }
 
-func (s *spyGitPort) RepoRoot() (string, error)               { return "", nil }
-func (s *spyGitPort) InstallHook(repoRoot string) error       { return nil }
-func (s *spyGitPort) AppendToGitignore(r, e string) error     { return nil }
+func (s *spyGitPort) RepoRoot() (string, error)           { return "", nil }
+func (s *spyGitPort) InstallHook(repoRoot string) error   { return nil }
+func (s *spyGitPort) AppendToGitignore(r, e string) error { return nil }
 func (s *spyGitPort) CommitMessagesInRange(from, to string) ([]string, error) {
 	return s.messages, nil
 }
@@ -42,9 +42,8 @@ func (s *spyGitPort) CommitFiles(repoRoot, message string, paths []string) error
 }
 
 type spyTaskRepo struct {
-	byID     map[string]domain.Task
-	updated  []domain.Task
-	filePath string // path returned for a task when updated
+	byID    map[string]domain.Task
+	updated []domain.Task
 }
 
 func newSpyTaskRepo() *spyTaskRepo {

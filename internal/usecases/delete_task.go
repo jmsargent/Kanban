@@ -31,12 +31,12 @@ func (u *DeleteTask) Execute(repoRoot, taskID string, force bool, stdin io.Reade
 	}
 
 	if !force {
-		fmt.Fprintf(output, "Delete %s: %s? [y/N] ", task.ID, task.Title)
+		_, _ = fmt.Fprintf(output, "Delete %s: %s? [y/N] ", task.ID, task.Title)
 		reader := bufio.NewReader(stdin)
 		line, _ := reader.ReadString('\n')
 		answer := strings.TrimSpace(line)
 		if answer != "y" && answer != "Y" {
-			fmt.Fprintln(output, "Deletion cancelled")
+			_, _ = fmt.Fprintln(output, "Deletion cancelled")
 			return nil
 		}
 	}
@@ -45,7 +45,7 @@ func (u *DeleteTask) Execute(repoRoot, taskID string, force bool, stdin io.Reade
 		return fmt.Errorf("delete task: %w", err)
 	}
 
-	fmt.Fprintf(output, "Deleted %s\n", task.ID)
-	fmt.Fprintf(output, "Suggested: git commit -m \"chore: remove %s (%s)\"\n", task.ID, task.Title)
+	_, _ = fmt.Fprintf(output, "Deleted %s\n", task.ID)
+	_, _ = fmt.Fprintf(output, "Suggested: git commit -m \"chore: remove %s (%s)\"\n", task.ID, task.Title)
 	return nil
 }

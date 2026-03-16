@@ -120,7 +120,7 @@ func (u *TransitionToInProgress) Execute(repoRoot, message string) (retErr error
 	for _, id := range ids {
 		task, findErr := u.tasks.FindByID(repoRoot, id)
 		if errors.Is(findErr, ports.ErrTaskNotFound) {
-			fmt.Fprintf(u.out, "Warning: task %s not found\n", id)
+			_, _ = fmt.Fprintf(u.out, "Warning: task %s not found\n", id)
 			continue
 		}
 		if findErr != nil {
@@ -139,7 +139,7 @@ func (u *TransitionToInProgress) Execute(repoRoot, message string) (retErr error
 			continue
 		}
 
-		fmt.Fprintf(u.out, "kanban: %s moved  %s -> %s\n", id, prevStatus, task.Status)
+		_, _ = fmt.Fprintf(u.out, "kanban: %s moved  %s -> %s\n", id, prevStatus, task.Status)
 	}
 	return nil
 }

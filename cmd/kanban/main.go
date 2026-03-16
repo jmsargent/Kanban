@@ -12,8 +12,9 @@ import (
 func main() {
 	git := gitadapter.NewGitAdapter()
 	config := filesystem.NewConfigRepository()
+	tasks := filesystem.NewTaskRepository()
 
-	root := cli.NewRootCommand(git, config)
+	root := cli.NewRootCommand(git, config, tasks, tasks)
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
 	"github.com/kanban-tasks/kanban/internal/domain"
 	"github.com/kanban-tasks/kanban/internal/ports"
 	"github.com/kanban-tasks/kanban/internal/usecases"
@@ -16,7 +15,7 @@ import (
 
 // NewBoardCommand builds the "kanban board" cobra command.
 // It retrieves all tasks, groups them by status, and prints a columnar display.
-func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Command {
+func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	var jsonOutput bool
 
 	cmd := &cobra.Command{
@@ -30,7 +29,6 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Co
 				os.Exit(1)
 			}
 
-			tasks := filesystem.NewTaskRepository()
 			uc := usecases.NewGetBoard(config, tasks)
 			board, err := uc.Execute(repoRoot)
 			if err != nil {

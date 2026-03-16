@@ -8,27 +8,26 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
 	"github.com/kanban-tasks/kanban/internal/ports"
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
 // NewHookCommand builds the "kanban _hook" internal command family.
 // These commands are invoked by git hooks installed during "kanban init".
-func NewHookCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Command {
+func NewHookCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	hook := &cobra.Command{
 		Use:    "_hook",
 		Short:  "Internal hook commands (invoked by git hooks)",
 		Hidden: true,
 	}
-	hook.AddCommand(newCommitMsgHookCommand(git, config))
+	hook.AddCommand(newCommitMsgHookCommand(git, config, tasks))
 	return hook
 }
 
 // newCommitMsgHookCommand handles "kanban _hook commit-msg <msg-file>".
 // It reads the commit message, finds TASK-NNN references, and advances todo tasks to in-progress.
 // The hook ALWAYS exits 0 — panics and errors are written to .kanban/hook.log.
-func newCommitMsgHookCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Command {
+func newCommitMsgHookCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	return &cobra.Command{
 		Use:    "commit-msg <msg-file>",
 		Short:  "Advance tasks referenced in a commit message",
@@ -48,7 +47,6 @@ func newCommitMsgHookCommand(git ports.GitPort, config ports.ConfigRepository) *
 				return nil
 			}
 
-			tasks := filesystem.NewTaskRepository()
 			uc := usecases.NewTransitionToInProgress(config, tasks, cmd.OutOrStdout())
 			if execErr := uc.Execute(repoRoot, string(data)); execErr != nil {
 				appendHookLog(repoRoot, fmt.Sprintf("transition error: %v", execErr))
@@ -66,6 +64,6 @@ func appendHookLog(repoRoot, msg string) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
-	fmt.Fprintf(f, "[%s] %s\n", time.Now().UTC().Format(time.RFC3339), msg)
+	defer func() { _ = f.Close() }()
+	_, _ = fmt.Fprintf(f, "[%s] %s\n", time.Now().UTC().Format(time.RFC3339), msg)
 }

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/kanban-tasks/kanban/internal/domain"
 	"github.com/kanban-tasks/kanban/internal/ports"
 	"github.com/kanban-tasks/kanban/internal/usecases"
@@ -56,6 +58,64 @@ func mockEditorScript(t *testing.T, newTitle string) string {
 	return script
 }
 
+// editFileStub is a fake EditFilePort that performs real temp file I/O so that
+// shell script editors used in tests can read and modify the YAML file.
+type editFileStub struct{}
+
+type editFieldsYAML struct {
+	Title       string `yaml:"title"`
+	Priority    string `yaml:"priority"`
+	Due         string `yaml:"due"`
+	Assignee    string `yaml:"assignee"`
+	Description string `yaml:"description"`
+}
+
+func (s *editFileStub) WriteTemp(task domain.Task) (string, error) {
+	f, err := os.CreateTemp("", "kanban-edit-*.yaml")
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = f.Close() }()
+	due := ""
+	if task.Due != nil {
+		due = task.Due.Format("2006-01-02")
+	}
+	ef := editFieldsYAML{
+		Title:       task.Title,
+		Priority:    task.Priority,
+		Due:         due,
+		Assignee:    task.Assignee,
+		Description: task.Description,
+	}
+	data, err := yaml.Marshal(ef)
+	if err != nil {
+		return "", err
+	}
+	_, err = f.Write(data)
+	return f.Name(), err
+}
+
+func (s *editFileStub) ReadTemp(path string) (ports.EditSnapshot, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ports.EditSnapshot{}, err
+	}
+	var ef editFieldsYAML
+	if err := yaml.Unmarshal(data, &ef); err != nil {
+		return ports.EditSnapshot{}, err
+	}
+	return ports.EditSnapshot{
+		Title:       ef.Title,
+		Priority:    ef.Priority,
+		Due:         ef.Due,
+		Assignee:    ef.Assignee,
+		Description: ef.Description,
+	}, nil
+}
+
+// ensure editFileStub satisfies the interface at compile time
+var _ ports.EditFilePort = (*editFileStub)(nil)
+
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 func TestEditTask_ReturnsDiffWithChangedField_WhenTitleIsUpdated(t *testing.T) {
@@ -68,7 +128,7 @@ func TestEditTask_ReturnsDiffWithChangedField_WhenTitleIsUpdated(t *testing.T) {
 	editorScript := mockEditorScript(t, "New title")
 
 	t.Setenv("EDITOR", editorScript)
-	uc := usecases.NewEditTask(repo)
+	uc := usecases.NewEditTask(repo, &editFileStub{})
 	diff, err := uc.Execute(repoRoot, "TASK-001")
 
 	if err != nil {
@@ -104,7 +164,7 @@ func TestEditTask_ReturnsNoChangesResult_WhenEditorMakesNoChange(t *testing.T) {
 	}
 	t.Setenv("EDITOR", script)
 
-	uc := usecases.NewEditTask(repo)
+	uc := usecases.NewEditTask(repo, &editFileStub{})
 	diff, err := uc.Execute(repoRoot, "TASK-001")
 
 	if err != nil {
@@ -122,7 +182,7 @@ func TestEditTask_ReturnsErrTaskNotFound_WhenTaskDoesNotExist(t *testing.T) {
 	repoRoot := tmpRepo(t)
 	repo := &editTaskRepo{findErr: ports.ErrTaskNotFound}
 
-	uc := usecases.NewEditTask(repo)
+	uc := usecases.NewEditTask(repo, &editFileStub{})
 	_, err := uc.Execute(repoRoot, "TASK-999")
 
 	if !errors.Is(err, ports.ErrTaskNotFound) {
@@ -142,7 +202,7 @@ func TestEditTask_ReturnsError_WhenEditorClearsTitle(t *testing.T) {
 	}
 	t.Setenv("EDITOR", script)
 
-	uc := usecases.NewEditTask(repo)
+	uc := usecases.NewEditTask(repo, &editFileStub{})
 	_, err := uc.Execute(repoRoot, "TASK-001")
 
 	if err == nil {
@@ -161,7 +221,7 @@ func TestEditTask_ChangedFields_IncludesTitleWhenTitleChanged(t *testing.T) {
 	editorScript := mockEditorScript(t, "After")
 
 	t.Setenv("EDITOR", editorScript)
-	uc := usecases.NewEditTask(repo)
+	uc := usecases.NewEditTask(repo, &editFileStub{})
 	diff, err := uc.Execute(repoRoot, "TASK-001")
 
 	if err != nil {

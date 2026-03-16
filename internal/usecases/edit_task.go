@@ -6,8 +6,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/kanban-tasks/kanban/internal/domain"
 	"github.com/kanban-tasks/kanban/internal/ports"
 )
@@ -21,24 +19,16 @@ type TaskDiff struct {
 	NoChanges     bool
 }
 
-// editFields is the editable subset of task fields written to the temp file.
-type editFields struct {
-	Title       string `yaml:"title"`
-	Priority    string `yaml:"priority"`
-	Due         string `yaml:"due"`
-	Assignee    string `yaml:"assignee"`
-	Description string `yaml:"description"`
-}
-
 // EditTask implements the edit-task use case.
 // Driving port entrypoint for "kanban edit".
 type EditTask struct {
-	tasks ports.TaskRepository
+	tasks  ports.TaskRepository
+	editor ports.EditFilePort
 }
 
 // NewEditTask constructs an EditTask use case.
-func NewEditTask(tasks ports.TaskRepository) *EditTask {
-	return &EditTask{tasks: tasks}
+func NewEditTask(tasks ports.TaskRepository, editor ports.EditFilePort) *EditTask {
+	return &EditTask{tasks: tasks, editor: editor}
 }
 
 // Execute finds the task, opens $EDITOR with its editable fields, parses the
@@ -54,11 +44,11 @@ func (u *EditTask) Execute(repoRoot, taskID string) (TaskDiff, error) {
 	before := task
 
 	// Write editable fields to a temp file.
-	tmpFile, err := writeTempEditFile(task)
+	tmpFile, err := u.editor.WriteTemp(task)
 	if err != nil {
 		return TaskDiff{}, fmt.Errorf("write temp edit file: %w", err)
 	}
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	// Open editor.
 	if err := openEditor(tmpFile); err != nil {
@@ -66,7 +56,7 @@ func (u *EditTask) Execute(repoRoot, taskID string) (TaskDiff, error) {
 	}
 
 	// Parse updated fields from temp file.
-	updated, err := readTempEditFile(tmpFile)
+	updated, err := u.editor.ReadTemp(tmpFile)
 	if err != nil {
 		return TaskDiff{}, fmt.Errorf("read temp edit file: %w", err)
 	}
@@ -92,34 +82,6 @@ func (u *EditTask) Execute(repoRoot, taskID string) (TaskDiff, error) {
 	return TaskDiff{Before: before, After: after, ChangedFields: changed}, nil
 }
 
-func writeTempEditFile(task domain.Task) (string, error) {
-	f, err := os.CreateTemp("", "kanban-edit-*.yaml")
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	due := ""
-	if task.Due != nil {
-		due = task.Due.Format("2006-01-02")
-	}
-	ef := editFields{
-		Title:       task.Title,
-		Priority:    task.Priority,
-		Due:         due,
-		Assignee:    task.Assignee,
-		Description: task.Description,
-	}
-	data, err := yaml.Marshal(ef)
-	if err != nil {
-		return "", err
-	}
-	if _, err := f.Write(data); err != nil {
-		return "", err
-	}
-	return f.Name(), nil
-}
-
 func openEditor(filePath string) error {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
@@ -132,19 +94,7 @@ func openEditor(filePath string) error {
 	return cmd.Run()
 }
 
-func readTempEditFile(filePath string) (editFields, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return editFields{}, err
-	}
-	var ef editFields
-	if err := yaml.Unmarshal(data, &ef); err != nil {
-		return editFields{}, err
-	}
-	return ef, nil
-}
-
-func applyEditFields(task domain.Task, ef editFields) domain.Task {
+func applyEditFields(task domain.Task, ef ports.EditSnapshot) domain.Task {
 	task.Title = strings.TrimSpace(ef.Title)
 	task.Priority = ef.Priority
 	task.Assignee = ef.Assignee

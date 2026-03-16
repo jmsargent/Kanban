@@ -33,17 +33,6 @@ type kanbanCtx struct {
 	cleanupDirs []string // directories to remove after the scenario
 }
 
-func newKanbanCtx(t *testing.T) *kanbanCtx {
-	bin := os.Getenv("KANBAN_BIN")
-	if bin == "" {
-		bin = resolveDefaultBin()
-	}
-	return &kanbanCtx{
-		t:       t,
-		binPath: bin,
-		env:     os.Environ(),
-	}
-}
 
 // resolveDefaultBin returns the absolute path to the kanban binary.
 // It resolves ../../bin/kanban relative to this source file so that
@@ -873,7 +862,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	sc.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
 		// Clean up any temporary directories created during the scenario.
 		for _, dir := range k.cleanupDirs {
-			os.RemoveAll(dir)
+			_ = os.RemoveAll(dir)
 		}
 		k.cleanupDirs = nil
 		return ctx, nil

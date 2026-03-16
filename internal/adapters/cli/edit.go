@@ -8,13 +8,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
 	"github.com/kanban-tasks/kanban/internal/ports"
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
 // NewEditCommand builds the "kanban edit" cobra command.
-func NewEditCommand(git ports.GitPort, _ ports.ConfigRepository) *cobra.Command {
+func NewEditCommand(git ports.GitPort, _ ports.ConfigRepository, tasks ports.TaskRepository, editor ports.EditFilePort) *cobra.Command {
 	return &cobra.Command{
 		Use:   "edit <task-id>",
 		Short: "Edit a task in $EDITOR",
@@ -28,8 +27,7 @@ func NewEditCommand(git ports.GitPort, _ ports.ConfigRepository) *cobra.Command 
 				os.Exit(1)
 			}
 
-			tasks := filesystem.NewTaskRepository()
-			uc := usecases.NewEditTask(tasks)
+			uc := usecases.NewEditTask(tasks, editor)
 			diff, err := uc.Execute(repoRoot, taskID)
 			if err != nil {
 				if errors.Is(err, ports.ErrTaskNotFound) {
@@ -45,11 +43,11 @@ func NewEditCommand(git ports.GitPort, _ ports.ConfigRepository) *cobra.Command 
 			}
 
 			if diff.NoChanges {
-				fmt.Fprintln(os.Stdout, "No changes")
+				fmt.Println("No changes")
 				return nil
 			}
 
-			fmt.Fprintf(os.Stdout, "Updated %s: changed %s\n", taskID, strings.Join(diff.ChangedFields, ", "))
+			fmt.Printf("Updated %s: changed %s\n", taskID, strings.Join(diff.ChangedFields, ", "))
 			return nil
 		},
 	}

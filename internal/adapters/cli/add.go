@@ -8,14 +8,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
 	"github.com/kanban-tasks/kanban/internal/ports"
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
 // NewAddCommand builds the "kanban add" cobra command.
 // It validates input, invokes the AddTask use case, and maps errors to exit codes.
-func NewAddCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Command {
+func NewAddCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	var priority string
 	var dueStr string
 	var assignee string
@@ -53,7 +52,6 @@ func NewAddCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Comm
 				Assignee: assignee,
 			}
 
-			tasks := filesystem.NewTaskRepository()
 			uc := usecases.NewAddTask(config, tasks)
 			task, err := uc.Execute(repoRoot, input)
 			if err != nil {
@@ -69,8 +67,8 @@ func NewAddCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Comm
 				os.Exit(1)
 			}
 
-			fmt.Fprintf(os.Stdout, "Created %s: %s\n", task.ID, task.Title)
-			fmt.Fprintf(os.Stdout, "Hint: reference %s in your next commit to start tracking\n", task.ID)
+			fmt.Printf("Created %s: %s\n", task.ID, task.Title)
+			fmt.Printf("Hint: reference %s in your next commit to start tracking\n", task.ID)
 			return nil
 		},
 	}

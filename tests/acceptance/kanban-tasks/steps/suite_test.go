@@ -36,10 +36,10 @@ func TestFeatures(t *testing.T) {
 	suite := godog.TestSuite{
 		ScenarioInitializer: InitializeScenario,
 		Options: &godog.Options{
-			Format:    "pretty",
-			Paths:     paths,
-			TestingT:  t,
-			NoColors:  true,
+			Format:   "pretty",
+			Paths:    paths,
+			TestingT: t,
+			NoColors: true,
 			// Run only the first (non-skipped) scenario to support one-at-a-time TDD.
 			// Remove or increase this once additional scenarios are enabled.
 			Tags: "~@skip",

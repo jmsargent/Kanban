@@ -38,7 +38,7 @@ func (u *InitRepo) Execute() error {
 
 	_, readErr := u.config.Read(repoRoot)
 	if readErr == nil {
-		fmt.Fprintln(u.out, "Already initialised at .kanban/ -- no changes made.")
+		_, _ = fmt.Fprintln(u.out, "Already initialised at .kanban/ -- no changes made.")
 		return nil
 	}
 	if !errors.Is(readErr, ports.ErrNotInitialised) {
@@ -71,6 +71,6 @@ func (u *InitRepo) Execute() error {
 		return fmt.Errorf("install hook: %w", err)
 	}
 
-	fmt.Fprintln(u.out, "Initialised kanban at .kanban/")
+	_, _ = fmt.Fprintln(u.out, "Initialised kanban at .kanban/")
 	return nil
 }

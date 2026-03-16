@@ -7,13 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
 	"github.com/kanban-tasks/kanban/internal/ports"
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
 // NewDeleteCommand builds the "kanban delete" cobra command.
-func NewDeleteCommand(git ports.GitPort, _ ports.ConfigRepository) *cobra.Command {
+func NewDeleteCommand(git ports.GitPort, _ ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	var force bool
 
 	cmd := &cobra.Command{
@@ -29,7 +28,6 @@ func NewDeleteCommand(git ports.GitPort, _ ports.ConfigRepository) *cobra.Comman
 				os.Exit(1)
 			}
 
-			tasks := filesystem.NewTaskRepository()
 			uc := usecases.NewDeleteTask(tasks)
 			if err := uc.Execute(repoRoot, taskID, force, os.Stdin, os.Stdout); err != nil {
 				if errors.Is(err, ports.ErrTaskNotFound) {

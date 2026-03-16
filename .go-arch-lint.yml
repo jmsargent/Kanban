@@ -1,0 +1,75 @@
+version: 2
+workdir: .
+
+allow:
+  depOnAnyVendor: false
+
+excludeFiles:
+  - ".*_test\\.go"
+  - ".*/tests/.*"
+
+components:
+  domain:
+    in: "internal/domain"
+  ports:
+    in: "internal/ports"
+  usecases:
+    in: "internal/usecases"
+  adapter-cli:
+    in: "internal/adapters/cli"
+  adapter-filesystem:
+    in: "internal/adapters/filesystem"
+  adapter-git:
+    in: "internal/adapters/git"
+  cmd:
+    in: "cmd/kanban"
+
+vendors:
+  cobra:
+    in: "github.com/spf13/cobra"
+  yaml:
+    in: "gopkg.in/yaml.v3"
+  frontmatter:
+    in: "github.com/adrg/frontmatter"
+  color:
+    in: "github.com/fatih/color"
+
+deps:
+  ports:
+    mayDependOn:
+      - domain             # ports reference domain types
+
+  usecases:
+    mayDependOn:
+      - domain
+      - ports              # application logic depends on domain + port interfaces only
+
+  adapter-cli:
+    mayDependOn:
+      - usecases
+      - ports
+      - domain
+    canUse:
+      - cobra
+      - color
+
+  adapter-filesystem:
+    mayDependOn:
+      - ports
+      - domain
+    canUse:
+      - yaml
+      - frontmatter
+
+  adapter-git:
+    mayDependOn:
+      - ports              # only depends on the port interface it implements
+
+  cmd:
+    mayDependOn:
+      - domain
+      - ports
+      - usecases
+      - adapter-cli
+      - adapter-filesystem
+      - adapter-git

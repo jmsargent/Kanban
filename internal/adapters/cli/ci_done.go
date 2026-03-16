@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
 	"github.com/kanban-tasks/kanban/internal/ports"
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
@@ -14,7 +13,7 @@ import (
 // NewCIDoneCommand builds the "kanban ci-done" command.
 // It advances all in-progress tasks referenced by commits in the pipeline range to done
 // and commits the updated files back with [skip ci] to prevent CI recursion.
-func NewCIDoneCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.Command {
+func NewCIDoneCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	var fromRef string
 	var toRef string
 
@@ -32,7 +31,6 @@ func NewCIDoneCommand(git ports.GitPort, config ports.ConfigRepository) *cobra.C
 			from := resolveFrom(fromRef)
 			to := resolveTo(toRef)
 
-			tasks := filesystem.NewTaskRepository()
 			uc := usecases.NewTransitionToDone(git, tasks, config, os.Stdout)
 			if execErr := uc.Execute(repoRoot, from, to); execErr != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", execErr)

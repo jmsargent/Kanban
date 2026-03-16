@@ -86,7 +86,7 @@ func TestCommitMessagesInRange_ReturnsMessagesInRange(t *testing.T) {
 
 	origDir, _ := os.Getwd()
 	t.Cleanup(func() { os.Chdir(origDir) }) //nolint:errcheck
-	os.Chdir(dir)                            //nolint:errcheck
+	os.Chdir(dir)                           //nolint:errcheck
 
 	adapter := gitadapter.NewGitAdapter()
 	messages, err := adapter.CommitMessagesInRange(fromSHA, toSHA)

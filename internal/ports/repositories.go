@@ -42,3 +42,22 @@ type ConfigRepository interface {
 	// Write stores the configuration for the given repository root.
 	Write(repoRoot string, config Config) error
 }
+
+// EditSnapshot is the editable subset of task fields for the edit workflow.
+type EditSnapshot struct {
+	Title       string
+	Priority    string
+	Due         string
+	Assignee    string
+	Description string
+}
+
+// EditFilePort is the driven port for reading and writing temp edit files.
+type EditFilePort interface {
+	// WriteTemp writes editable fields of the task to a temporary YAML file.
+	// Returns the path to the temp file.
+	WriteTemp(task domain.Task) (string, error)
+
+	// ReadTemp reads the YAML temp file at path and returns the snapshot.
+	ReadTemp(path string) (EditSnapshot, error)
+}

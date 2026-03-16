@@ -258,5 +258,64 @@ func atomicOverwrite(finalPath string, content []byte) error {
 	return nil
 }
 
+// editFields is the YAML shape used for the temp edit file.
+type editFields struct {
+	Title       string `yaml:"title"`
+	Priority    string `yaml:"priority"`
+	Due         string `yaml:"due"`
+	Assignee    string `yaml:"assignee"`
+	Description string `yaml:"description"`
+}
+
+// WriteTemp writes the editable fields of task to a temporary YAML file.
+// Returns the temp file path. The caller is responsible for removing the file.
+func (r *TaskRepository) WriteTemp(task domain.Task) (string, error) {
+	f, err := os.CreateTemp("", "kanban-edit-*.yaml")
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = f.Close() }()
+
+	due := ""
+	if task.Due != nil {
+		due = task.Due.Format("2006-01-02")
+	}
+	ef := editFields{
+		Title:       task.Title,
+		Priority:    task.Priority,
+		Due:         due,
+		Assignee:    task.Assignee,
+		Description: task.Description,
+	}
+	data, err := yaml.Marshal(ef)
+	if err != nil {
+		return "", err
+	}
+	if _, err := f.Write(data); err != nil {
+		return "", err
+	}
+	return f.Name(), nil
+}
+
+// ReadTemp reads the YAML temp file at path and returns an EditSnapshot.
+func (r *TaskRepository) ReadTemp(path string) (ports.EditSnapshot, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ports.EditSnapshot{}, err
+	}
+	var ef editFields
+	if err := yaml.Unmarshal(data, &ef); err != nil {
+		return ports.EditSnapshot{}, err
+	}
+	return ports.EditSnapshot{
+		Title:       ef.Title,
+		Priority:    ef.Priority,
+		Due:         ef.Due,
+		Assignee:    ef.Assignee,
+		Description: ef.Description,
+	}, nil
+}
+
 // ensure compile-time interface compliance
 var _ ports.TaskRepository = (*TaskRepository)(nil)
+var _ ports.EditFilePort = (*TaskRepository)(nil)

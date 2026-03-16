@@ -73,7 +73,7 @@ func (u *TransitionToDone) Execute(repoRoot, from, to string) error {
 		if updateErr := u.tasks.Update(repoRoot, task); updateErr != nil {
 			return fmt.Errorf("update task %s: %w", id, updateErr)
 		}
-		fmt.Fprintf(u.output, "[kanban] %s moved  in-progress -> done\n", id)
+		_, _ = fmt.Fprintf(u.output, "[kanban] %s moved  in-progress -> done\n", id)
 		updatedPaths = append(updatedPaths, taskFilePath(repoRoot, id))
 	}
 
@@ -87,4 +87,3 @@ func (u *TransitionToDone) Execute(repoRoot, from, to string) error {
 func taskFilePath(repoRoot, taskID string) string {
 	return filepath.Join(repoRoot, ".kanban", "tasks", taskID+".md")
 }
-
