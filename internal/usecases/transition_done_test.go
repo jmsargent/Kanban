@@ -193,3 +193,47 @@ func TestTransitionToDone_SkipsCommit_WhenNoTasksAdvanced(t *testing.T) {
 		t.Error("expected CommitFiles NOT to be called when no tasks were advanced")
 	}
 }
+
+func TestTransitionToDone_UsesDefaultPattern_WhenConfigPatternEmpty(t *testing.T) {
+	repoRoot := tmpRepo(t)
+	git := &spyGitPort{messages: []string{"TASK-001: implement feature"}}
+	tasks := newSpyTaskRepo()
+	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001", Status: domain.StatusInProgress}
+	// CITaskPattern is empty
+	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: ""}}
+	output := &strings.Builder{}
+
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
+	err := uc.Execute(repoRoot, "", "HEAD")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	updated := tasks.byID["TASK-001"]
+	if updated.Status != domain.StatusDone {
+		t.Errorf("expected TASK-001 to be done using default pattern, got: %s", updated.Status)
+	}
+}
+
+func TestTransitionToDone_AdvancesMultipleTasks_WhenReferencedInSameCommit(t *testing.T) {
+	repoRoot := tmpRepo(t)
+	git := &spyGitPort{messages: []string{"TASK-001 and TASK-002: implementation complete"}}
+	tasks := newSpyTaskRepo()
+	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001", Status: domain.StatusInProgress}
+	tasks.byID["TASK-002"] = domain.Task{ID: "TASK-002", Status: domain.StatusInProgress}
+	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
+	output := &strings.Builder{}
+
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
+	err := uc.Execute(repoRoot, "", "HEAD")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if tasks.byID["TASK-001"].Status != domain.StatusDone {
+		t.Errorf("expected TASK-001 to be done, got: %s", tasks.byID["TASK-001"].Status)
+	}
+	if tasks.byID["TASK-002"].Status != domain.StatusDone {
+		t.Errorf("expected TASK-002 to be done, got: %s", tasks.byID["TASK-002"].Status)
+	}
+}

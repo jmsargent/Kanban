@@ -164,7 +164,9 @@ func TestInstallHook_WritesExecutableCommitMsgScript(t *testing.T) {
 	if !strings.HasPrefix(script, "#!/bin/sh") {
 		t.Errorf("hook does not start with #!/bin/sh:\n%s", script)
 	}
-	if !strings.Contains(script, "_hook commit-msg") {
-		t.Errorf("hook does not delegate to kanban binary:\n%s", script)
+
+	exe, _ := os.Executable()
+	if !strings.Contains(script, exe+" _hook commit-msg") {
+		t.Errorf("hook does not use absolute path %q:\n%s", exe, script)
 	}
 }
