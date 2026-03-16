@@ -11,6 +11,10 @@ import (
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
+// errCommandFailed is a sentinel returned by RunE to signal a non-zero exit
+// without printing an additional error message (cobra would otherwise print it).
+var errCommandFailed = errors.New("exit1")
+
 // NewStartCommand builds the "kanban start" cobra command.
 // It accepts a single task ID, delegates to the StartTask use case, and maps
 // each result or error to the correct stdout/stderr message and exit code.
@@ -28,7 +32,7 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 			repoRoot, err := git.RepoRoot()
 			if err != nil {
 				writeLine(errOut, "Not a git repository")
-				return fmt.Errorf("exit1")
+				return errCommandFailed
 			}
 
 			uc := usecases.NewStartTask(config, tasks)
@@ -36,18 +40,18 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 			if err != nil {
 				if errors.Is(err, ports.ErrInvalidTransition) {
 					writeLine(errOut, fmt.Sprintf("Task %s is already finished", taskID))
-					return fmt.Errorf("exit1")
+					return errCommandFailed
 				}
 				if errors.Is(err, ports.ErrTaskNotFound) {
 					writeLine(errOut, fmt.Sprintf("Task %s not found", taskID))
-					return fmt.Errorf("exit1")
+					return errCommandFailed
 				}
 				if errors.Is(err, ports.ErrNotInitialised) {
 					writeLine(errOut, "kanban not initialised — run 'kanban init' first")
-					return fmt.Errorf("exit1")
+					return errCommandFailed
 				}
 				writeLine(errOut, fmt.Sprintf("Error: %v", err))
-				return fmt.Errorf("exit1")
+				return errCommandFailed
 			}
 
 			if result.AlreadyInProgress {
