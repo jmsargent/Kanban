@@ -60,7 +60,7 @@ func printBoard(board domain.Board) {
 
 	if totalTasks == 0 {
 		fmt.Println("No tasks found in .kanban/tasks/")
-		fmt.Println("Hint: run 'kanban add <title>' to create your first task")
+		fmt.Println("Hint: run 'kanban new <title>' to create your first task")
 		return
 	}
 
