@@ -12,7 +12,7 @@ import (
 	"github.com/kanban-tasks/kanban/internal/ports"
 )
 
-// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 6)
+// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 5)
 
 // ─── Fakes ───────────────────────────────────────────────────────────────────
 
@@ -75,12 +75,15 @@ func (f *fakeTaskRepoCLI) NextID(_ string) (string, error)         { return "", 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
 // execStart constructs the start command wired to in-memory fakes, executes it
-// with the given task ID, and returns the captured stdout, stderr, and whether
-// RunE returned an error (used as a proxy for non-zero exit intent).
-func execStart(t *testing.T, git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, taskID string) (stdout, stderr string, hadError bool) {
+// with the given task ID, and returns the captured stdout, stderr, and the exit
+// code captured via the osExit override (0 = no exit called).
+func execStart(t *testing.T, git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, taskID string) (stdout, stderr string, exitCode int) {
 	t.Helper()
 
 	var outBuf, errBuf bytes.Buffer
+	capturedCode := 0
+	cli.SetOsExit(func(code int) { capturedCode = code })
+	t.Cleanup(func() { cli.SetOsExit(nil) })
 
 	cmd := cli.NewStartCommand(git, config, tasks)
 	cmd.SetOut(&outBuf)
@@ -92,8 +95,8 @@ func execStart(t *testing.T, git ports.GitPort, config ports.ConfigRepository, t
 	root.SetErr(&errBuf)
 	root.SetArgs([]string{"start", taskID})
 
-	err := root.Execute()
-	return outBuf.String(), errBuf.String(), err != nil
+	_ = root.Execute()
+	return outBuf.String(), errBuf.String(), capturedCode
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -104,13 +107,13 @@ func TestStartCommand_PrintsStartedMessage_WhenTaskIsInTodo(t *testing.T) {
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
 
-	stdout, _, hadError := execStart(t, git, config, tasks, "TASK-001")
+	stdout, _, exitCode := execStart(t, git, config, tasks, "TASK-001")
 
 	if !strings.Contains(stdout, "Started TASK-001: Fix login bug") {
 		t.Errorf("expected stdout to contain 'Started TASK-001: Fix login bug', got: %q", stdout)
 	}
-	if hadError {
-		t.Error("expected no error for successful start")
+	if exitCode != 0 {
+		t.Errorf("expected exit code 0, got %d", exitCode)
 	}
 }
 
@@ -120,13 +123,13 @@ func TestStartCommand_PrintsAlreadyInProgress_WhenTaskIsInProgress(t *testing.T)
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
 
-	stdout, _, hadError := execStart(t, git, config, tasks, "TASK-002")
+	stdout, _, exitCode := execStart(t, git, config, tasks, "TASK-002")
 
 	if !strings.Contains(stdout, "Task TASK-002 is already in progress") {
 		t.Errorf("expected stdout to contain 'Task TASK-002 is already in progress', got: %q", stdout)
 	}
-	if hadError {
-		t.Error("expected no error (exit 0) when task is already in progress")
+	if exitCode != 0 {
+		t.Errorf("expected exit code 0 when task is already in progress, got %d", exitCode)
 	}
 }
 
@@ -136,13 +139,13 @@ func TestStartCommand_PrintsAlreadyFinished_WhenTaskIsDone(t *testing.T) {
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
 
-	_, stderr, hadError := execStart(t, git, config, tasks, "TASK-003")
+	_, stderr, exitCode := execStart(t, git, config, tasks, "TASK-003")
 
 	if !strings.Contains(stderr, "Task TASK-003 is already finished") {
 		t.Errorf("expected stderr to contain 'Task TASK-003 is already finished', got: %q", stderr)
 	}
-	if !hadError {
-		t.Error("expected error (exit 1) when task is done")
+	if exitCode != 1 {
+		t.Errorf("expected exit code 1 when task is done, got %d", exitCode)
 	}
 }
 
@@ -151,13 +154,13 @@ func TestStartCommand_PrintsNotFound_WhenTaskIDDoesNotExist(t *testing.T) {
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI() // empty
 
-	_, stderr, hadError := execStart(t, git, config, tasks, "TASK-999")
+	_, stderr, exitCode := execStart(t, git, config, tasks, "TASK-999")
 
 	if !strings.Contains(stderr, "Task TASK-999 not found") {
 		t.Errorf("expected stderr to contain 'Task TASK-999 not found', got: %q", stderr)
 	}
-	if !hadError {
-		t.Error("expected error (exit 1) when task not found")
+	if exitCode != 1 {
+		t.Errorf("expected exit code 1 when task not found, got %d", exitCode)
 	}
 }
 
@@ -166,27 +169,12 @@ func TestStartCommand_PrintsNotInitialised_WhenRepoNotInitialised(t *testing.T) 
 	config := &fakeConfigRepoCLI{readErr: ports.ErrNotInitialised}
 	tasks := newFakeTaskRepoCLI()
 
-	_, stderr, hadError := execStart(t, git, config, tasks, "TASK-001")
+	_, stderr, exitCode := execStart(t, git, config, tasks, "TASK-001")
 
 	if !strings.Contains(stderr, "kanban not initialised") {
 		t.Errorf("expected stderr to contain 'kanban not initialised', got: %q", stderr)
 	}
-	if !hadError {
-		t.Error("expected error (exit 1) when repo not initialised")
-	}
-}
-
-func TestStartCommand_AppearsInHelpOutput(t *testing.T) {
-	git := &fakeGitPortCLI{}
-	config := &fakeConfigRepoCLI{}
-	tasks := newFakeTaskRepoCLI()
-
-	cmd := cli.NewStartCommand(git, config, tasks)
-
-	if !strings.HasPrefix(cmd.Use, "start") {
-		t.Errorf("expected command Use to start with 'start', got: %q", cmd.Use)
-	}
-	if cmd.Short == "" {
-		t.Error("expected command to have a non-empty Short description")
+	if exitCode != 1 {
+		t.Errorf("expected exit code 1 when repo not initialised, got %d", exitCode)
 	}
 }

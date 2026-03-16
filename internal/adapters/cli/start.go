@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -11,9 +12,19 @@ import (
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
-// errCommandFailed is a sentinel returned by RunE to signal a non-zero exit
-// without printing an additional error message (cobra would otherwise print it).
-var errCommandFailed = errors.New("exit1")
+// osExit is a variable so tests can override it to capture exit-code intent
+// without terminating the test process. Defaults to os.Exit in production.
+var osExit = os.Exit
+
+// SetOsExit replaces the exit function used by the start command. Pass nil to
+// restore the default os.Exit. Intended for use in tests only.
+func SetOsExit(fn func(int)) {
+	if fn == nil {
+		osExit = os.Exit
+		return
+	}
+	osExit = fn
+}
 
 // NewStartCommand builds the "kanban start" cobra command.
 // It accepts a single task ID, delegates to the StartTask use case, and maps
@@ -32,7 +43,8 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 			repoRoot, err := git.RepoRoot()
 			if err != nil {
 				writeLine(errOut, "Not a git repository")
-				return errCommandFailed
+				osExit(1)
+				return nil
 			}
 
 			uc := usecases.NewStartTask(config, tasks)
@@ -40,18 +52,22 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 			if err != nil {
 				if errors.Is(err, ports.ErrInvalidTransition) {
 					writeLine(errOut, fmt.Sprintf("Task %s is already finished", taskID))
-					return errCommandFailed
+					osExit(1)
+					return nil
 				}
 				if errors.Is(err, ports.ErrTaskNotFound) {
 					writeLine(errOut, fmt.Sprintf("Task %s not found", taskID))
-					return errCommandFailed
+					osExit(1)
+					return nil
 				}
 				if errors.Is(err, ports.ErrNotInitialised) {
 					writeLine(errOut, "kanban not initialised — run 'kanban init' first")
-					return errCommandFailed
+					osExit(1)
+					return nil
 				}
 				writeLine(errOut, fmt.Sprintf("Error: %v", err))
-				return errCommandFailed
+				osExit(1)
+				return nil
 			}
 
 			if result.AlreadyInProgress {
