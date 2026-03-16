@@ -186,6 +186,7 @@ jobs:
       - run:
           name: goreleaser release
           command: |
+            export GITHUB_REPOSITORY_OWNER=$CIRCLE_PROJECT_USERNAME
             SNAPSHOT_FLAG=""
             if ! git describe --exact-match --tags HEAD 2>/dev/null; then
               SNAPSHOT_FLAG="--snapshot"
