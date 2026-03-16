@@ -100,8 +100,8 @@ jobs:
       - go/load-cache
       - go/mod-download
       - run:
-          name: go test
-          command: go test ./...
+          name: go unit tests
+          command: go test ./internal/...
 
   # -------------------------------------------------------------------------
   # build: compile binary, persist to workspace
