@@ -201,9 +201,9 @@ func (k *kanbanCtx) theCurrentDirectoryIsNotAGitRepository() error {
 }
 
 func (k *kanbanCtx) aTaskExistsWithStatus(title, status string) error {
-	k.run("add", title)
+	k.run("new", title)
 	if k.lastExit != 0 {
-		return fmt.Errorf("kanban add failed: %s", k.lastOutput)
+		return fmt.Errorf("kanban new failed: %s", k.lastOutput)
 	}
 	taskID := k.lastTaskID
 	if taskID == "" {
@@ -304,23 +304,23 @@ func (k *kanbanCtx) iRunKanban(subcommand string) error {
 	return nil
 }
 
-func (k *kanbanCtx) iRunKanbanAddWithTitle(title string) error {
-	k.run("add", title)
+func (k *kanbanCtx) iRunKanbanNewWithTitle(title string) error {
+	k.run("new", title)
 	return nil
 }
 
-func (k *kanbanCtx) iRunKanbanAddWithTitleAndPriorityAndDueDateAndAssignee(title, priority, due, assignee string) error {
-	k.run("add", title, "--priority", priority, "--due", due, "--assignee", assignee)
+func (k *kanbanCtx) iRunKanbanNewWithTitleAndPriorityAndDueDateAndAssignee(title, priority, due, assignee string) error {
+	k.run("new", title, "--priority", priority, "--due", due, "--assignee", assignee)
 	return nil
 }
 
-func (k *kanbanCtx) iRunKanbanAddWithEmptyTitle() error {
-	k.run("add", "")
+func (k *kanbanCtx) iRunKanbanNewWithEmptyTitle() error {
+	k.run("new", "")
 	return nil
 }
 
-func (k *kanbanCtx) iRunKanbanAddWithTitleAndDueDate(title, due string) error {
-	k.run("add", title, "--due", due)
+func (k *kanbanCtx) iRunKanbanNewWithTitleAndDueDate(title, due string) error {
+	k.run("new", title, "--due", due)
 	return nil
 }
 
@@ -890,11 +890,11 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 
 	// When
 	sc.Step(`^I run "kanban ([^"]*)"$`, k.iRunKanban)
-	sc.Step(`^I run "kanban add" with title "([^"]*)"$`, k.iRunKanbanAddWithTitle)
-	sc.Step(`^I run "kanban add" with title "([^"]*)" and priority "([^"]*)" and due date "([^"]*)" and assignee "([^"]*)"$`,
-		k.iRunKanbanAddWithTitleAndPriorityAndDueDateAndAssignee)
-	sc.Step(`^I run "kanban add" with an empty title$`, k.iRunKanbanAddWithEmptyTitle)
-	sc.Step(`^I run "kanban add" with title "([^"]*)" and due date "([^"]*)"$`, k.iRunKanbanAddWithTitleAndDueDate)
+	sc.Step(`^I run "kanban new" with title "([^"]*)"$`, k.iRunKanbanNewWithTitle)
+	sc.Step(`^I run "kanban new" with title "([^"]*)" and priority "([^"]*)" and due date "([^"]*)" and assignee "([^"]*)"$`,
+		k.iRunKanbanNewWithTitleAndPriorityAndDueDateAndAssignee)
+	sc.Step(`^I run "kanban new" with an empty title$`, k.iRunKanbanNewWithEmptyTitle)
+	sc.Step(`^I run "kanban new" with title "([^"]*)" and due date "([^"]*)"$`, k.iRunKanbanNewWithTitleAndDueDate)
 	sc.Step(`^I run "kanban board"$`, k.iRunKanbanBoard)
 	sc.Step(`^I run "kanban board" with the machine output flag$`, k.iRunKanbanBoardWithMachineOutputFlag)
 	sc.Step(`^I run "kanban board" with output piped to another process$`, k.iRunKanbanBoardWithOutputPiped)
