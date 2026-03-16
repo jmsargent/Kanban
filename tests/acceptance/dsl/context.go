@@ -49,3 +49,9 @@ func NewContext(t *testing.T) *Context {
 func (ctx *Context) LastTaskID() string {
 	return ctx.lastTaskID
 }
+
+// RepoDir returns the absolute path of the temporary git repository for this scenario.
+// Primarily used by test helpers that need to inspect filesystem state directly.
+func (ctx *Context) RepoDir() string {
+	return ctx.repoDir
+}
