@@ -13,6 +13,7 @@ Feature: Task creation, viewing, editing, and deletion
   # Driving port: CLI (kanban init)
   # ---------------------------------------------------------------------------
 
+  @ported
   Scenario: Developer sets up kanban in a new git repository
     Given the repository has no kanban setup
     When I run "kanban init"
