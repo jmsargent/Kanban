@@ -12,15 +12,15 @@ import (
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
-// NewAddCommand builds the "kanban add" cobra command.
+// NewCreateCommand builds the "kanban new" cobra command.
 // It validates input, invokes the AddTask use case, and maps errors to exit codes.
-func NewAddCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
+func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	var priority string
 	var dueStr string
 	var assignee string
 
 	cmd := &cobra.Command{
-		Use:   "add <title>",
+		Use:   "new <title>",
 		Short: "Create a new task",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

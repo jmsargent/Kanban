@@ -17,7 +17,7 @@ func NewRootCommand(git ports.GitPort, config ports.ConfigRepository, tasks port
 	}
 
 	root.AddCommand(NewInitCommand(git, config))
-	root.AddCommand(NewAddCommand(git, config, tasks))
+	root.AddCommand(NewCreateCommand(git, config, tasks))
 	root.AddCommand(NewBoardCommand(git, config, tasks))
 	root.AddCommand(NewHookCommand(git, config, tasks))
 	root.AddCommand(NewCIDoneCommand(git, config, tasks))
