@@ -23,6 +23,7 @@ func NewRootCommand(git ports.GitPort, config ports.ConfigRepository, tasks port
 	root.AddCommand(NewCIDoneCommand(git, config, tasks))
 	root.AddCommand(NewEditCommand(git, config, tasks, editor))
 	root.AddCommand(NewDeleteCommand(git, config, tasks))
+	root.AddCommand(NewStartCommand(git, config, tasks))
 
 	return root
 }
