@@ -564,6 +564,19 @@ func (k *kanbanCtx) theCIStepRunsAfterTestsFail() error {
 	return nil
 }
 
+func (k *kanbanCtx) iRunKanbanStartOnThatTask() error {
+	if k.lastTaskID == "" {
+		return fmt.Errorf("no task ID in context")
+	}
+	k.run("start", k.lastTaskID)
+	return nil
+}
+
+func (k *kanbanCtx) iRunKanbanStartOnTask(taskID string) error {
+	k.run("start", taskID)
+	return nil
+}
+
 // ─── Then Steps ──────────────────────────────────────────────────────────────
 
 func (k *kanbanCtx) theExitCodeIs(code int) error {
@@ -917,6 +930,8 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 		k.run("edit", id)
 		return nil
 	})
+	sc.Step(`^I run "kanban start" on that task$`, k.iRunKanbanStartOnThatTask)
+	sc.Step(`^I run "kanban start" on task "([^"]*)"$`, k.iRunKanbanStartOnTask)
 	sc.Step(`^I commit with message "([^"]*)"$`, k.iCommitWithMessage)
 	sc.Step(`^I commit with message containing the new task ID$`, k.iCommitWithMessageContainingTheNewTaskID)
 	sc.Step(`^the CI step runs after all tests pass$`, k.theCIStepRunsAfterAllTestsPass)
