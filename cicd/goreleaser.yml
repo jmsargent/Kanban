@@ -48,7 +48,7 @@ builds:
 # ---------------------------------------------------------------------------
 archives:
   - id: default
-    ids:
+    builds:
       - kanban
     format: tar.gz
     format_overrides:
@@ -151,7 +151,7 @@ brews:
     homepage: "https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/kanban-tasks"
     description: "Git-native kanban task management CLI — board state driven by commits and CI"
     license: "MIT"
-    folder: Formula
+    directory: Formula
     # Formula class name
     # goreleaser generates: class Kanban < Formula
     # Install block: installs the binary
