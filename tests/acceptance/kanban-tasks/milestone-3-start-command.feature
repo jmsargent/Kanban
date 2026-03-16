@@ -14,7 +14,7 @@ Feature: Explicitly start work on a task
   # Driving port: CLI (kanban start)
   # ---------------------------------------------------------------------------
 
-  @walking_skeleton
+  @walking_skeleton @ported
   Scenario: Developer starts a todo task and sees it move to in-progress
     Given the repository is initialised with kanban
     And a task "Fix OAuth login bug" exists with status "todo" as "TASK-001"
@@ -28,6 +28,7 @@ Feature: Explicitly start work on a task
   # Driving port: CLI (kanban start)
   # ---------------------------------------------------------------------------
 
+  @ported
   Scenario: Starting a task that is already in-progress reports no change needed
     Given the repository is initialised with kanban
     And a task "API rate limiting" exists with status "in-progress" as "TASK-002"
@@ -36,6 +37,7 @@ Feature: Explicitly start work on a task
     And output contains "already in progress"
     And the task "TASK-002" status remains "in-progress"
 
+  @ported
   Scenario: Starting a completed task is rejected as an error
     Given the repository is initialised with kanban
     And a task "Deploy to staging" exists with status "done" as "TASK-003"
@@ -43,12 +45,14 @@ Feature: Explicitly start work on a task
     Then the exit code is 1
     And output contains "already finished"
 
+  @ported
   Scenario: Starting a task that does not exist reports a clear error
     Given the repository is initialised with kanban
     When I run "kanban start" on task "TASK-099"
     Then the exit code is 1
     And output contains "not found"
 
+  @ported
   Scenario: Starting a task without kanban initialised reports setup guidance
     Given the repository has no kanban setup
     When I run "kanban start" on task "TASK-001"
