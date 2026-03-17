@@ -98,12 +98,13 @@ func printBoard(board domain.Board) {
 
 // boardTaskJSON is the JSON serialisation shape for a task in the board output.
 type boardTaskJSON struct {
-	ID       string  `json:"id"`
-	Title    string  `json:"title"`
-	Status   string  `json:"status"`
-	Priority string  `json:"priority"`
-	Due      *string `json:"due"`
-	Assignee string  `json:"assignee"`
+	ID        string  `json:"id"`
+	Title     string  `json:"title"`
+	Status    string  `json:"status"`
+	Priority  string  `json:"priority"`
+	Due       *string `json:"due"`
+	Assignee  string  `json:"assignee"`
+	CreatedBy string  `json:"created_by"`
 }
 
 // printBoardJSON emits all tasks as a flat JSON array.
@@ -113,11 +114,12 @@ func printBoardJSON(board domain.Board) {
 		status := domain.TaskStatus(col.Name)
 		for _, t := range board.Tasks[status] {
 			item := boardTaskJSON{
-				ID:       t.ID,
-				Title:    t.Title,
-				Status:   string(t.Status),
-				Priority: t.Priority,
-				Assignee: t.Assignee,
+				ID:        t.ID,
+				Title:     t.Title,
+				Status:    string(t.Status),
+				Priority:  t.Priority,
+				Assignee:  t.Assignee,
+				CreatedBy: t.CreatedBy,
 			}
 			if t.Due != nil {
 				due := t.Due.Format("2006-01-02")

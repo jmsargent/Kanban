@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -13,7 +14,7 @@ import (
 	"github.com/kanban-tasks/kanban/internal/ports"
 )
 
-// Test Budget: 2 behaviors x 2 = 4 max unit tests (using 2)
+// Test Budget: 3 behaviors x 2 = 6 max unit tests (using 3)
 
 // fakeTaskRepoBoardCLI is a task repository fake for board tests that supports ListAll.
 type fakeTaskRepoBoardCLI struct {
@@ -88,6 +89,23 @@ func TestBoardCommand_ShowsCreatorName_WhenCreatedByIsSet(t *testing.T) {
 	t.Errorf("board row for TASK-001 not found in output:\n%s", output)
 }
 
+// execBoardJSONOutput runs the board command with --json flag and captures its output.
+func execBoardJSONOutput(t *testing.T, tasks []domain.Task) string {
+	t.Helper()
+	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
+	config := &fakeConfigRepoCLI{}
+	repo := &fakeTaskRepoBoardCLI{tasks: tasks}
+
+	cmd := cli.NewBoardCommand(git, config, repo)
+	root := &cobra.Command{Use: "kanban", SilenceUsage: true}
+	root.AddCommand(cmd)
+	root.SetArgs([]string{"board", "--json"})
+
+	return captureStdout(t, func() {
+		_ = root.Execute()
+	})
+}
+
 // Behavior 2: task with empty CreatedBy shows "--" in the creator column.
 func TestBoardCommand_ShowsDash_WhenCreatedByIsEmpty(t *testing.T) {
 	task := domain.Task{
@@ -108,4 +126,36 @@ func TestBoardCommand_ShowsDash_WhenCreatedByIsEmpty(t *testing.T) {
 		}
 	}
 	t.Errorf("board row for TASK-002 not found in output:\n%s", output)
+}
+
+// Behavior 3: JSON output always includes a created_by field on each task object.
+func TestBoardCommand_JSONOutputContainsCreatedByField(t *testing.T) {
+	task := domain.Task{
+		ID:        "TASK-001",
+		Title:     "Fix login bug",
+		Status:    domain.StatusTodo,
+		CreatedBy: "Test User",
+	}
+
+	output := execBoardJSONOutput(t, []domain.Task{task})
+
+	var items []map[string]interface{}
+	if err := json.Unmarshal([]byte(output), &items); err != nil {
+		t.Fatalf("JSON output is not valid JSON: %v\nOutput: %s", err, output)
+	}
+	if len(items) == 0 {
+		t.Fatalf("expected at least one task in JSON output, got none")
+	}
+	if _, ok := items[0]["created_by"]; !ok {
+		t.Errorf("JSON task object missing created_by field — present keys: %v", keys(items[0]))
+	}
+}
+
+// keys returns the sorted keys of a map for diagnostic messages.
+func keys(m map[string]interface{}) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
 }

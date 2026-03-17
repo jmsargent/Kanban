@@ -81,7 +81,6 @@ func TestTaskCreator_PreExistingTaskShowsDashOnBoard(t *testing.T) {
 // The JSON output from kanban board --json includes a created_by field
 // on every task object.
 func TestTaskCreator_JSONOutputHasCreatedByField(t *testing.T) {
-	t.Skip("not yet implemented — step 03-03")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
