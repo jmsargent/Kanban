@@ -2,7 +2,6 @@ package acceptance
 
 import (
 	"testing"
-
 	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
 )
 

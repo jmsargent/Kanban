@@ -117,6 +117,12 @@ func (a *GitAdapter) AppendToGitignore(repoRoot, entry string) error {
 	return nil
 }
 
+// GetIdentity returns the git author identity from git config.
+// Full implementation in step 02-01; this stub satisfies the port contract.
+func (a *GitAdapter) GetIdentity() (ports.Identity, error) {
+	return ports.Identity{}, ports.ErrGitIdentityNotConfigured
+}
+
 // runGitIn runs a git command with the given arguments in the specified directory.
 func runGitIn(dir string, args ...string) error {
 	cmd := exec.Command("git", args...)

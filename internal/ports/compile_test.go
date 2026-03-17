@@ -93,3 +93,7 @@ func (g *fakeGitPort) InstallHook(repoRoot string) error {
 func (g *fakeGitPort) AppendToGitignore(repoRoot, entry string) error {
 	return nil
 }
+
+func (g *fakeGitPort) GetIdentity() (ports.Identity, error) {
+	return ports.Identity{}, nil
+}

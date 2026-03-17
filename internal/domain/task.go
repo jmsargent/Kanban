@@ -20,6 +20,7 @@ type Task struct {
 	Due         *time.Time
 	Assignee    string
 	Description string
+	CreatedBy   string
 }
 
 // Column represents a vertical lane on the board.

@@ -41,6 +41,10 @@ func (f *fakeGitPort) CommitFiles(repoRoot, message string, paths []string) erro
 	return nil
 }
 
+func (f *fakeGitPort) GetIdentity() (ports.Identity, error) {
+	return ports.Identity{}, nil
+}
+
 type fakeConfigRepo struct {
 	written    *ports.Config
 	readResult ports.Config

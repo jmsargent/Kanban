@@ -41,6 +41,10 @@ func (s *spyGitPort) CommitFiles(repoRoot, message string, paths []string) error
 	return s.commitFilesErr
 }
 
+func (s *spyGitPort) GetIdentity() (ports.Identity, error) {
+	return ports.Identity{}, nil
+}
+
 type spyTaskRepo struct {
 	byID    map[string]domain.Task
 	updated []domain.Task

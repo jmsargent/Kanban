@@ -14,13 +14,17 @@ func TestWalkingSkeleton_FullTaskLifecycle(t *testing.T) {
 	dsl.Given(ctx, dsl.NoKanbanSetup())
 	dsl.When(ctx, dsl.IRunKanban("init"))
 	dsl.Then(ctx, dsl.WorkspaceReady())
+
 	dsl.When(ctx, dsl.IRunKanbanNew("Fix OAuth login bug"))
 	dsl.Then(ctx, dsl.TaskHasStatus(ctx.LastTaskID(), "todo"))
+	
 	dsl.When(ctx, dsl.IRunKanbanBoard())
 	dsl.Then(ctx, dsl.BoardShowsTaskUnder("Fix OAuth login bug", "TODO"))
+	
 	dsl.When(ctx, dsl.ICommitWithTaskID())
 	dsl.Then(ctx, dsl.TaskHasStatus(ctx.LastTaskID(), "in-progress"))
 	dsl.Then(ctx, dsl.BoardShowsTaskUnder(ctx.LastTaskID(), "IN PROGRESS"))
+	
 	dsl.When(ctx, dsl.CIStepRunsPass())
 	dsl.Then(ctx, dsl.TaskHasStatus(ctx.LastTaskID(), "done"))
 	dsl.Then(ctx, dsl.BoardShowsTaskUnder(ctx.LastTaskID(), "DONE"))

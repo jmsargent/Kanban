@@ -29,6 +29,7 @@ func (f *fakeGitPortCLI) InstallHook(_ string) error                          { 
 func (f *fakeGitPortCLI) AppendToGitignore(_, _ string) error                 { return nil }
 func (f *fakeGitPortCLI) CommitMessagesInRange(_, _ string) ([]string, error) { return nil, nil }
 func (f *fakeGitPortCLI) CommitFiles(_, _ string, _ []string) error           { return nil }
+func (f *fakeGitPortCLI) GetIdentity() (ports.Identity, error)                { return ports.Identity{}, nil }
 
 type fakeConfigRepoCLI struct {
 	readErr error
