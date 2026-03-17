@@ -53,7 +53,6 @@ func TestTaskCreator_AtomicWriteNoTempFiles(t *testing.T) {
 // AC-02-1
 // The board shows the creator name in the row for a newly created task.
 func TestTaskCreator_BoardShowsCreatorName(t *testing.T) {
-	t.Skip("not yet implemented — step 03-01")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -68,7 +67,6 @@ func TestTaskCreator_BoardShowsCreatorName(t *testing.T) {
 // A task file without a created_by field (pre-existing task) is displayed
 // on the board without errors, showing "--" in the creator column.
 func TestTaskCreator_PreExistingTaskShowsDashOnBoard(t *testing.T) {
-	t.Skip("not yet implemented — step 03-02")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

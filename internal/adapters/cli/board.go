@@ -85,8 +85,12 @@ func printBoard(board domain.Board) {
 			if assignee == "" {
 				assignee = "unassigned"
 			}
-			fmt.Printf("  %-12s  %-40s  %-4s  %-10s  %s\n",
-				t.ID, t.Title, priority, due, assignee)
+			createdBy := t.CreatedBy
+			if createdBy == "" {
+				createdBy = "--"
+			}
+			fmt.Printf("  %-12s  %-40s  %-4s  %-10s  %-20s  %s\n",
+				t.ID, t.Title, priority, due, assignee, createdBy)
 		}
 	}
 	fmt.Println()
