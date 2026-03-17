@@ -1,0 +1,77 @@
+journey:
+  id: task-creation-with-attribution
+  feature: task-creator-attribution
+  actor: Developer (solo or team member) managing work via the terminal
+  goal: Create a task that records my identity as creator, and see that attribution on the board
+
+  preconditions:
+    - kanban is initialised in the current git repository
+    - developer is in a directory inside the git repository
+    - git user.name is configured (happy path) OR not configured (error path)
+
+  steps:
+    happy_path:
+      - step: 1
+        action: Run `kanban new "<title>"`
+        system:
+          - Reads git identity via GitPort.GetIdentity()
+          - Generates next task ID
+          - Builds task with CreatedBy = git user.name
+          - Writes task file atomically with created_by in YAML front matter
+          - Prints "Created <ID>: <title>" to stdout
+        outcome: Task file exists at .kanban/tasks/<ID>.md with created_by field
+        emotional_state: Satisfied
+
+      - step: 2
+        action: Run `kanban board`
+        system:
+          - Reads all task files
+          - Renders board with Created By column
+          - Shows creator name for new task; "--" for tasks without created_by
+        outcome: Developer sees their name next to the newly created task
+        emotional_state: Confident
+
+    error_paths:
+      - id: ep-1
+        trigger: git identity not configured (user.name is empty)
+        step: kanban new "<title>"
+        system_response: >
+          Exits with code 1.
+          Prints to stderr:
+            "git identity not configured — run:
+               git config --global user.name \"Your Name\"
+               git config --global user.email \"you@example.com\""
+        recovery: Developer runs the suggested commands and retries
+        emotional_state: Brief frustration → rapid recovery
+
+      - id: ep-2
+        trigger: Pre-existing task file has no created_by field
+        step: kanban board
+        system_response: Displays "--" in the Created By column for that task
+        recovery: No action needed; display is graceful
+        emotional_state: Neutral
+
+  shared_artifacts:
+    - name: git_user_name
+      source: git config user.name
+      consumed_by: [kanban new]
+      produced_by: Developer (via git config --global user.name)
+
+    - name: task_file
+      source: .kanban/tasks/<ID>.md
+      consumed_by: [kanban board, kanban edit, kanban start]
+      produced_by: kanban new
+
+    - name: created_by_field
+      source: YAML front matter in task file
+      consumed_by: [kanban board]
+      produced_by: kanban new
+      constraints:
+        - immutable after initial write
+        - never overwritten by kanban edit
+
+  post_conditions:
+    - Task file exists with created_by set to git user.name
+    - created_by is never empty on a successfully created task
+    - kanban board renders a Created By column
+    - Pre-existing tasks render "--" in the Created By column
