@@ -12,7 +12,7 @@ import (
 	"github.com/kanban-tasks/kanban/internal/ports"
 )
 
-// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 5)
+// Test Budget: 6 behaviors x 2 = 12 max unit tests (using 7)
 
 // ─── Fakes ───────────────────────────────────────────────────────────────────
 
@@ -197,5 +197,21 @@ func TestStartCommand_ExitsWithError_WhenGitIdentityNotConfigured(t *testing.T) 
 	}
 	if exitCode != 1 {
 		t.Errorf("expected exit code 1 when git identity not configured, got %d", exitCode)
+	}
+}
+
+func TestStartCommand_PrintsPreviouslyAssignedWarning_WhenReassignedFromAnotherDeveloper(t *testing.T) {
+	task := domain.Task{ID: "TASK-001", Title: "Fix login bug", Status: domain.StatusTodo, Assignee: "Alice"}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Bob"}}
+	config := &fakeConfigRepoCLI{}
+	tasks := newFakeTaskRepoCLI(task)
+
+	stdout, _, exitCode := execStart(t, git, config, tasks, "TASK-001")
+
+	if !strings.Contains(stdout, "Note: task was previously assigned to Alice") {
+		t.Errorf("expected stdout to contain reassignment note, got: %q", stdout)
+	}
+	if exitCode != 0 {
+		t.Errorf("expected exit code 0 on reassignment, got %d", exitCode)
 	}
 }

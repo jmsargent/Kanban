@@ -54,7 +54,7 @@ func (f *startTaskFakeRepo) NextID(repoRoot string) (string, error)         { re
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 5)
+// Test Budget: 6 behaviors x 2 = 12 max unit tests (using 7)
 
 func TestStartTask_TransitionsTodoToInProgress_WhenTaskIsInTodo(t *testing.T) {
 	repoRoot := tmpRepo(t)
@@ -112,50 +112,60 @@ func TestStartTask_ReturnsAlreadyInProgress_WhenTaskIsAlreadyInProgress(t *testi
 	}
 }
 
-func TestStartTask_ReturnsErrInvalidTransition_WhenTaskIsDone(t *testing.T) {
-	repoRoot := tmpRepo(t)
-	task := domain.Task{ID: "TASK-003", Title: "Completed task", Status: domain.StatusDone}
-	cfg := &fakeConfigRepo{readResult: ports.Config{
-		Columns: []domain.Column{{Name: "done", Label: "Done"}},
-	}}
-	tasks := newStartTaskFakeRepo(task)
-
-	uc := usecases.NewStartTask(cfg, tasks)
-	_, err := uc.Execute(repoRoot, "TASK-003", "")
-
-	if !errors.Is(err, ports.ErrInvalidTransition) {
-		t.Errorf("expected ErrInvalidTransition, got: %v", err)
+func TestStartTask_ReturnsError_ForInvalidPreconditions(t *testing.T) {
+	// These three error paths share identical assertion shape: Execute returns a
+	// sentinel error and no Update is issued. Parametrized as input variations of
+	// one behavior (Mandate 5).
+	cases := []struct {
+		name      string
+		cfg       ports.ConfigRepository
+		task      *domain.Task // nil = empty repo (ErrTaskNotFound)
+		taskID    string
+		wantErr   error
+	}{
+		{
+			name:    "done task returns ErrInvalidTransition",
+			cfg:     &fakeConfigRepo{readResult: ports.Config{Columns: []domain.Column{{Name: "done", Label: "Done"}}}},
+			task:    &domain.Task{ID: "TASK-003", Title: "Completed task", Status: domain.StatusDone},
+			taskID:  "TASK-003",
+			wantErr: ports.ErrInvalidTransition,
+		},
+		{
+			name:    "missing task returns ErrTaskNotFound",
+			cfg:     &fakeConfigRepo{readResult: ports.Config{Columns: []domain.Column{{Name: "todo", Label: "TODO"}}}},
+			task:    nil,
+			taskID:  "TASK-999",
+			wantErr: ports.ErrTaskNotFound,
+		},
+		{
+			name:    "uninitialised repo returns ErrNotInitialised",
+			cfg:     newFreshConfigRepo(),
+			task:    nil,
+			taskID:  "TASK-001",
+			wantErr: ports.ErrNotInitialised,
+		},
 	}
-	if tasks.updated != nil {
-		t.Error("expected no Update call when transition is invalid")
-	}
-}
 
-func TestStartTask_ReturnsErrTaskNotFound_WhenTaskIDDoesNotExist(t *testing.T) {
-	repoRoot := tmpRepo(t)
-	cfg := &fakeConfigRepo{readResult: ports.Config{
-		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
-	}}
-	tasks := newStartTaskFakeRepo() // empty — no tasks
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repoRoot := tmpRepo(t)
+			var tasks *startTaskFakeRepo
+			if tc.task != nil {
+				tasks = newStartTaskFakeRepo(*tc.task)
+			} else {
+				tasks = newStartTaskFakeRepo()
+			}
 
-	uc := usecases.NewStartTask(cfg, tasks)
-	_, err := uc.Execute(repoRoot, "TASK-999", "")
+			uc := usecases.NewStartTask(tc.cfg, tasks)
+			_, err := uc.Execute(repoRoot, tc.taskID, "")
 
-	if !errors.Is(err, ports.ErrTaskNotFound) {
-		t.Errorf("expected ErrTaskNotFound, got: %v", err)
-	}
-}
-
-func TestStartTask_ReturnsErrNotInitialised_WhenRepoNotInitialised(t *testing.T) {
-	repoRoot := tmpRepo(t)
-	cfg := newFreshConfigRepo() // ErrNotInitialised
-	tasks := newStartTaskFakeRepo()
-
-	uc := usecases.NewStartTask(cfg, tasks)
-	_, err := uc.Execute(repoRoot, "TASK-001", "")
-
-	if !errors.Is(err, ports.ErrNotInitialised) {
-		t.Errorf("expected ErrNotInitialised, got: %v", err)
+			if !errors.Is(err, tc.wantErr) {
+				t.Errorf("expected %v, got: %v", tc.wantErr, err)
+			}
+			if tasks.updated != nil {
+				t.Error("expected no Update call when precondition fails")
+			}
+		})
 	}
 }
 
@@ -197,5 +207,27 @@ func TestStartTask_PreviousAssigneeIsEmpty_WhenTaskWasUnassigned(t *testing.T) {
 	}
 	if result.PreviousAssignee != "" {
 		t.Errorf("expected PreviousAssignee to be empty, got: %q", result.PreviousAssignee)
+	}
+}
+
+func TestStartTask_PreviousAssigneeIsPopulated_WhenTaskWasAssignedToDifferentDeveloper(t *testing.T) {
+	repoRoot := tmpRepo(t)
+	task := domain.Task{ID: "TASK-001", Title: "Fix bug", Status: domain.StatusTodo, Assignee: "Alice"}
+	cfg := &fakeConfigRepo{readResult: ports.Config{
+		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
+	}}
+	tasks := newStartTaskFakeRepo(task)
+
+	uc := usecases.NewStartTask(cfg, tasks)
+	result, err := uc.Execute(repoRoot, "TASK-001", "Bob")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result.PreviousAssignee != "Alice" {
+		t.Errorf("expected PreviousAssignee to be 'Alice', got: %q", result.PreviousAssignee)
+	}
+	if result.Task.Assignee != "Bob" {
+		t.Errorf("expected result.Task.Assignee to be 'Bob', got: %q", result.Task.Assignee)
 	}
 }
