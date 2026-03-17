@@ -204,7 +204,7 @@ jobs:
   # The release job then runs goreleaser against that tag.
   # Secrets injected via CircleCI "release-context" (needs GITHUB_TOKEN to push tag).
   # -------------------------------------------------------------------------
-tag:
+  tag:
     executor: go-executor
     steps:
       - checkout
@@ -220,7 +220,7 @@ tag:
             go-semver-release release . \
               --tag-prefix v \
               --remote-name origin \
-              --access-token "$GITHUB_TOKEN" \
+              --access-token $GITHUB_TOKEN \
               --branches '[{"name": "main"}]'
           # GITHUB_TOKEN injected from release-context (Contents read+write)
 
