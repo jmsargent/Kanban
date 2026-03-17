@@ -104,7 +104,7 @@ commands:
           name: Install go-semver-release
           command: |
             if [ ! -f "$(go env GOPATH)/bin/go-semver-release" ]; then
-              go install github.com/s0ders/go-semver-release/v6/cmd@<< pipeline.parameters.go-semver-release-version >>
+              go install github.com/s0ders/go-semver-release/v6@<< pipeline.parameters.go-semver-release-version >>
             fi
       - save_cache:
           key: go-semver-release-<< pipeline.parameters.go-semver-release-version >>
