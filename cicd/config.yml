@@ -216,7 +216,7 @@ jobs:
       - run:
           name: Compute and push semver tag
           command: |
-            go-semver-release release \
+            go-semver-release release . \
               --tag-prefix v \
               --remote-name origin \
               --access-token $GITHUB_TOKEN \
