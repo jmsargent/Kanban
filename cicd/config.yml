@@ -31,7 +31,7 @@ version: 2.1
 parameters:
   go-image-version:
     type: string
-    default: "1.25.5"
+    default: "1.26.1"
   golangci-lint-version:
     type: string
     default: "v2.11.3"
