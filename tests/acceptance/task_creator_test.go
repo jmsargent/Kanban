@@ -128,7 +128,6 @@ func TestTaskCreator_MissingIdentityWritesNoFile(t *testing.T) {
 //  enforced structurally by editFields exclusion and covered by the use
 //  case unit tests. The behavioral outcome — AC-04-2 — is the end-to-end proof.)
 func TestTaskCreator_EditDoesNotChangeCreator(t *testing.T) {
-	t.Skip("not yet implemented — step 05-01")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
