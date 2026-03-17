@@ -98,7 +98,6 @@ func TestTaskCreator_JSONOutputHasCreatedByField(t *testing.T) {
 // When git user.name is not configured, kanban new exits with code 1
 // and prints a self-contained error message with setup instructions.
 func TestTaskCreator_MissingIdentityFailsWithGuidance(t *testing.T) {
-	t.Skip("not yet implemented — step 04-01")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepoWithoutGitIdentity())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -111,7 +110,6 @@ func TestTaskCreator_MissingIdentityFailsWithGuidance(t *testing.T) {
 // AC-03-2
 // When git user.name is not configured, kanban new writes no task file.
 func TestTaskCreator_MissingIdentityWritesNoFile(t *testing.T) {
-	t.Skip("not yet implemented — step 04-01")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepoWithoutGitIdentity())
 	dsl.Given(ctx, dsl.KanbanInitialised())
