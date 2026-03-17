@@ -22,8 +22,31 @@
 
 version: 2.1
 
+# ---------------------------------------------------------------------------
+# Tool versions — update here to change versions across the entire pipeline.
+# Run cicd/check-versions.sh to verify your local tools match these values.
+# Note: the circleci/go orb version (below) cannot use parameters — update
+# it manually alongside go-image-version if upgrading Go.
+# ---------------------------------------------------------------------------
+parameters:
+  go-image-version:
+    type: string
+    default: "1.25.5"
+  golangci-lint-version:
+    type: string
+    default: "v2.11.3"
+  go-arch-lint-version:
+    type: string
+    default: "v1.14.0"
+  go-semver-release-version:
+    type: string
+    default: "v6.1.0"
+  goreleaser-version:
+    type: string
+    default: "v2.3.2"
+
 orbs:
-  go: circleci/go@3.0.3
+  go: circleci/go@3.0.3  # update manually alongside go-image-version
 
 # ---------------------------------------------------------------------------
 # Executors
@@ -31,7 +54,7 @@ orbs:
 executors:
   go-executor:
     docker:
-      - image: cimg/go:1.25.5
+      - image: cimg/go:<< pipeline.parameters.go-image-version >>
     resource_class: medium
 
 # ---------------------------------------------------------------------------
@@ -39,52 +62,52 @@ executors:
 # ---------------------------------------------------------------------------
 commands:
   install-golangci-lint:
-    description: "Install golangci-lint v2.11.3 (cached)"
+    description: "Install golangci-lint << pipeline.parameters.golangci-lint-version >> (cached)"
     steps:
       - restore_cache:
           keys:
-            - golangci-lint-v2.11.3
+            - golangci-lint-<< pipeline.parameters.golangci-lint-version >>
       - run:
           name: Install golangci-lint
           command: |
             if [ ! -f "$(go env GOPATH)/bin/golangci-lint" ]; then
               curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-                | sh -s -- -b $(go env GOPATH)/bin v2.11.3
+                | sh -s -- -b $(go env GOPATH)/bin << pipeline.parameters.golangci-lint-version >>
             fi
       - save_cache:
-          key: golangci-lint-v2.11.3
+          key: golangci-lint-<< pipeline.parameters.golangci-lint-version >>
           paths:
             - /home/circleci/go/bin/golangci-lint
   install-go-arch-lint:
-    description: "Install go-arch-lint v1.14.0 (cached)"
+    description: "Install go-arch-lint << pipeline.parameters.go-arch-lint-version >> (cached)"
     steps:
       - restore_cache:
           keys:
-            - go-arch-lint-v1.14.0
+            - go-arch-lint-<< pipeline.parameters.go-arch-lint-version >>
       - run:
           name: Install go-arch-lint
           command: |
             if [ ! -f "$(go env GOPATH)/bin/go-arch-lint" ]; then
-              go install github.com/fe3dback/go-arch-lint@v1.14.0
+              go install github.com/fe3dback/go-arch-lint@<< pipeline.parameters.go-arch-lint-version >>
             fi
       - save_cache:
-          key: go-arch-lint-v1.14.0
+          key: go-arch-lint-<< pipeline.parameters.go-arch-lint-version >>
           paths:
             - /home/circleci/go/bin/go-arch-lint
   install-go-semver-release:
-    description: "Install go-semver-release v6.1.0 (cached)"
+    description: "Install go-semver-release << pipeline.parameters.go-semver-release-version >> (cached)"
     steps:
       - restore_cache:
           keys:
-            - go-semver-release-v6.1.0
+            - go-semver-release-<< pipeline.parameters.go-semver-release-version >>
       - run:
           name: Install go-semver-release
           command: |
             if [ ! -f "$(go env GOPATH)/bin/go-semver-release" ]; then
-              go install github.com/s0ders/go-semver-release/v6/cmd/go-semver-release@v6.1.0
+              go install github.com/s0ders/go-semver-release/v6/cmd/go-semver-release@<< pipeline.parameters.go-semver-release-version >>
             fi
       - save_cache:
-          key: go-semver-release-v6.1.0
+          key: go-semver-release-<< pipeline.parameters.go-semver-release-version >>
           paths:
             - /home/circleci/go/bin/go-semver-release
 
@@ -233,7 +256,7 @@ jobs:
           name: goreleaser release
           command: |
             export GITHUB_REPOSITORY_OWNER=$CIRCLE_PROJECT_USERNAME
-            curl -sfL https://goreleaser.com/static/run | VERSION=v2.3.2 bash -s -- release --config cicd/goreleaser.yml --clean
+            curl -sfL https://goreleaser.com/static/run | VERSION=<< pipeline.parameters.goreleaser-version >> bash -s -- release --config cicd/goreleaser.yml --clean
           # Environment variables injected from release-context:
           #   GITHUB_TOKEN              — Contents read+write (create Release, upload assets, push tag)
           #   HOMEBREW_TAP_GITHUB_TOKEN — push formula to homebrew-kanban repo
