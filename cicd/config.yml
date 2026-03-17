@@ -46,7 +46,7 @@ parameters:
     default: "v2.3.2"
 
 orbs:
-  go: circleci/go@3.0.3  # update manually alongside go-image-version
+  go: circleci/go@3.0.2  # update manually alongside go-image-version
 
 # ---------------------------------------------------------------------------
 # Executors
