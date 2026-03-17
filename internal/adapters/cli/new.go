@@ -35,6 +35,12 @@ func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks po
 				os.Exit(1)
 			}
 
+			identity, err := git.GetIdentity()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "git identity not configured — run: git config --global user.name \"Your Name\"")
+				os.Exit(1)
+			}
+
 			var due *time.Time
 			if dueStr != "" {
 				parsed, parseErr := time.Parse("2006-01-02", dueStr)
@@ -46,10 +52,11 @@ func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks po
 			}
 
 			input := usecases.AddTaskInput{
-				Title:    title,
-				Priority: priority,
-				Due:      due,
-				Assignee: assignee,
+				Title:     title,
+				Priority:  priority,
+				Due:       due,
+				Assignee:  assignee,
+				CreatedBy: identity.Name,
 			}
 
 			uc := usecases.NewAddTask(config, tasks)

@@ -52,7 +52,7 @@ func refSHA(t *testing.T, dir, ref string) string {
 	return strings.TrimSpace(string(out))
 }
 
-// Test Budget: 4 behaviors x 2 = 8 max unit tests (using 4)
+// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 5)
 
 func TestRepoRoot_ReturnsErrNotGitRepo_WhenOutsideGitRepo(t *testing.T) {
 	dir := t.TempDir()
@@ -135,6 +135,27 @@ func TestCommitFiles_CreatesCommitAnnotatedWithSkipCI(t *testing.T) {
 	}
 	if !strings.Contains(subject, "add task card") {
 		t.Errorf("commit subject %q does not contain original message", subject)
+	}
+}
+
+func TestGetIdentity_ReturnsConfiguredNameAndEmail(t *testing.T) {
+	dir := t.TempDir()
+	initRepo(t, dir) // configures user.name = "Test User", user.email = "test@example.com"
+
+	origDir, _ := os.Getwd()
+	t.Cleanup(func() { os.Chdir(origDir) }) //nolint:errcheck
+	os.Chdir(dir)                           //nolint:errcheck
+
+	adapter := gitadapter.NewGitAdapter()
+	identity, err := adapter.GetIdentity()
+	if err != nil {
+		t.Fatalf("GetIdentity: %v", err)
+	}
+	if identity.Name != "Test User" {
+		t.Errorf("identity.Name = %q, want %q", identity.Name, "Test User")
+	}
+	if identity.Email != "test@example.com" {
+		t.Errorf("identity.Email = %q, want %q", identity.Email, "test@example.com")
 	}
 }
 

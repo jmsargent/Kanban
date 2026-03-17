@@ -12,7 +12,6 @@ import (
 // AC-01-1 — Walking Skeleton
 // Creator name is automatically written to the task file on kanban new.
 func TestTaskCreator_CreatorRecordedOnKanbanNew(t *testing.T) {
-	t.Skip("not yet implemented — step 02-01")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo()) // configures git user.name = "Test User"
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -26,7 +25,6 @@ func TestTaskCreator_CreatorRecordedOnKanbanNew(t *testing.T) {
 // All required front matter fields are present after task creation,
 // including the new created_by field.
 func TestTaskCreator_FrontMatterContainsCreatorField(t *testing.T) {
-	t.Skip("not yet implemented — step 02-02")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -40,7 +38,6 @@ func TestTaskCreator_FrontMatterContainsCreatorField(t *testing.T) {
 // AC-01-3
 // No .tmp files remain in .kanban/tasks/ after a successful task creation.
 func TestTaskCreator_AtomicWriteNoTempFiles(t *testing.T) {
-	t.Skip("not yet implemented — step 02-03")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

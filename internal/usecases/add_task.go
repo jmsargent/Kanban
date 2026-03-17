@@ -16,6 +16,7 @@ type AddTaskInput struct {
 	Due         *time.Time
 	Assignee    string
 	Description string
+	CreatedBy   string
 }
 
 // AddTask implements the create-task use case.
@@ -58,6 +59,7 @@ func (u *AddTask) Execute(repoRoot string, input AddTaskInput) (domain.Task, err
 		Due:         input.Due,
 		Assignee:    input.Assignee,
 		Description: input.Description,
+		CreatedBy:   input.CreatedBy,
 	}
 
 	if err := u.tasks.Save(repoRoot, task); err != nil {

@@ -26,12 +26,13 @@ func NewTaskRepository() *TaskRepository {
 
 // taskFrontMatter is the YAML serialisation shape for a Task header.
 type taskFrontMatter struct {
-	ID       string `yaml:"id"`
-	Title    string `yaml:"title"`
-	Status   string `yaml:"status"`
-	Priority string `yaml:"priority"`
-	Due      string `yaml:"due"`
-	Assignee string `yaml:"assignee"`
+	ID        string `yaml:"id"`
+	Title     string `yaml:"title"`
+	Status    string `yaml:"status"`
+	Priority  string `yaml:"priority"`
+	Due       string `yaml:"due"`
+	Assignee  string `yaml:"assignee"`
+	CreatedBy string `yaml:"created_by"`
 }
 
 const dueDateLayout = "2006-01-02"
@@ -167,11 +168,12 @@ func (r *TaskRepository) NextID(repoRoot string) (string, error) {
 // marshalTask serialises a Task to Markdown with YAML front matter.
 func marshalTask(task domain.Task) ([]byte, error) {
 	fm := taskFrontMatter{
-		ID:       task.ID,
-		Title:    task.Title,
-		Status:   string(task.Status),
-		Priority: task.Priority,
-		Assignee: task.Assignee,
+		ID:        task.ID,
+		Title:     task.Title,
+		Status:    string(task.Status),
+		Priority:  task.Priority,
+		Assignee:  task.Assignee,
+		CreatedBy: task.CreatedBy,
 	}
 	if task.Due != nil {
 		fm.Due = task.Due.Format(dueDateLayout)
@@ -230,6 +232,7 @@ func unmarshalTask(data []byte) (domain.Task, error) {
 		Status:      domain.TaskStatus(fm.Status),
 		Priority:    fm.Priority,
 		Assignee:    fm.Assignee,
+		CreatedBy:   fm.CreatedBy,
 		Description: body,
 	}
 

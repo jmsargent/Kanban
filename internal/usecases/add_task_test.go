@@ -50,7 +50,7 @@ func (f *fakeTaskRepo) Delete(repoRoot, taskID string) error {
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-// Test Budget: 4 behaviors x 2 = 8 max unit tests (using 4)
+// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 5)
 
 func TestAddTask_CreatesTaskWithTodoStatus_WhenTitleIsValid(t *testing.T) {
 	repoRoot := tmpRepo(t)
@@ -124,6 +124,31 @@ func TestAddTask_PersistsOptionalFields_WhenProvided(t *testing.T) {
 	}
 	if task.Assignee != "Alice" {
 		t.Errorf("expected assignee Alice, got: %s", task.Assignee)
+	}
+}
+
+func TestAddTask_PropagatesCreatedBy_WhenProvided(t *testing.T) {
+	repoRoot := tmpRepo(t)
+	cfg := &fakeConfigRepo{readResult: ports.Config{
+		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
+	}}
+	tasks := &fakeTaskRepo{nextID: "TASK-001"}
+	input := usecases.AddTaskInput{
+		Title:     "Fix login bug",
+		CreatedBy: "Alice",
+	}
+
+	uc := usecases.NewAddTask(cfg, tasks)
+	task, err := uc.Execute(repoRoot, input)
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if task.CreatedBy != "Alice" {
+		t.Errorf("expected CreatedBy 'Alice', got: %q", task.CreatedBy)
+	}
+	if tasks.saved == nil || tasks.saved.CreatedBy != "Alice" {
+		t.Errorf("expected saved task to have CreatedBy 'Alice', got: %q", tasks.saved.CreatedBy)
 	}
 }
 
