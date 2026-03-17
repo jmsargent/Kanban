@@ -65,7 +65,7 @@ func TestStartTask_TransitionsTodoToInProgress_WhenTaskIsInTodo(t *testing.T) {
 	tasks := newStartTaskFakeRepo(task)
 
 	uc := usecases.NewStartTask(cfg, tasks)
-	result, err := uc.Execute(repoRoot, "TASK-001")
+	result, err := uc.Execute(repoRoot, "TASK-001", "")
 
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -96,7 +96,7 @@ func TestStartTask_ReturnsAlreadyInProgress_WhenTaskIsAlreadyInProgress(t *testi
 	tasks := newStartTaskFakeRepo(task)
 
 	uc := usecases.NewStartTask(cfg, tasks)
-	result, err := uc.Execute(repoRoot, "TASK-002")
+	result, err := uc.Execute(repoRoot, "TASK-002", "")
 
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -121,7 +121,7 @@ func TestStartTask_ReturnsErrInvalidTransition_WhenTaskIsDone(t *testing.T) {
 	tasks := newStartTaskFakeRepo(task)
 
 	uc := usecases.NewStartTask(cfg, tasks)
-	_, err := uc.Execute(repoRoot, "TASK-003")
+	_, err := uc.Execute(repoRoot, "TASK-003", "")
 
 	if !errors.Is(err, ports.ErrInvalidTransition) {
 		t.Errorf("expected ErrInvalidTransition, got: %v", err)
@@ -139,7 +139,7 @@ func TestStartTask_ReturnsErrTaskNotFound_WhenTaskIDDoesNotExist(t *testing.T) {
 	tasks := newStartTaskFakeRepo() // empty — no tasks
 
 	uc := usecases.NewStartTask(cfg, tasks)
-	_, err := uc.Execute(repoRoot, "TASK-999")
+	_, err := uc.Execute(repoRoot, "TASK-999", "")
 
 	if !errors.Is(err, ports.ErrTaskNotFound) {
 		t.Errorf("expected ErrTaskNotFound, got: %v", err)
@@ -152,9 +152,50 @@ func TestStartTask_ReturnsErrNotInitialised_WhenRepoNotInitialised(t *testing.T)
 	tasks := newStartTaskFakeRepo()
 
 	uc := usecases.NewStartTask(cfg, tasks)
-	_, err := uc.Execute(repoRoot, "TASK-001")
+	_, err := uc.Execute(repoRoot, "TASK-001", "")
 
 	if !errors.Is(err, ports.ErrNotInitialised) {
 		t.Errorf("expected ErrNotInitialised, got: %v", err)
+	}
+}
+
+func TestStartTask_SetsAssignee_WhenTaskIsStarted(t *testing.T) {
+	repoRoot := tmpRepo(t)
+	task := domain.Task{ID: "TASK-001", Title: "Fix bug", Status: domain.StatusTodo}
+	cfg := &fakeConfigRepo{readResult: ports.Config{
+		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
+	}}
+	tasks := newStartTaskFakeRepo(task)
+
+	uc := usecases.NewStartTask(cfg, tasks)
+	result, err := uc.Execute(repoRoot, "TASK-001", "Alice")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result.Task.Assignee != "Alice" {
+		t.Errorf("expected result.Task.Assignee to be 'Alice', got: %q", result.Task.Assignee)
+	}
+	if tasks.updated == nil || tasks.updated.Assignee != "Alice" {
+		t.Error("expected persisted task to have Assignee = 'Alice'")
+	}
+}
+
+func TestStartTask_PreviousAssigneeIsEmpty_WhenTaskWasUnassigned(t *testing.T) {
+	repoRoot := tmpRepo(t)
+	task := domain.Task{ID: "TASK-001", Title: "Fix bug", Status: domain.StatusTodo, Assignee: ""}
+	cfg := &fakeConfigRepo{readResult: ports.Config{
+		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
+	}}
+	tasks := newStartTaskFakeRepo(task)
+
+	uc := usecases.NewStartTask(cfg, tasks)
+	result, err := uc.Execute(repoRoot, "TASK-001", "Bob")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result.PreviousAssignee != "" {
+		t.Errorf("expected PreviousAssignee to be empty, got: %q", result.PreviousAssignee)
 	}
 }

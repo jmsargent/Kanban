@@ -47,8 +47,15 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 				return nil
 			}
 
+			identity, err := git.GetIdentity()
+			if err != nil {
+				writeLine(errOut, "git identity not configured — run: git config --global user.name \"Your Name\"")
+				osExit(1)
+				return nil
+			}
+
 			uc := usecases.NewStartTask(config, tasks)
-			result, err := uc.Execute(repoRoot, taskID)
+			result, err := uc.Execute(repoRoot, taskID, identity.Name)
 			if err != nil {
 				if errors.Is(err, ports.ErrInvalidTransition) {
 					writeLine(errOut, fmt.Sprintf("Task %s is already finished", taskID))
@@ -76,6 +83,9 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 			}
 
 			writeLine(out, fmt.Sprintf("Started %s: %s", taskID, result.Task.Title))
+			if result.PreviousAssignee != "" {
+				writeLine(out, fmt.Sprintf("Note: task was previously assigned to %s", result.PreviousAssignee))
+			}
 			return nil
 		},
 	}

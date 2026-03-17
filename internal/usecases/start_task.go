@@ -13,6 +13,7 @@ type StartTaskResult struct {
 	Transitioned      bool
 	AlreadyInProgress bool
 	Task              domain.Task
+	PreviousAssignee  string // non-empty when task had a different assignee before this start
 }
 
 // StartTask implements the use case: explicitly start a task (todo -> in-progress).
@@ -27,11 +28,13 @@ func NewStartTask(config ports.ConfigRepository, tasks ports.TaskRepository) *St
 }
 
 // Execute transitions the identified task from todo to in-progress.
+// assignee is the git user.name of the developer starting the task; it is
+// written to task.Assignee on successful transition.
 // Returns (StartTaskResult{AlreadyInProgress: true}, nil) when the task is already in-progress.
 // Returns a wrapped ErrInvalidTransition when the task is done.
 // Returns ErrTaskNotFound when the task ID does not exist.
 // Returns ErrNotInitialised when the repository has not been initialised.
-func (u *StartTask) Execute(repoRoot, taskID string) (StartTaskResult, error) {
+func (u *StartTask) Execute(repoRoot, taskID, assignee string) (StartTaskResult, error) {
 	if _, err := u.config.Read(repoRoot); err != nil {
 		return StartTaskResult{}, fmt.Errorf("read config: %w", err)
 	}
@@ -52,10 +55,16 @@ func (u *StartTask) Execute(repoRoot, taskID string) (StartTaskResult, error) {
 		return StartTaskResult{}, fmt.Errorf("task %s: %w", taskID, ports.ErrInvalidTransition)
 	}
 
+	previousAssignee := task.Assignee
 	task.Status = domain.StatusInProgress
+	task.Assignee = assignee
 	if err := u.tasks.Update(repoRoot, task); err != nil {
 		return StartTaskResult{}, fmt.Errorf("update task: %w", err)
 	}
 
-	return StartTaskResult{Transitioned: true, Task: task}, nil
+	result := StartTaskResult{Transitioned: true, Task: task}
+	if previousAssignee != "" && previousAssignee != assignee {
+		result.PreviousAssignee = previousAssignee
+	}
+	return result, nil
 }

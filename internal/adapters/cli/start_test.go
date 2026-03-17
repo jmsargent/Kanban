@@ -17,8 +17,10 @@ import (
 // ─── Fakes ───────────────────────────────────────────────────────────────────
 
 type fakeGitPortCLI struct {
-	repoRoot    string
-	repoRootErr error
+	repoRoot       string
+	repoRootErr    error
+	identity       ports.Identity
+	getIdentityErr error
 }
 
 func (f *fakeGitPortCLI) RepoRoot() (string, error) {
@@ -29,7 +31,9 @@ func (f *fakeGitPortCLI) InstallHook(_ string) error                          { 
 func (f *fakeGitPortCLI) AppendToGitignore(_, _ string) error                 { return nil }
 func (f *fakeGitPortCLI) CommitMessagesInRange(_, _ string) ([]string, error) { return nil, nil }
 func (f *fakeGitPortCLI) CommitFiles(_, _ string, _ []string) error           { return nil }
-func (f *fakeGitPortCLI) GetIdentity() (ports.Identity, error)                { return ports.Identity{}, nil }
+func (f *fakeGitPortCLI) GetIdentity() (ports.Identity, error) {
+	return f.identity, f.getIdentityErr
+}
 
 type fakeConfigRepoCLI struct {
 	readErr error
@@ -104,7 +108,7 @@ func execStart(t *testing.T, git ports.GitPort, config ports.ConfigRepository, t
 
 func TestStartCommand_PrintsStartedMessage_WhenTaskIsInTodo(t *testing.T) {
 	task := domain.Task{ID: "TASK-001", Title: "Fix login bug", Status: domain.StatusTodo}
-	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
 
@@ -120,7 +124,7 @@ func TestStartCommand_PrintsStartedMessage_WhenTaskIsInTodo(t *testing.T) {
 
 func TestStartCommand_PrintsAlreadyInProgress_WhenTaskIsInProgress(t *testing.T) {
 	task := domain.Task{ID: "TASK-002", Title: "Running task", Status: domain.StatusInProgress}
-	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
 
@@ -136,7 +140,7 @@ func TestStartCommand_PrintsAlreadyInProgress_WhenTaskIsInProgress(t *testing.T)
 
 func TestStartCommand_PrintsAlreadyFinished_WhenTaskIsDone(t *testing.T) {
 	task := domain.Task{ID: "TASK-003", Title: "Completed task", Status: domain.StatusDone}
-	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
 
@@ -151,7 +155,7 @@ func TestStartCommand_PrintsAlreadyFinished_WhenTaskIsDone(t *testing.T) {
 }
 
 func TestStartCommand_PrintsNotFound_WhenTaskIDDoesNotExist(t *testing.T) {
-	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI() // empty
 
@@ -166,7 +170,7 @@ func TestStartCommand_PrintsNotFound_WhenTaskIDDoesNotExist(t *testing.T) {
 }
 
 func TestStartCommand_PrintsNotInitialised_WhenRepoNotInitialised(t *testing.T) {
-	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
 	config := &fakeConfigRepoCLI{readErr: ports.ErrNotInitialised}
 	tasks := newFakeTaskRepoCLI()
 
@@ -177,5 +181,21 @@ func TestStartCommand_PrintsNotInitialised_WhenRepoNotInitialised(t *testing.T) 
 	}
 	if exitCode != 1 {
 		t.Errorf("expected exit code 1 when repo not initialised, got %d", exitCode)
+	}
+}
+
+func TestStartCommand_ExitsWithError_WhenGitIdentityNotConfigured(t *testing.T) {
+	task := domain.Task{ID: "TASK-001", Title: "Fix login bug", Status: domain.StatusTodo}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), getIdentityErr: ports.ErrGitIdentityNotConfigured}
+	config := &fakeConfigRepoCLI{}
+	tasks := newFakeTaskRepoCLI(task)
+
+	_, stderr, exitCode := execStart(t, git, config, tasks, "TASK-001")
+
+	if !strings.Contains(stderr, "git identity not configured") {
+		t.Errorf("expected stderr to contain 'git identity not configured', got: %q", stderr)
+	}
+	if exitCode != 1 {
+		t.Errorf("expected exit code 1 when git identity not configured, got %d", exitCode)
 	}
 }
