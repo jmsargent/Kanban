@@ -39,20 +39,20 @@ executors:
 # ---------------------------------------------------------------------------
 commands:
   install-golangci-lint:
-    description: "Install golangci-lint v1.57.2 (cached)"
+    description: "Install golangci-lint v2.11.3 (cached)"
     steps:
       - restore_cache:
           keys:
-            - golangci-lint-v1.57.2
+            - golangci-lint-v2.11.3
       - run:
           name: Install golangci-lint
           command: |
             if [ ! -f "$(go env GOPATH)/bin/golangci-lint" ]; then
               curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-                | sh -s -- -b $(go env GOPATH)/bin v1.57.2
+                | sh -s -- -b $(go env GOPATH)/bin v2.11.3
             fi
       - save_cache:
-          key: golangci-lint-v1.57.2
+          key: golangci-lint-v2.11.3
           paths:
             - /home/circleci/go/bin/golangci-lint
   install-go-arch-lint:
