@@ -40,41 +40,35 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 			out := cmd.OutOrStdout()
 			errOut := cmd.ErrOrStderr()
 
-			repoRoot, err := git.RepoRoot()
-			if err != nil {
-				writeLine(errOut, "Not a git repository")
+			exitError := func(msg string) error {
+				writeLine(errOut, msg)
 				osExit(1)
 				return nil
 			}
 
+			repoRoot, err := git.RepoRoot()
+			if err != nil {
+				return exitError("Not a git repository")
+			}
+
 			identity, err := git.GetIdentity()
 			if err != nil {
-				writeLine(errOut, "git identity not configured — run: git config --global user.name \"Your Name\"")
-				osExit(1)
-				return nil
+				return exitError("git identity not configured — run: git config --global user.name \"Your Name\"")
 			}
 
 			uc := usecases.NewStartTask(config, tasks)
 			result, err := uc.Execute(repoRoot, taskID, identity.Name)
 			if err != nil {
 				if errors.Is(err, ports.ErrInvalidTransition) {
-					writeLine(errOut, fmt.Sprintf("Task %s is already finished", taskID))
-					osExit(1)
-					return nil
+					return exitError(fmt.Sprintf("Task %s is already finished", taskID))
 				}
 				if errors.Is(err, ports.ErrTaskNotFound) {
-					writeLine(errOut, fmt.Sprintf("Task %s not found", taskID))
-					osExit(1)
-					return nil
+					return exitError(fmt.Sprintf("Task %s not found", taskID))
 				}
 				if errors.Is(err, ports.ErrNotInitialised) {
-					writeLine(errOut, "kanban not initialised — run 'kanban init' first")
-					osExit(1)
-					return nil
+					return exitError("kanban not initialised — run 'kanban init' first")
 				}
-				writeLine(errOut, fmt.Sprintf("Error: %v", err))
-				osExit(1)
-				return nil
+				return exitError(fmt.Sprintf("Error: %v", err))
 			}
 
 			if result.AlreadyInProgress {
