@@ -216,14 +216,11 @@ jobs:
       - run:
           name: Compute and push semver tag
           command: |
-            git config user.email "ci-bot@users.noreply.github.com"
-            git config user.name "ci-bot"
-            go-semver-release run \
-              --git-path . \
+            go-semver-release release \
               --tag-prefix v \
-              --remote origin \
-              --token $GITHUB_TOKEN \
-              --branch main
+              --remote-name origin \
+              --access-token $GITHUB_TOKEN \
+              --branches '[{"name": "main"}]'
           # GITHUB_TOKEN injected from release-context (Contents read+write)
 
   # -------------------------------------------------------------------------
