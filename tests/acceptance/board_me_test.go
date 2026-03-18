@@ -24,7 +24,6 @@ func TestBoardMe_ShowsOnlyCurrentDeveloperTasks(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS03)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -72,7 +71,6 @@ func TestBoardMe_ShowsEmptyBoardGracefully_WhenNoMatchingTasks(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS03)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -94,7 +92,6 @@ func TestBoardMe_DoesNotAffectUnfilteredBoard(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS03)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

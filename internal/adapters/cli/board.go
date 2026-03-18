@@ -17,6 +17,7 @@ import (
 // It retrieves all tasks, groups them by status, and prints a columnar display.
 func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository) *cobra.Command {
 	var jsonOutput bool
+	var meFilter bool
 
 	cmd := &cobra.Command{
 		Use:   "board",
@@ -29,8 +30,18 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 				os.Exit(1)
 			}
 
+			filterAssignee := ""
+			if meFilter {
+				identity, identErr := git.GetIdentity()
+				if identErr != nil {
+					fmt.Fprintln(os.Stderr, "git identity not configured")
+					os.Exit(1)
+				}
+				filterAssignee = identity.Email
+			}
+
 			uc := usecases.NewGetBoard(config, tasks, log)
-			board, err := uc.Execute(repoRoot, "")
+			board, err := uc.Execute(repoRoot, filterAssignee)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
@@ -41,14 +52,38 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 				return nil
 			}
 
+			if meFilter {
+				printBoardFiltered(board, filterAssignee)
+				return nil
+			}
+
 			printBoard(board)
 			return nil
 		},
 	}
 
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Emit tasks as a JSON array")
+	cmd.Flags().BoolVar(&meFilter, "me", false, "Show only tasks assigned to me (current git user.email)")
 
 	return cmd
+}
+
+// printBoardFiltered renders the board when the --me filter is active.
+// When no tasks match the filter it prints an informational message instead of
+// an empty column structure.
+func printBoardFiltered(board domain.Board, assignee string) {
+	totalTasks := 0
+	for _, tasks := range board.Tasks {
+		totalTasks += len(tasks)
+	}
+
+	if totalTasks == 0 {
+		fmt.Printf("no tasks assigned to %s\n", assignee)
+		fmt.Println("Hint: use 'kanban add --assignee <email>' to assign tasks to yourself")
+		return
+	}
+
+	printBoard(board)
 }
 
 // printBoard renders the board as a human-readable columnar display.

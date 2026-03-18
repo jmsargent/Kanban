@@ -14,7 +14,7 @@ import (
 	"github.com/kanban-tasks/kanban/internal/ports"
 )
 
-// Test Budget: 3 behaviors x 2 = 6 max unit tests (using 3)
+// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 5)
 
 // fakeTaskRepoBoardCLI is a task repository fake for board tests that supports ListAll.
 type fakeTaskRepoBoardCLI struct {
@@ -175,6 +175,67 @@ func TestBoardCommand_JSONOutputContainsCreatedByField(t *testing.T) {
 	}
 	if _, ok := items[0]["created_by"]; !ok {
 		t.Errorf("JSON task object missing created_by field — present keys: %v", keys(items[0]))
+	}
+}
+
+// execBoardMeOutput runs the board command with the --me flag and captures its text output.
+func execBoardMeOutput(t *testing.T, identity ports.Identity, tasks []domain.Task) string {
+	t.Helper()
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: identity}
+	config := &fakeConfigRepoCLI{}
+	repo := &fakeTaskRepoBoardCLI{tasks: tasks}
+	log := newFakeTransitionLogCLI(tasks)
+
+	cmd := cli.NewBoardCommand(git, config, repo, log)
+	root := &cobra.Command{Use: "kanban", SilenceUsage: true}
+	root.AddCommand(cmd)
+	root.SetArgs([]string{"board", "--me"})
+
+	return captureStdout(t, func() {
+		_ = root.Execute()
+	})
+}
+
+// Behavior 4: --me filters board to show only tasks assigned to the current developer.
+func TestBoardCommand_MeFlag_ShowsOnlyDeveloperTasks(t *testing.T) {
+	myTask := domain.Task{
+		ID:       "TASK-001",
+		Title:    "My task",
+		Status:   domain.StatusTodo,
+		Assignee: "dev@example.com",
+	}
+	otherTask := domain.Task{
+		ID:       "TASK-002",
+		Title:    "Colleague task",
+		Status:   domain.StatusTodo,
+		Assignee: "other@example.com",
+	}
+	identity := ports.Identity{Name: "Dev", Email: "dev@example.com"}
+
+	output := execBoardMeOutput(t, identity, []domain.Task{myTask, otherTask})
+
+	if !strings.Contains(output, "TASK-001") {
+		t.Errorf("expected board --me to contain TASK-001 (my task)\nOutput:\n%s", output)
+	}
+	if strings.Contains(output, "TASK-002") {
+		t.Errorf("expected board --me to exclude TASK-002 (colleague's task)\nOutput:\n%s", output)
+	}
+}
+
+// Behavior 5: --me with no matching tasks shows an informational message and exits cleanly.
+func TestBoardCommand_MeFlag_ShowsNoTasksMessage_WhenNothingAssigned(t *testing.T) {
+	otherTask := domain.Task{
+		ID:       "TASK-001",
+		Title:    "Colleague task",
+		Status:   domain.StatusTodo,
+		Assignee: "other@example.com",
+	}
+	identity := ports.Identity{Name: "Dev", Email: "dev@example.com"}
+
+	output := execBoardMeOutput(t, identity, []domain.Task{otherTask})
+
+	if !strings.Contains(output, "no tasks") {
+		t.Errorf("expected board --me with no matching tasks to output a 'no tasks' message\nOutput:\n%s", output)
 	}
 }
 
