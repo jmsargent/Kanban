@@ -146,19 +146,29 @@ jobs:
           command: go test ./tests/acceptance/...
 
   tag:
-    executor: go-executor
-    steps:
-      - checkout
-      - run:
-          command: git fetch --unshallow --tags || git fetch --tags
-      - go/mod-download
-      - install-go-semver-release
-      - run:
-          command: |
-            go-semver-release release "https://${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" \
-              --tag-prefix v \
-              --access-token $GITHUB_TOKEN \
-              --branches '[{"name": "main"}]'
+      executor: go-executor
+      steps:
+        - checkout
+        - run:
+            name: Fetch history
+            command: git fetch --unshallow --tags || git fetch --tags
+        - go/mod-download
+        - install-go-semver-release
+        - run:
+            name: Compute and push semver tag
+            command: |
+              git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"
+              
+              if git describe --tags --exact-match HEAD >/dev/null 2>&1; then
+                echo "Current commit is already tagged. Skipping."
+                exit 0
+              fi
+
+              go-semver-release release . \
+                --tag-prefix v \
+                --remote-name origin \
+                --access-token $GITHUB_TOKEN \
+                --branches '[{"name": "main"}]'
 
   release:
     executor: go-executor
