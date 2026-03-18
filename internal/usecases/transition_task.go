@@ -129,12 +129,11 @@ func (u *TransitionToInProgress) Execute(repoRoot, message string) (retErr error
 		}
 
 		// Derive current status from transitions.log — not from task YAML field.
+		// When the log cannot be read for any reason, default to todo so we
+		// still attempt the Append (which will surface the write error to the caller).
 		currentStatus, statusErr := u.log.LatestStatus(repoRoot, id)
 		if statusErr != nil {
-			if !errors.Is(statusErr, ports.ErrTaskNotFound) {
-				continue // non-fatal log read error
-			}
-			currentStatus = domain.StatusTodo // no log entries → implicit todo
+			currentStatus = domain.StatusTodo // treat unreadable log as implicit todo
 		}
 
 		// The commit-msg hook only handles todo → in-progress.
@@ -155,7 +154,9 @@ func (u *TransitionToInProgress) Execute(repoRoot, message string) (retErr error
 			Author:    "hook",
 			Trigger:   "commit-hook",
 		}
-		_ = u.log.Append(repoRoot, entry) // non-fatal: errors go to hook.log
+		if appendErr := u.log.Append(repoRoot, entry); appendErr != nil {
+			return fmt.Errorf("append transition: %w", appendErr)
+		}
 
 		_, _ = fmt.Fprintf(u.out, "kanban: %s moved  %s -> %s\n", id, currentStatus, domain.StatusInProgress)
 	}

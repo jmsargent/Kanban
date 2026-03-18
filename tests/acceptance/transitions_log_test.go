@@ -262,7 +262,6 @@ func TestTransitionsLog_HookExitsZero_WhenLogUnwritable(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS02)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -284,7 +283,6 @@ func TestTransitionsLog_HookWritesStderrWarning_WhenLogUnwritable(t *testing.T) 
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS02)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

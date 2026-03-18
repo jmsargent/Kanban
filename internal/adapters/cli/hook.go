@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -50,6 +51,9 @@ func newCommitMsgHookCommand(git ports.GitPort, config ports.ConfigRepository, t
 			uc := usecases.NewTransitionToInProgress(config, tasks, log, cmd.OutOrStdout())
 			if execErr := uc.Execute(repoRoot, string(data)); execErr != nil {
 				appendHookLog(repoRoot, fmt.Sprintf("transition error: %v", execErr))
+				reason := execErr.Error()
+				reason = strings.TrimPrefix(reason, "append transition: ")
+				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "warning: kanban transitions.log not updated: %s\n", reason)
 			}
 			return nil
 		},

@@ -204,19 +204,19 @@ func TestTransitionToInProgress_IsNoOp_WhenNotInitialised(t *testing.T) {
 	}
 }
 
-func TestTransitionToInProgress_ReturnsNil_WhenLogAppendFails(t *testing.T) {
+func TestTransitionToInProgress_ReturnsError_WhenLogAppendFails(t *testing.T) {
 	repoRoot := tmpRepo(t)
 	task := domain.Task{ID: "TASK-001", Title: "Broken task"}
 	tasks := newTransitionTaskRepo(task)
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	// Even when log.Append fails, the hook must swallow the error (exits 0).
+	// Execute() propagates append errors so the hook adapter can write a stderr warning.
+	// The hook's RunE then writes the warning and returns nil (exit 0).
 	uc := usecases.NewTransitionToInProgress(cfg, tasks, &errorOnAppendLog{}, out)
 	err := uc.Execute(repoRoot, "TASK-001: some work")
-	// Hook must never propagate errors — always returns nil.
-	if err != nil {
-		t.Errorf("expected nil error when log.Append fails, got: %v", err)
+	if err == nil {
+		t.Error("expected error to be propagated when log.Append fails")
 	}
 }
 
