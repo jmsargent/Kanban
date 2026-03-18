@@ -150,22 +150,24 @@ jobs:
       steps:
         - checkout
         - run:
-            name: Fetch history
+            name: Fetch history and tags
             command: git fetch --unshallow --tags || git fetch --tags
         - go/mod-download
         - install-go-semver-release
         - run:
             name: Compute and push semver tag
             command: |
-              git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"
-              
+              # 1. Guard Clause: If this commit already has a tag, exit gracefully.
+              # This prevents the "tag already exists" error on retries or re-runs.
               if git describe --tags --exact-match HEAD >/dev/null 2>&1; then
+                echo "Commit $(git rev-parse --short HEAD) is already tagged. Skipping."
                 exit 0
               fi
 
-              go-semver-release release . \
+              # 2. Use the URL directly. This is the most stable path for the go-git library.
+              # Using the ${TOKEN}@github.com format is the most compatible with go-semver-release.
+              go-semver-release release "https://${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" \
                 --tag-prefix v \
-                --remote-name origin \
                 --access-token $GITHUB_TOKEN \
                 --branches '[{"name": "main"}]'
 
