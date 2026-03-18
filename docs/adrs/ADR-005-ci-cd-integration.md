@@ -1,9 +1,11 @@
 # ADR-005: CI/CD Integration Pattern — kanban Binary in CI Step
 
-**Status**: Accepted
+**Status**: Amended
 **Date**: 2026-03-15
-**Feature**: kanban-tasks
+**Amended**: 2026-03-18
+**Feature**: kanban-tasks; board-state-in-git
 **Resolves**: OD-06
+**Amendment**: `kanban ci-done` commits only `.kanban/transitions.log`, not task files. The `[skip ci]` annotation and all other decisions are unchanged.
 
 ---
 
@@ -88,4 +90,26 @@ The `kanban ci-done` subcommand must handle the following CI environment conditi
 - CI setup step must download the kanban binary (adds ~5s to pipeline; within the 5s guardrail NFR)
 - The `git commit` inside `kanban ci-done` requires the CI runner to have git credentials configured for push -- standard for most CI setups but requires documentation
 
-**Security note**: the CI step commits only to `.kanban/tasks/`. It does not read or write outside that directory. The commit message is hardcoded (`kanban: auto-transition [skip ci]`). No user-supplied input is interpolated into shell commands.
+**Security note**: the CI step commits only to `.kanban/transitions.log`. It does not read or write outside the `.kanban/` directory. The commit message is hardcoded (`kanban: auto-transition [skip ci]`). No user-supplied input is interpolated into shell commands.
+
+---
+
+## Amendment — 2026-03-18 (board-state-in-git feature)
+
+**Changed behaviour**: `kanban ci-done` no longer updates `status:` fields in task YAML front matter. Instead it calls `TransitionLogRepository.Append` for each in-progress task matching the scanned commit range, then commits only `.kanban/transitions.log`.
+
+**CommitFiles scope change**:
+
+Before amendment: `git add .kanban/tasks/ && git commit`
+After amendment: `git add .kanban/transitions.log && git commit`
+
+This narrows the commit surface from all updated task files to a single file. Benefits:
+- Fewer merge conflicts (a single append-only file has no conflicts for concurrent appends from different branches merged together)
+- Clearer audit trail (the transitions.log commit contains only state changes, not task metadata changes)
+
+**TransitionEntry written by ci-done**:
+- `From`: `in-progress` (validated via `TransitionLogRepository.LatestStatus` before appending)
+- `To`: `done`
+- `Author`: CI git identity (from `GIT_AUTHOR_EMAIL` env or `kanban-bot` fallback)
+- `Trigger`: `ci-done:<sha7>` where `<sha7>` is the short SHA of the pipeline's HEAD commit
+- `Timestamp`: current UTC time at ci-done execution

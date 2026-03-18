@@ -1,0 +1,412 @@
+{
+  "roadmap": {
+    "project_id": "board-state-in-git",
+    "created_at": "2026-03-18T10:54:43Z",
+    "total_steps": 18,
+    "phases": 3
+  },
+  "phases": [
+    {
+      "id": "01",
+      "name": "Walking Skeleton — kanban log audit trail (US-BSG-01)",
+      "steps": [
+        {
+          "id": "01-01",
+          "name": "Add domain.TransitionEntry type, TransitionLogRepository port, and GitPort.LogFile extension",
+          "description": "Introduce domain.TransitionEntry into internal/domain/task.go, declare the TransitionLogRepository port interface and the CommitEntry type in internal/ports/, and extend GitPort with LogFile(repoRoot, filePath string) ([]CommitEntry, error). Wire a nil/no-op TransitionLogAdapter stub so the binary compiles. Implement the GetTaskHistory use case in internal/usecases/ backed by TaskRepository and GitPort.LogFile.",
+          "criteria": "Given a git repo with kanban initialised and a task that has been started, when the developer runs `kanban log <TASK-ID>`, the output contains the task ID and its title, and the command exits 0. The binary must compile with go-arch-lint passing.",
+          "estimated_hours": 3,
+          "dependencies": [],
+          "files_to_modify": [
+            "internal/domain/task.go",
+            "internal/ports/repositories.go",
+            "internal/ports/git.go",
+            "internal/usecases/get_task_history.go",
+            "internal/adapters/git/git_adapter.go",
+            "internal/adapters/cli/log.go",
+            "cmd/kanban/main.go"
+          ],
+          "quality_gates": [
+            "go build ./... passes",
+            "go-arch-lint check passes",
+            "internal/domain imports only stdlib",
+            "internal/usecases imports only internal/domain and internal/ports"
+          ],
+          "implementation_notes": "The walking skeleton derives audit trail entries from git commit history. No transitions.log adapter is needed for this phase — the data source is git history. Each commit entry renders as a transition line in the kanban log output.",
+          "test_file": "tests/acceptance/kanban_log_test.go",
+          "scenario_name": "TestKanbanLog_ShowsHeader_WhenTaskHasHistory"
+        },
+        {
+          "id": "01-02",
+          "name": "Handle empty history — show 'No transitions recorded yet.' message",
+          "description": "When GetTaskHistory returns an empty commit list for the task file, the kanban log command must print 'No transitions recorded yet.' to stdout and exit 0. No error should be raised for a valid task with no git history touching its file.",
+          "criteria": "Given a git repo with kanban initialised and a newly created task with no subsequent commits, when the developer runs `kanban log <TASK-ID>`, the output contains 'No transitions recorded yet.' and the command exits 0.",
+          "estimated_hours": 1,
+          "dependencies": ["01-01"],
+          "files_to_modify": [
+            "internal/usecases/get_task_history.go",
+            "internal/adapters/cli/log.go"
+          ],
+          "quality_gates": [
+            "go test ./internal/usecases/... passes",
+            "go test ./tests/acceptance/... -run TestKanbanLog_ShowsNoTransitions passes"
+          ],
+          "implementation_notes": "The use case returns an empty slice (not an error) when GitPort.LogFile finds no commits for the task file path. The CLI adapter maps an empty slice to the 'No transitions recorded yet.' message. This message must be exact — the acceptance test asserts on it.",
+          "test_file": "tests/acceptance/kanban_log_test.go",
+          "scenario_name": "TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits"
+        },
+        {
+          "id": "01-03",
+          "name": "Return exit code 1 with 'not found' when task ID does not exist",
+          "description": "When kanban log is invoked with a task ID that does not match any task file, the command must write a message containing 'not found' to stderr (or stdout combined) and exit with code 1. The error must propagate cleanly from TaskRepository.FindByID returning ErrTaskNotFound.",
+          "criteria": "Given a git repo with kanban initialised and no tasks, when the developer runs `kanban log TASK-999`, the output contains 'not found' and the command exits with code 1.",
+          "estimated_hours": 1,
+          "dependencies": ["01-01"],
+          "files_to_modify": [
+            "internal/adapters/cli/log.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestKanbanLog_ExitsOne_WhenTaskNotFound passes",
+            "Exit code is 1 (runtime error), not 2 (usage error)"
+          ],
+          "implementation_notes": "Use errors.Is(err, ports.ErrTaskNotFound) in the CLI adapter to distinguish task-not-found from other errors. Print the 'not found' message then return with cobra exit code 1 via os.Exit(1) or cobra's RunE returning a typed error handled at root.",
+          "test_file": "tests/acceptance/kanban_log_test.go",
+          "scenario_name": "TestKanbanLog_ExitsOne_WhenTaskNotFound"
+        },
+        {
+          "id": "01-04",
+          "name": "Suggest 'kanban board' in the not-found error message",
+          "description": "When kanban log cannot find the requested task ID, the error message must contain the text 'kanban board' as a discovery hint. This nudges the developer toward the board command to find valid task IDs.",
+          "criteria": "Given a git repo with kanban initialised and no tasks, when the developer runs `kanban log TASK-999`, the output contains both 'not found' and 'kanban board', and the command exits 1.",
+          "estimated_hours": 0.5,
+          "dependencies": ["01-03"],
+          "files_to_modify": [
+            "internal/adapters/cli/log.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound passes"
+          ],
+          "implementation_notes": "Extend the not-found error message from 01-03 to include the hint. Example: 'task TASK-999 not found — run kanban board to see available tasks'. Both the 'not found' text (01-03) and 'kanban board' text (01-04) must appear in the same message.",
+          "test_file": "tests/acceptance/kanban_log_test.go",
+          "scenario_name": "TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound"
+        },
+        {
+          "id": "01-05",
+          "name": "Return exit code 1 with 'kanban init' hint when not initialised",
+          "description": "When kanban log is invoked outside an initialised kanban repository, the command must write a message containing 'kanban init' to stderr and exit with code 1. The error originates from ConfigRepository.Read returning ErrNotInitialised.",
+          "criteria": "Given a git repo with no kanban setup, when the developer runs `kanban log TASK-001`, the output contains 'kanban init' and the command exits with code 1.",
+          "estimated_hours": 0.5,
+          "dependencies": ["01-01"],
+          "files_to_modify": [
+            "internal/adapters/cli/log.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestKanbanLog_ExitsOne_WhenNotInitialised passes"
+          ],
+          "implementation_notes": "Use errors.Is(err, ports.ErrNotInitialised) in the CLI adapter. The GetTaskHistory use case should call ConfigRepository.Read first (to verify initialisation) before calling TaskRepository.FindByID. Message must contain 'kanban init'.",
+          "test_file": "tests/acceptance/kanban_log_test.go",
+          "scenario_name": "TestKanbanLog_ExitsOne_WhenNotInitialised"
+        },
+        {
+          "id": "01-06",
+          "name": "Display full transition fields (timestamp, from->to, author, trigger) per log entry",
+          "description": "Enable the first pending scenario. Each log entry rendered by kanban log must display: ISO 8601 timestamp, the state transition in 'from->to' notation, the author email, and the trigger label. The output must use domain language (e.g., 'todo', 'in-progress') rather than raw git commit messages. Commit SHAs appear as supplementary context prefixed with 'commit:'.",
+          "criteria": "Given a task that has been started via kanban start (with hook installed), when the developer runs `kanban log <TASK-ID>`, each entry line contains a timestamp with 'T', a '->' arrow, the author email, and the trigger label. Entries are sorted oldest-first. Raw git commit message text is not the primary content.",
+          "estimated_hours": 2,
+          "dependencies": ["01-01", "01-02"],
+          "files_to_modify": [
+            "internal/usecases/get_task_history.go",
+            "internal/adapters/cli/log.go",
+            "internal/adapters/git/git_adapter.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestKanbanLog_ShowsTransitionFields passes",
+            "go test ./tests/acceptance/... -run TestKanbanLog_SortsEntries passes",
+            "go test ./tests/acceptance/... -run TestKanbanLog_UsesDomainLanguage passes",
+            "go test ./tests/acceptance/... -run TestKanbanLog_ShowsCommitSHA passes"
+          ],
+          "implementation_notes": "GitPort.LogFile returns CommitEntry slices sorted oldest-first (git log --reverse). The CLI adapter maps each CommitEntry to a rendered line: '<timestamp> <from>-><to> <author> <trigger> (commit:<sha7>)'. The from/to states are derived from the task's TransitionLog entries, not the raw git message. Remove t.Skip from TestKanbanLog_ShowsTransitionFields_InEachEntry, TestKanbanLog_SortsEntries_OldestFirst, TestKanbanLog_UsesDomainLanguage_NotRawGitMessages, and TestKanbanLog_ShowsCommitSHA_AsSupplementaryContext.",
+          "test_file": "tests/acceptance/kanban_log_test.go",
+          "scenario_name": "TestKanbanLog_ShowsTransitionFields_InEachEntry"
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "name": "Append-only transitions.log storage (US-BSG-02)",
+      "steps": [
+        {
+          "id": "02-01",
+          "name": "Remove status field from task files — AddTask writes no status YAML field",
+          "description": "Modify the AddTask use case and TaskRepository.Save so that newly created task files contain no 'status:' YAML front matter field. The task file must include a comment referencing transitions.log as the authoritative status store. The TransitionLogAdapter filesystem adapter must be implemented in internal/adapters/filesystem/ with Append, LatestStatus, and History methods. The file is .kanban/transitions.log under repo root. Register the new adapter package in go-arch-lint config.",
+          "criteria": "When the developer runs `kanban add 'Fix OAuth login bug'`, the resulting task file contains no 'status:' field and does contain a comment referencing 'transitions.log'. The command exits 0.",
+          "estimated_hours": 3,
+          "dependencies": ["01-01"],
+          "files_to_modify": [
+            "internal/adapters/filesystem/task_repository.go",
+            "internal/adapters/filesystem/transition_log_adapter.go",
+            "internal/usecases/add_task.go",
+            "cmd/kanban/main.go",
+            ".go-arch-lint.yml"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestTransitionsLog_NewTaskHasNoStatusField passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_NewTaskFileHasLogComment passes",
+            "go-arch-lint check passes with new adapter registered",
+            "internal/domain imports only stdlib",
+            "TransitionLogAdapter uses syscall.Flock(LOCK_EX) + O_APPEND for writes"
+          ],
+          "implementation_notes": "TransitionLogAdapter guarantees concurrent-safe appends to .kanban/transitions.log. LatestStatus returns the most recent status for the task from the log; a missing entry returns the implicit todo default. Task file YAML serialisation omits the status field entirely. Task file includes a comment identifying transitions.log as the authoritative status store.",
+          "test_file": "tests/acceptance/transitions_log_test.go",
+          "scenario_name": "TestTransitionsLog_NewTaskHasNoStatusField"
+        },
+        {
+          "id": "02-02",
+          "name": "Board derives task status from TransitionLogRepository — new tasks appear in TODO column",
+          "description": "Modify GetBoard to accept a TransitionLogRepository dependency and resolve each task's current status via TransitionLogRepository.LatestStatus instead of reading task.Status from the YAML file. A task with no log entries must appear in the TODO column (implicit default). Wire the new dependency into GetBoard at the composition root.",
+          "criteria": "Given a newly created task with no transitions, when the developer runs `kanban board`, the task appears in the TODO column. The task file contains no 'status:' field.",
+          "estimated_hours": 2,
+          "dependencies": ["02-01"],
+          "files_to_modify": [
+            "internal/usecases/get_board.go",
+            "cmd/kanban/main.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestTransitionsLog_NewTaskAppearsInTodoColumn passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_BoardShowsTodo_WhenNoLogEntries passes",
+            "go test ./internal/usecases/... passes",
+            "GetBoard.Execute signature gains filterAssignee string param (pass empty string for unfiltered)"
+          ],
+          "implementation_notes": "GetBoard.Execute(repoRoot string, filterAssignee string) (domain.Board, error). When filterAssignee is empty, no filtering. For each task returned by TaskRepository.ListAll, call TransitionLogRepository.LatestStatus(repoRoot, task.ID) to get the current status; use that for column grouping, ignoring any Status field that may have been read from the file. domain.Task.Status field may be left as-is in the struct — it is simply not used as the source of truth by GetBoard.",
+          "test_file": "tests/acceptance/transitions_log_test.go",
+          "scenario_name": "TestTransitionsLog_NewTaskAppearsInTodoColumn"
+        },
+        {
+          "id": "02-03",
+          "name": "kanban start appends one todo->in-progress line to transitions.log without modifying task file",
+          "description": "Modify StartTask to use TransitionLogRepository.Append instead of TaskRepository.Update for recording the status change. StartTask must not touch the task file at all during the transition. The appended line must contain the task ID, 'todo->in-progress', the author email from GitPort.GetIdentity, and trigger 'manual'. If the task is already in-progress (per LatestStatus), return AlreadyInProgress with no new log entry.",
+          "criteria": "When the developer runs `kanban start <TASK-ID>`, exactly one line is appended to .kanban/transitions.log. The task file mtime is unchanged. The appended line contains the task ID, 'todo->in-progress', the author email, and 'manual'. Running kanban start a second time exits 0 with 'already in progress' and does not add a second log line.",
+          "estimated_hours": 3,
+          "dependencies": ["02-01", "02-02"],
+          "files_to_modify": [
+            "internal/usecases/start_task.go",
+            "cmd/kanban/main.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestTransitionsLog_StartAppendsOneLine passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_StartLineContainsRequiredFields passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_StartDoesNotModifyTaskFile passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_StartOnInProgress_ExitsWithMessage passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_StartIdempotent_NoDuplicateEntry passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_BoardShowsInProgress_AfterStart passes"
+          ],
+          "implementation_notes": "StartTask now depends on TransitionLogRepository in addition to TaskRepository and ConfigRepository. StartTask.Execute calls TransitionLogRepository.LatestStatus to determine current state before deciding whether to append. Task file is read only for existence/title checks via TaskRepository.FindByID — no Update call. Remove the task.Status update from StartTask entirely. Assignee tracking (previously written to YAML) now goes into the TransitionEntry.Author field only.",
+          "test_file": "tests/acceptance/transitions_log_test.go",
+          "scenario_name": "TestTransitionsLog_StartAppendsOneLine"
+        },
+        {
+          "id": "02-04",
+          "name": "commit-msg hook appends in-progress transition to transitions.log without modifying task files",
+          "description": "Modify the commit-msg hook adapter (internal/adapters/cli/hook.go) so that when a commit message references a task ID it appends a 'todo->in-progress' entry to transitions.log via TransitionLogRepository.Append with trigger 'commit:<sha7>', rather than updating the task file's status field. The hook must not stage or modify any task file. The hook must always exit 0 — wrap all logic in recover().",
+          "criteria": "When a developer makes a git commit referencing a task ID, exactly one line is appended to transitions.log. The task file mtime is unchanged. The hook exits 0. The commit message reaches the repository verbatim.",
+          "estimated_hours": 2,
+          "dependencies": ["02-03"],
+          "files_to_modify": [
+            "internal/adapters/cli/hook.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestTransitionsLog_HookAppendsOneLine_OnCommit passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_HookDoesNotModifyTaskFiles passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_HookExitsZero_OnSuccess passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_HookDoesNotModifyCommitMessage_WhenLogFails passes"
+          ],
+          "implementation_notes": "The hook appends a transition entry for each task ID referenced in the commit message. The hook always exits 0 — errors are silently absorbed so the developer's commit is never blocked. The commit SHA appears as the trigger for traceability.",
+          "test_file": "tests/acceptance/transitions_log_test.go",
+          "scenario_name": "TestTransitionsLog_HookAppendsOneLine_OnCommit"
+        },
+        {
+          "id": "02-05",
+          "name": "Hook exits 0 and writes stderr warning when transitions.log is unwritable",
+          "description": "When the commit-msg hook cannot write to transitions.log (e.g., file permissions revoked), it must still exit 0 so the developer's commit proceeds. A warning message must be written to stderr informing the developer the transition was not recorded. The commit message must be stored verbatim.",
+          "criteria": "Given transitions.log is made unwritable, when a developer commits referencing a task ID, the git commit exits 0. The combined output contains 'warning'. The transitions.log line count does not increase.",
+          "estimated_hours": 1,
+          "dependencies": ["02-04"],
+          "files_to_modify": [
+            "internal/adapters/cli/hook.go",
+            "internal/adapters/filesystem/transition_log_adapter.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestTransitionsLog_HookExitsZero_WhenLogUnwritable passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_HookWritesStderrWarning_WhenLogUnwritable passes"
+          ],
+          "implementation_notes": "TransitionLogAdapter.Append must return a typed error when the file cannot be opened or locked. The hook's recover/error-handling path writes 'warning: kanban transitions.log not updated: <reason>' to os.Stderr before returning (exit 0). This is a mandatory constraint per Non-Negotiable Constraint #1.",
+          "test_file": "tests/acceptance/transitions_log_test.go",
+          "scenario_name": "TestTransitionsLog_HookExitsZero_WhenLogUnwritable"
+        },
+        {
+          "id": "02-06",
+          "name": "ci-done appends in-progress->done entry and commits only transitions.log",
+          "description": "Modify TransitionDone (kanban ci-done) to append a 'in-progress->done' entry to TransitionLogRepository for each in-progress task referenced in the CI run's commits, then commit only .kanban/transitions.log via GitPort.CommitFiles. No task files may be staged or committed. When no in-progress tasks match, exit 0 with 'no tasks' message.",
+          "criteria": "When the developer runs `kanban ci-done` after a pipeline run that referenced a task, transitions.log contains a new 'in-progress->done' line for that task. The resulting git commit contains only transitions.log. Task files are not staged. When no matching tasks exist, the command exits 0 and output contains 'no tasks'.",
+          "estimated_hours": 2,
+          "dependencies": ["02-03"],
+          "files_to_modify": [
+            "internal/usecases/transition_done.go",
+            "cmd/kanban/main.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestTransitionsLog_CiDoneAppendsDoneEntry passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_CiDoneCommitsOnlyTransitionsLog passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_CiDoneCommitExcludesTaskFiles passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_CiDoneWithNoMatchingTasks_ExitsZeroWithMessage passes"
+          ],
+          "implementation_notes": "ci-done appends in-progress->done transitions for all matched tasks, then issues a single git commit containing only transitions.log. Task files are never staged. When no in-progress tasks match, the command exits 0 with an informational message.",
+          "test_file": "tests/acceptance/transitions_log_test.go",
+          "scenario_name": "TestTransitionsLog_CiDoneAppendsDoneEntry"
+        },
+        {
+          "id": "02-07",
+          "name": "Deleted task is excluded from board even when transitions.log has entries for it",
+          "description": "When a task file is deleted via `kanban delete --force`, the board must not show that task even if .kanban/transitions.log still contains transition entries for it. Task file existence (via TaskRepository.ListAll) is authoritative for task presence; TransitionLogRepository is authoritative for status only.",
+          "criteria": "Given a started task that is then deleted with `kanban delete --force <TASK-ID>`, when the developer runs `kanban board`, the deleted task ID does not appear in any column.",
+          "estimated_hours": 1,
+          "dependencies": ["02-02"],
+          "files_to_modify": [
+            "internal/usecases/get_board.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestTransitionsLog_DeletedTask_ExcludedFromBoard passes"
+          ],
+          "implementation_notes": "GetBoard already iterates only tasks returned by TaskRepository.ListAll, so deleted task files are naturally excluded. This step validates that TransitionLogRepository.LatestStatus is not called for non-existent tasks and that no orphaned log entries cause phantom board entries. No code change may be needed — the step validates the architecture holds by design. If a change is required, it belongs in GetBoard.Execute only.",
+          "test_file": "tests/acceptance/transitions_log_test.go",
+          "scenario_name": "TestTransitionsLog_DeletedTask_ExcludedFromBoard"
+        },
+        {
+          "id": "02-08",
+          "name": "transitions.log entries survive a git rebase — board shows correct status after rebase",
+          "description": "Verify that transitions.log, as an ordinary tracked file in .kanban/, survives a git rebase without data loss. After a rebase squashing all commits, TransitionLogRepository.LatestStatus must return the same status as before the rebase, and the board must show the task in the correct column.",
+          "criteria": "Given a task that has been started (with a transitions.log entry), when the developer performs a git rebase squashing all commits, the transitions.log file still contains at least one entry for that task and the board shows the task in the IN PROGRESS column.",
+          "estimated_hours": 1,
+          "dependencies": ["02-03"],
+          "files_to_modify": [],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestTransitionsLog_RebaseSafe_EntriesPreserved passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_RebaseSafe_BoardCorrectAfterRebase passes"
+          ],
+          "implementation_notes": "This step is primarily a validation step — no production code changes are expected. The DSL step RebaseSquashingAllCommits performs a git rebase -i squashing all commits onto the initial commit. If entries are lost it indicates transitions.log was not committed before the rebase. Ensure the kanban start command (02-03) does not rely on unstaged file writes. If this step fails, the fix belongs in 02-03 (ensuring the log entry is committed or at minimum flushed to disk as a tracked file before rebase).",
+          "test_file": "tests/acceptance/transitions_log_test.go",
+          "scenario_name": "TestTransitionsLog_RebaseSafe_EntriesPreserved"
+        },
+        {
+          "id": "02-09",
+          "name": "Concurrent appends are safe — correct line count and no truncated lines",
+          "description": "When multiple `kanban start` processes execute concurrently on distinct tasks, transitions.log must contain exactly the expected number of complete, well-formed lines. No lines may be lost due to write races, and no line may be truncated. The flock+O_APPEND implementation from 02-01 is validated under concurrency.",
+          "criteria": "Given 5 concurrent `kanban start` invocations on a single task, transitions.log contains exactly 1 line (subsequent starts are no-ops). Given concurrent starts on distinct tasks, every line in transitions.log is complete (5 space-separated fields, no partial writes).",
+          "estimated_hours": 1,
+          "dependencies": ["02-03"],
+          "files_to_modify": [
+            "internal/adapters/filesystem/transition_log_adapter.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestTransitionsLog_ConcurrentAppends_CorrectLineCount passes",
+            "go test ./tests/acceptance/... -run TestTransitionsLog_ConcurrentAppends_NoTruncatedLines passes",
+            "go test -race ./internal/adapters/filesystem/... passes"
+          ],
+          "implementation_notes": "TransitionLogAdapter.Append is safe under concurrent load. Multiple simultaneous writers on the same or different tasks produce no lost entries and no truncated lines. The idempotency invariant is maintained even when multiple processes attempt to append the same task transition simultaneously.",
+          "test_file": "tests/acceptance/transitions_log_test.go",
+          "scenario_name": "TestTransitionsLog_ConcurrentAppends_CorrectLineCount"
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "name": "kanban board --me filter (US-BSG-03)",
+      "steps": [
+        {
+          "id": "03-01",
+          "name": "GetBoard filterAssignee — board --me shows only current developer's tasks",
+          "description": "GetBoard.Execute already has the filterAssignee parameter introduced in Phase 02. Wire the kanban board --me flag to pass the current developer's git user.email (from GitPort.GetIdentity) as filterAssignee. GetBoard filters the task list so only tasks where task.Assignee matches filterAssignee are included in the board output. Tasks assigned to other developers are excluded.",
+          "criteria": "Given two tasks — one assigned to 'test@example.com' and one to 'colleague@example.com' — when the developer runs `kanban board --me` with git identity 'test@example.com', only the task assigned to 'test@example.com' appears in the output. The other task does not appear.",
+          "estimated_hours": 2,
+          "dependencies": ["02-02"],
+          "files_to_modify": [
+            "internal/adapters/cli/board.go",
+            "cmd/kanban/main.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestBoardMe_ShowsOnlyCurrentDeveloperTasks passes",
+            "go test ./tests/acceptance/... -run TestBoardMe_ShowsEmptyBoardGracefully_WhenNoMatchingTasks passes",
+            "go test ./tests/acceptance/... -run TestBoardMe_DoesNotAffectUnfilteredBoard passes"
+          ],
+          "implementation_notes": "The board command gains an opt-in filter flag. When enabled, the developer's git identity is resolved and used to filter the board to only their tasks. When no tasks match the filter, the command exits 0 with an informational message. Default behavior (no flag) remains unchanged — all tasks are shown.",
+          "test_file": "tests/acceptance/board_me_test.go",
+          "scenario_name": "TestBoardMe_ShowsOnlyCurrentDeveloperTasks"
+        },
+        {
+          "id": "03-02",
+          "name": "board --me warns about unassigned tasks that are hidden by the filter",
+          "description": "When `kanban board --me` is invoked and there are tasks with no assignee (task.Assignee == ''), the command must include a warning in its output containing the word 'unassigned', informing the developer that some tasks are not visible due to the filter. Tasks with no assignee are excluded from the filtered view.",
+          "criteria": "Given tasks exist where at least one is unassigned, when the developer runs `kanban board --me`, the output contains 'unassigned'. The unassigned task does not appear in the board columns.",
+          "estimated_hours": 1,
+          "dependencies": ["03-01"],
+          "files_to_modify": [
+            "internal/usecases/get_board.go",
+            "internal/adapters/cli/board.go"
+          ],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestBoardMe_WarnsAboutUnassignedTasks passes"
+          ],
+          "implementation_notes": "GetBoard.Execute can return a secondary value or populate a warnings field on the Board aggregate to indicate unassigned tasks were skipped. Alternatively, the CLI adapter counts unassigned tasks after filtering and prints the warning. The warning message must contain the word 'unassigned'. Prefer returning warning metadata from the use case so the CLI adapter controls presentation.",
+          "test_file": "tests/acceptance/board_me_test.go",
+          "scenario_name": "TestBoardMe_WarnsAboutUnassignedTasks"
+        },
+        {
+          "id": "03-03",
+          "name": "board --me correctly applies filter on top of transitions.log-derived status",
+          "description": "Validate that the --me assignee filter and the transitions.log status source compose correctly. When a task assigned to the current developer has been advanced to in-progress via transitions.log (no YAML status field), `kanban board --me` must show that task in the IN PROGRESS column, and the task file must contain no 'status:' field.",
+          "criteria": "Given a task assigned to 'test@example.com' that has been started (producing a transitions.log entry), when the developer runs `kanban board --me`, the task appears in the IN PROGRESS column and the task file contains no 'status:' field.",
+          "estimated_hours": 1,
+          "dependencies": ["03-01", "02-02"],
+          "files_to_modify": [],
+          "quality_gates": [
+            "go test ./tests/acceptance/... -run TestBoardMe_WorksWithTransitionsLogStatusStorage passes",
+            "All 5 board_me_test.go scenarios pass",
+            "All 26 transitions_log_test.go scenarios pass",
+            "All 9 kanban_log_test.go scenarios pass",
+            "go test ./... passes",
+            "go-arch-lint check passes",
+            "golangci-lint run passes"
+          ],
+          "implementation_notes": "This step is primarily an integration validation — the composition of GetBoard(filterAssignee) + TransitionLogRepository.LatestStatus for status + task.Assignee for filtering. No production code changes are expected. If this step fails, the defect is in how GetBoard resolves status (must use log, not task.Status field) or how filterAssignee comparison is applied. Final integration check: run the full acceptance suite and confirm all 40 scenarios across the three test files pass.",
+          "test_file": "tests/acceptance/board_me_test.go",
+          "scenario_name": "TestBoardMe_WorksWithTransitionsLogStatusStorage"
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": [
+      "internal/domain/",
+      "internal/ports/",
+      "internal/usecases/",
+      "internal/adapters/cli/",
+      "internal/adapters/filesystem/",
+      "internal/adapters/git/",
+      "cmd/kanban/"
+    ],
+    "test_directories": [
+      "tests/acceptance/"
+    ],
+    "excluded_patterns": [
+      "*.md",
+      "*.yml",
+      "*.yaml",
+      "vendor/**"
+    ]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "solution-architect-reviewer",
+    "approved_at": "2026-03-18T11:30:00Z"
+  }
+}

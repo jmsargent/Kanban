@@ -86,7 +86,7 @@ func (f *fakeTaskRepoCLI) NextID(_ string) (string, error)         { return "", 
 // execStart constructs the start command wired to in-memory fakes, executes it
 // with the given task ID, and returns the captured stdout, stderr, and the exit
 // code captured via the osExit override (0 = no exit called).
-func execStart(t *testing.T, git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, taskID string) (stdout, stderr string, exitCode int) {
+func execStart(t *testing.T, git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository, taskID string) (stdout, stderr string, exitCode int) {
 	t.Helper()
 
 	var outBuf, errBuf bytes.Buffer
@@ -94,7 +94,7 @@ func execStart(t *testing.T, git ports.GitPort, config ports.ConfigRepository, t
 	cli.SetOsExit(func(code int) { capturedCode = code })
 	t.Cleanup(func() { cli.SetOsExit(nil) })
 
-	cmd := cli.NewStartCommand(git, config, tasks)
+	cmd := cli.NewStartCommand(git, config, tasks, log)
 	cmd.SetOut(&outBuf)
 	cmd.SetErr(&errBuf)
 
@@ -112,11 +112,12 @@ func execStart(t *testing.T, git ports.GitPort, config ports.ConfigRepository, t
 
 func TestStartCommand_PrintsStartedMessage_WhenTaskIsInTodo(t *testing.T) {
 	task := domain.Task{ID: "TASK-001", Title: "Fix login bug", Status: domain.StatusTodo}
-	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev", Email: "dev@example.com"}}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
+	log := newFakeTransitionLogCLI(nil) // no entries => todo
 
-	stdout, _, exitCode := execStart(t, git, config, tasks, "TASK-001")
+	stdout, _, exitCode := execStart(t, git, config, tasks, log, "TASK-001")
 
 	if !strings.Contains(stdout, "Started TASK-001: Fix login bug") {
 		t.Errorf("expected stdout to contain 'Started TASK-001: Fix login bug', got: %q", stdout)
@@ -128,11 +129,12 @@ func TestStartCommand_PrintsStartedMessage_WhenTaskIsInTodo(t *testing.T) {
 
 func TestStartCommand_PrintsAlreadyInProgress_WhenTaskIsInProgress(t *testing.T) {
 	task := domain.Task{ID: "TASK-002", Title: "Running task", Status: domain.StatusInProgress}
-	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev", Email: "dev@example.com"}}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
+	log := newFakeTransitionLogCLI([]domain.Task{task}) // sets TASK-002 => in-progress
 
-	stdout, _, exitCode := execStart(t, git, config, tasks, "TASK-002")
+	stdout, _, exitCode := execStart(t, git, config, tasks, log, "TASK-002")
 
 	if !strings.Contains(stdout, "Task TASK-002 is already in progress") {
 		t.Errorf("expected stdout to contain 'Task TASK-002 is already in progress', got: %q", stdout)
@@ -144,11 +146,12 @@ func TestStartCommand_PrintsAlreadyInProgress_WhenTaskIsInProgress(t *testing.T)
 
 func TestStartCommand_PrintsAlreadyFinished_WhenTaskIsDone(t *testing.T) {
 	task := domain.Task{ID: "TASK-003", Title: "Completed task", Status: domain.StatusDone}
-	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev", Email: "dev@example.com"}}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
+	log := newFakeTransitionLogCLI([]domain.Task{task}) // sets TASK-003 => done
 
-	_, stderr, exitCode := execStart(t, git, config, tasks, "TASK-003")
+	_, stderr, exitCode := execStart(t, git, config, tasks, log, "TASK-003")
 
 	if !strings.Contains(stderr, "Task TASK-003 is already finished") {
 		t.Errorf("expected stderr to contain 'Task TASK-003 is already finished', got: %q", stderr)
@@ -159,11 +162,12 @@ func TestStartCommand_PrintsAlreadyFinished_WhenTaskIsDone(t *testing.T) {
 }
 
 func TestStartCommand_PrintsNotFound_WhenTaskIDDoesNotExist(t *testing.T) {
-	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev", Email: "dev@example.com"}}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI() // empty
+	log := newFakeTransitionLogCLI(nil)
 
-	_, stderr, exitCode := execStart(t, git, config, tasks, "TASK-999")
+	_, stderr, exitCode := execStart(t, git, config, tasks, log, "TASK-999")
 
 	if !strings.Contains(stderr, "Task TASK-999 not found") {
 		t.Errorf("expected stderr to contain 'Task TASK-999 not found', got: %q", stderr)
@@ -174,11 +178,12 @@ func TestStartCommand_PrintsNotFound_WhenTaskIDDoesNotExist(t *testing.T) {
 }
 
 func TestStartCommand_PrintsNotInitialised_WhenRepoNotInitialised(t *testing.T) {
-	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev"}}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Dev", Email: "dev@example.com"}}
 	config := &fakeConfigRepoCLI{readErr: ports.ErrNotInitialised}
 	tasks := newFakeTaskRepoCLI()
+	log := newFakeTransitionLogCLI(nil)
 
-	_, stderr, exitCode := execStart(t, git, config, tasks, "TASK-001")
+	_, stderr, exitCode := execStart(t, git, config, tasks, log, "TASK-001")
 
 	if !strings.Contains(stderr, "kanban not initialised") {
 		t.Errorf("expected stderr to contain 'kanban not initialised', got: %q", stderr)
@@ -193,8 +198,9 @@ func TestStartCommand_ExitsWithError_WhenGitIdentityNotConfigured(t *testing.T) 
 	git := &fakeGitPortCLI{repoRoot: t.TempDir(), getIdentityErr: ports.ErrGitIdentityNotConfigured}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
+	log := newFakeTransitionLogCLI(nil)
 
-	_, stderr, exitCode := execStart(t, git, config, tasks, "TASK-001")
+	_, stderr, exitCode := execStart(t, git, config, tasks, log, "TASK-001")
 
 	if !strings.Contains(stderr, "git identity not configured") {
 		t.Errorf("expected stderr to contain 'git identity not configured', got: %q", stderr)
@@ -206,11 +212,12 @@ func TestStartCommand_ExitsWithError_WhenGitIdentityNotConfigured(t *testing.T) 
 
 func TestStartCommand_PrintsPreviouslyAssignedWarning_WhenReassignedFromAnotherDeveloper(t *testing.T) {
 	task := domain.Task{ID: "TASK-001", Title: "Fix login bug", Status: domain.StatusTodo, Assignee: "Alice"}
-	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Bob"}}
+	git := &fakeGitPortCLI{repoRoot: t.TempDir(), identity: ports.Identity{Name: "Bob", Email: "bob@example.com"}}
 	config := &fakeConfigRepoCLI{}
 	tasks := newFakeTaskRepoCLI(task)
+	log := newFakeTransitionLogCLI(nil) // no entry => todo
 
-	stdout, _, exitCode := execStart(t, git, config, tasks, "TASK-001")
+	stdout, _, exitCode := execStart(t, git, config, tasks, log, "TASK-001")
 
 	if !strings.Contains(stdout, "Note: task was previously assigned to Alice") {
 		t.Errorf("expected stdout to contain reassignment note, got: %q", stdout)

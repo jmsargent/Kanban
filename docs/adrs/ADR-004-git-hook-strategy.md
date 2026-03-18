@@ -1,9 +1,11 @@
 # ADR-004: Git Hook Strategy — commit-msg Hook, Exit 0 Guarantee
 
-**Status**: Accepted
+**Status**: Amended
 **Date**: 2026-03-15
-**Feature**: kanban-tasks
+**Amended**: 2026-03-18
+**Feature**: kanban-tasks; board-state-in-git
 **Resolves**: OD-05
+**Amendment**: hook handler now appends to `.kanban/transitions.log` instead of updating task YAML front matter. Exit 0 guarantee and delegation pattern are unchanged.
 
 ---
 
@@ -84,3 +86,19 @@ This is the minimal shell surface area. All logic (pattern extraction, file upda
 - If the kanban binary is not on `$PATH`, the hook silently no-ops (logs to hook.log) -- mitigated by the exit 0 guarantee and the logged warning
 
 **Mitigation for installation friction (R-01)**: `kanban init` output will include a reminder to run `kanban install-hook`. This is documented in the onboarding flow.
+
+---
+
+## Amendment — 2026-03-18 (board-state-in-git feature)
+
+**Changed behaviour**: The hook handler no longer updates the `status:` field in task YAML front matter. Instead it calls `TransitionLogRepository.Append` with:
+
+- `From`: `todo` (resolved via `TransitionLogRepository.LatestStatus` before appending)
+- `To`: `in-progress`
+- `Author`: git author email from the commit being made (extracted from the commit message file context)
+- `Trigger`: `commit:<sha7>` where `<sha7>` is the short SHA of the triggering commit
+- `Timestamp`: current UTC time at hook execution
+
+The exit 0 guarantee is unchanged. Append failures are caught by the existing top-level `recover()`, written to `.kanban/hook.log`, and the hook exits 0.
+
+**File changed on hook fire**: `.kanban/transitions.log` (one line appended). No task file is modified.

@@ -207,6 +207,23 @@ func replaceStatusLine(content, newStatus string) string {
 	return strings.Join(lines, "\n")
 }
 
+// renameTransitionsLogEntries rewrites .kanban/transitions.log replacing all
+// occurrences of oldID with newID in the task-ID field (field 2). Used when
+// ATaskWithStatusAs renames a generated task ID to the desired test ID.
+func renameTransitionsLogEntries(ctx *Context, oldID, newID string) error {
+	logPath := filepath.Join(ctx.repoDir, ".kanban", "transitions.log")
+	data, err := os.ReadFile(logPath)
+	if os.IsNotExist(err) {
+		return nil // no log yet — nothing to rename
+	}
+	if err != nil {
+		return fmt.Errorf("read transitions.log: %w", err)
+	}
+	// Replace " <oldID> " (space-delimited field 2) with " <newID> ".
+	updated := strings.ReplaceAll(string(data), " "+oldID+" ", " "+newID+" ")
+	return os.WriteFile(logPath, []byte(updated), 0o644)
+}
+
 // appendTransitionLogEntry writes a single line to .kanban/transitions.log to
 // record a status transition. Used by test setup helpers to establish
 // preconditions without invoking the kanban binary.
@@ -239,18 +256,23 @@ func ATaskWithStatusAs(title, status, taskID string) Step {
 				return err
 			}
 			if taskID != "" && ctx.lastTaskID != "" && ctx.lastTaskID != taskID {
-				oldPath := taskFilePath(ctx, ctx.lastTaskID)
+				oldID := ctx.lastTaskID
+				oldPath := taskFilePath(ctx, oldID)
 				newPath := taskFilePath(ctx, taskID)
 				content, err := os.ReadFile(oldPath)
 				if err != nil {
 					return fmt.Errorf("read task file: %w", err)
 				}
-				updated := strings.ReplaceAll(string(content), "id: "+ctx.lastTaskID, "id: "+taskID)
+				updated := strings.ReplaceAll(string(content), "id: "+oldID, "id: "+taskID)
 				if err := os.WriteFile(newPath, []byte(updated), 0644); err != nil {
 					return fmt.Errorf("write renamed task file: %w", err)
 				}
 				if err := os.Remove(oldPath); err != nil {
 					return fmt.Errorf("remove old task file: %w", err)
+				}
+				// Update transitions.log entries that reference the old task ID.
+				if err := renameTransitionsLogEntries(ctx, oldID, taskID); err != nil {
+					return fmt.Errorf("rename transitions.log entries: %w", err)
 				}
 				ctx.lastTaskID = taskID
 			}

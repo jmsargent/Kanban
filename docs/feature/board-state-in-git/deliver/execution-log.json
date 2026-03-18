@@ -1,0 +1,307 @@
+{
+  "schema_version": "3.0",
+  "feature_id": "board-state-in-git",
+  "events": [
+    {
+      "sid": "01-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:13:15Z"
+    },
+    {
+      "sid": "01-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:14:31Z"
+    },
+    {
+      "sid": "01-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:23:30Z"
+    },
+    {
+      "sid": "01-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:24:12Z"
+    },
+    {
+      "sid": "01-01",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:24:27Z"
+    },
+    {
+      "sid": "01-02",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:26:30Z"
+    },
+    {
+      "sid": "01-02",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits already passes \u2014 covered by step 01-01 implementation",
+      "t": "2026-03-18T11:26:33Z"
+    },
+    {
+      "sid": "01-02",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: empty-history unit test covered by 01-01 \u2014 use case returns empty slice, CLI adapter maps to message",
+      "t": "2026-03-18T11:26:37Z"
+    },
+    {
+      "sid": "01-02",
+      "p": "GREEN",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: all tests pass without additional code \u2014 covered by step 01-01 implementation",
+      "t": "2026-03-18T11:26:40Z"
+    },
+    {
+      "sid": "01-02",
+      "p": "COMMIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits passed without additional code \u2014 covered by step 01-01 implementation",
+      "t": "2026-03-18T11:26:43Z"
+    },
+    {
+      "sid": "01-03",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:27:31Z"
+    },
+    {
+      "sid": "01-03",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: TestKanbanLog_ExitsOne_WhenTaskNotFound already passes from step 01-01 implementation",
+      "t": "2026-03-18T11:27:36Z"
+    },
+    {
+      "sid": "01-03",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: not-found error path covered by existing unit tests in 01-01",
+      "t": "2026-03-18T11:27:40Z"
+    },
+    {
+      "sid": "01-03",
+      "p": "GREEN",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: all tests pass, no implementation needed",
+      "t": "2026-03-18T11:27:43Z"
+    },
+    {
+      "sid": "01-03",
+      "p": "COMMIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: no new code produced, nothing to commit",
+      "t": "2026-03-18T11:27:46Z"
+    },
+    {
+      "sid": "01-05",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:27:55Z"
+    },
+    {
+      "sid": "01-05",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: TestKanbanLog_ExitsOne_WhenNotInitialised already passes \u2014 behavior delivered by step 01-01",
+      "t": "2026-03-18T11:27:59Z"
+    },
+    {
+      "sid": "01-04",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound already passes - covered by step 01-01",
+      "t": "2026-03-18T11:28:02Z"
+    },
+    {
+      "sid": "01-04",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound already passes - no failing acceptance test",
+      "t": "2026-03-18T11:28:06Z"
+    },
+    {
+      "sid": "01-04",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: behavior already covered by step 01-01 implementation, no new unit tests needed",
+      "t": "2026-03-18T11:28:09Z"
+    },
+    {
+      "sid": "01-05",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: behavior already covered \u2014 no new unit tests required",
+      "t": "2026-03-18T11:28:10Z"
+    },
+    {
+      "sid": "01-04",
+      "p": "GREEN",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: all tests pass, go test ./... green, no implementation required",
+      "t": "2026-03-18T11:28:13Z"
+    },
+    {
+      "sid": "01-05",
+      "p": "GREEN",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: all tests already green \u2014 no implementation changes needed",
+      "t": "2026-03-18T11:28:13Z"
+    },
+    {
+      "sid": "01-05",
+      "p": "COMMIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: no new code \u2014 nothing to commit",
+      "t": "2026-03-18T11:28:16Z"
+    },
+    {
+      "sid": "01-04",
+      "p": "COMMIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: no new code produced, nothing to commit",
+      "t": "2026-03-18T11:28:18Z"
+    },
+    {
+      "sid": "01-06",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:30:50Z"
+    },
+    {
+      "sid": "01-06",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:31:12Z"
+    },
+    {
+      "sid": "01-06",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:32:18Z"
+    },
+    {
+      "sid": "01-06",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:34:14Z"
+    },
+    {
+      "sid": "01-06",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:37:18Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:39:06Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:39:19Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:39:54Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:49:30Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:53:18Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:55:16Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:56:03Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T11:56:36Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T12:05:15Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T12:06:07Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T12:07:59Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T12:08:14Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T12:09:31Z"
+    }
+  ]
+}

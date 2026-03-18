@@ -52,20 +52,62 @@ func (f *startTaskFakeRepo) ListAll(repoRoot string) ([]domain.Task, error) { re
 func (f *startTaskFakeRepo) Delete(repoRoot, taskID string) error           { return nil }
 func (f *startTaskFakeRepo) NextID(repoRoot string) (string, error)         { return "", nil }
 
+// startTaskFakeLog is a TransitionLogRepository fake that records Append calls
+// and returns a configurable LatestStatus for a task.
+type startTaskFakeLog struct {
+	latestByID    map[string]domain.TaskStatus
+	latestErr     error
+	appended      []domain.TransitionEntry
+	appendErr     error
+}
+
+func newStartTaskFakeLog() *startTaskFakeLog {
+	return &startTaskFakeLog{latestByID: make(map[string]domain.TaskStatus)}
+}
+
+func (f *startTaskFakeLog) withLatestStatus(taskID string, status domain.TaskStatus) *startTaskFakeLog {
+	f.latestByID[taskID] = status
+	return f
+}
+
+func (f *startTaskFakeLog) Append(repoRoot string, entry domain.TransitionEntry) error {
+	if f.appendErr != nil {
+		return f.appendErr
+	}
+	f.appended = append(f.appended, entry)
+	return nil
+}
+
+func (f *startTaskFakeLog) LatestStatus(repoRoot, taskID string) (domain.TaskStatus, error) {
+	if f.latestErr != nil {
+		return "", f.latestErr
+	}
+	status, ok := f.latestByID[taskID]
+	if !ok {
+		return "", ports.ErrTaskNotFound
+	}
+	return status, nil
+}
+
+func (f *startTaskFakeLog) History(repoRoot, taskID string) ([]domain.TransitionEntry, error) {
+	return nil, nil
+}
+
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-// Test Budget: 6 behaviors x 2 = 12 max unit tests (using 7)
+// Test Budget: 6 behaviors x 2 = 12 max unit tests (using 8)
 
-func TestStartTask_TransitionsTodoToInProgress_WhenTaskIsInTodo(t *testing.T) {
+func TestStartTask_AppendsTransitionEntry_WhenTaskIsInTodo(t *testing.T) {
 	repoRoot := tmpRepo(t)
 	task := domain.Task{ID: "TASK-001", Title: "Fix bug", Status: domain.StatusTodo}
 	cfg := &fakeConfigRepo{readResult: ports.Config{
 		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
 	}}
 	tasks := newStartTaskFakeRepo(task)
+	log := newStartTaskFakeLog() // no latest status => ErrTaskNotFound => treat as todo
 
-	uc := usecases.NewStartTask(cfg, tasks)
-	result, err := uc.Execute(repoRoot, "TASK-001", "")
+	uc := usecases.NewStartTask(cfg, tasks, log)
+	result, err := uc.Execute(repoRoot, "TASK-001", "alice@example.com")
 
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -79,23 +121,62 @@ func TestStartTask_TransitionsTodoToInProgress_WhenTaskIsInTodo(t *testing.T) {
 	if result.Task.Status != domain.StatusInProgress {
 		t.Errorf("expected task status in-progress, got: %s", result.Task.Status)
 	}
-	if tasks.updated == nil {
-		t.Error("expected task to be persisted via Update")
+	if len(log.appended) != 1 {
+		t.Fatalf("expected 1 Append call, got %d", len(log.appended))
 	}
-	if tasks.updated != nil && tasks.updated.Status != domain.StatusInProgress {
-		t.Errorf("expected persisted status in-progress, got: %s", tasks.updated.Status)
+	entry := log.appended[0]
+	if entry.TaskID != "TASK-001" {
+		t.Errorf("expected entry.TaskID 'TASK-001', got %q", entry.TaskID)
+	}
+	if entry.From != domain.StatusTodo {
+		t.Errorf("expected entry.From todo, got %q", entry.From)
+	}
+	if entry.To != domain.StatusInProgress {
+		t.Errorf("expected entry.To in-progress, got %q", entry.To)
+	}
+	if entry.Author != "alice@example.com" {
+		t.Errorf("expected entry.Author 'alice@example.com', got %q", entry.Author)
+	}
+	if entry.Trigger != "manual" {
+		t.Errorf("expected entry.Trigger 'manual', got %q", entry.Trigger)
+	}
+	if entry.Timestamp.IsZero() {
+		t.Error("expected entry.Timestamp to be non-zero")
 	}
 }
 
-func TestStartTask_ReturnsAlreadyInProgress_WhenTaskIsAlreadyInProgress(t *testing.T) {
+func TestStartTask_NeverCallsTaskUpdate_OnTransition(t *testing.T) {
+	// Task file is never modified by StartTask — status and author go into
+	// transitions.log only. Update must never be called.
 	repoRoot := tmpRepo(t)
-	task := domain.Task{ID: "TASK-002", Title: "Running task", Status: domain.StatusInProgress}
+	task := domain.Task{ID: "TASK-001", Title: "Fix bug", Status: domain.StatusTodo}
+	cfg := &fakeConfigRepo{readResult: ports.Config{
+		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
+	}}
+	tasks := newStartTaskFakeRepo(task)
+	log := newStartTaskFakeLog()
+
+	uc := usecases.NewStartTask(cfg, tasks, log)
+	_, err := uc.Execute(repoRoot, "TASK-001", "alice@example.com")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if tasks.updated != nil {
+		t.Error("expected no TaskRepository.Update call: task file must not be modified by start")
+	}
+}
+
+func TestStartTask_ReturnsAlreadyInProgress_WhenLatestStatusIsInProgress(t *testing.T) {
+	repoRoot := tmpRepo(t)
+	task := domain.Task{ID: "TASK-002", Title: "Running task", Status: domain.StatusTodo}
 	cfg := &fakeConfigRepo{readResult: ports.Config{
 		Columns: []domain.Column{{Name: "in-progress", Label: "In Progress"}},
 	}}
 	tasks := newStartTaskFakeRepo(task)
+	log := newStartTaskFakeLog().withLatestStatus("TASK-002", domain.StatusInProgress)
 
-	uc := usecases.NewStartTask(cfg, tasks)
+	uc := usecases.NewStartTask(cfg, tasks, log)
 	result, err := uc.Execute(repoRoot, "TASK-002", "")
 
 	if err != nil {
@@ -107,28 +188,30 @@ func TestStartTask_ReturnsAlreadyInProgress_WhenTaskIsAlreadyInProgress(t *testi
 	if result.Transitioned {
 		t.Error("expected result.Transitioned to be false")
 	}
-	if tasks.updated != nil {
-		t.Error("expected no Update call when task is already in-progress")
+	if len(log.appended) != 0 {
+		t.Errorf("expected no Append call when task is already in-progress, got %d", len(log.appended))
 	}
 }
 
 func TestStartTask_ReturnsError_ForInvalidPreconditions(t *testing.T) {
 	// These three error paths share identical assertion shape: Execute returns a
-	// sentinel error and no Update is issued. Parametrized as input variations of
+	// sentinel error and no Append is issued. Parametrized as input variations of
 	// one behavior (Mandate 5).
 	cases := []struct {
 		name      string
 		cfg       ports.ConfigRepository
 		task      *domain.Task // nil = empty repo (ErrTaskNotFound)
+		logStatus domain.TaskStatus
 		taskID    string
 		wantErr   error
 	}{
 		{
-			name:    "done task returns ErrInvalidTransition",
-			cfg:     &fakeConfigRepo{readResult: ports.Config{Columns: []domain.Column{{Name: "done", Label: "Done"}}}},
-			task:    &domain.Task{ID: "TASK-003", Title: "Completed task", Status: domain.StatusDone},
-			taskID:  "TASK-003",
-			wantErr: ports.ErrInvalidTransition,
+			name:      "done task returns ErrInvalidTransition",
+			cfg:       &fakeConfigRepo{readResult: ports.Config{Columns: []domain.Column{{Name: "done", Label: "Done"}}}},
+			task:      &domain.Task{ID: "TASK-003", Title: "Completed task", Status: domain.StatusDone},
+			logStatus: domain.StatusDone,
+			taskID:    "TASK-003",
+			wantErr:   ports.ErrInvalidTransition,
 		},
 		{
 			name:    "missing task returns ErrTaskNotFound",
@@ -155,39 +238,21 @@ func TestStartTask_ReturnsError_ForInvalidPreconditions(t *testing.T) {
 			} else {
 				tasks = newStartTaskFakeRepo()
 			}
+			log := newStartTaskFakeLog()
+			if tc.logStatus != "" {
+				log.withLatestStatus(tc.taskID, tc.logStatus)
+			}
 
-			uc := usecases.NewStartTask(tc.cfg, tasks)
+			uc := usecases.NewStartTask(tc.cfg, tasks, log)
 			_, err := uc.Execute(repoRoot, tc.taskID, "")
 
 			if !errors.Is(err, tc.wantErr) {
 				t.Errorf("expected %v, got: %v", tc.wantErr, err)
 			}
-			if tasks.updated != nil {
-				t.Error("expected no Update call when precondition fails")
+			if len(log.appended) != 0 {
+				t.Error("expected no Append call when precondition fails")
 			}
 		})
-	}
-}
-
-func TestStartTask_SetsAssignee_WhenTaskIsStarted(t *testing.T) {
-	repoRoot := tmpRepo(t)
-	task := domain.Task{ID: "TASK-001", Title: "Fix bug", Status: domain.StatusTodo}
-	cfg := &fakeConfigRepo{readResult: ports.Config{
-		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
-	}}
-	tasks := newStartTaskFakeRepo(task)
-
-	uc := usecases.NewStartTask(cfg, tasks)
-	result, err := uc.Execute(repoRoot, "TASK-001", "Alice")
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.Task.Assignee != "Alice" {
-		t.Errorf("expected result.Task.Assignee to be 'Alice', got: %q", result.Task.Assignee)
-	}
-	if tasks.updated == nil || tasks.updated.Assignee != "Alice" {
-		t.Error("expected persisted task to have Assignee = 'Alice'")
 	}
 }
 
@@ -198,8 +263,9 @@ func TestStartTask_PreviousAssigneeIsEmpty_WhenTaskWasUnassigned(t *testing.T) {
 		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
 	}}
 	tasks := newStartTaskFakeRepo(task)
+	log := newStartTaskFakeLog()
 
-	uc := usecases.NewStartTask(cfg, tasks)
+	uc := usecases.NewStartTask(cfg, tasks, log)
 	result, err := uc.Execute(repoRoot, "TASK-001", "Bob")
 
 	if err != nil {
@@ -217,8 +283,9 @@ func TestStartTask_PreviousAssigneeIsPopulated_WhenTaskWasAssignedToDifferentDev
 		Columns: []domain.Column{{Name: "todo", Label: "TODO"}},
 	}}
 	tasks := newStartTaskFakeRepo(task)
+	log := newStartTaskFakeLog()
 
-	uc := usecases.NewStartTask(cfg, tasks)
+	uc := usecases.NewStartTask(cfg, tasks, log)
 	result, err := uc.Execute(repoRoot, "TASK-001", "Bob")
 
 	if err != nil {
@@ -227,7 +294,7 @@ func TestStartTask_PreviousAssigneeIsPopulated_WhenTaskWasAssignedToDifferentDev
 	if result.PreviousAssignee != "Alice" {
 		t.Errorf("expected PreviousAssignee to be 'Alice', got: %q", result.PreviousAssignee)
 	}
-	if result.Task.Assignee != "Bob" {
-		t.Errorf("expected result.Task.Assignee to be 'Bob', got: %q", result.Task.Assignee)
-	}
+	// result.Task reflects the task as read from the repository (not updated to YAML).
+	// Assignee tracking now goes into TransitionEntry.Author only.
 }
+

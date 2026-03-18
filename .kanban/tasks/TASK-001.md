@@ -1,7 +1,7 @@
 ---
 id: TASK-001
 title: testtask
-status: todo
+status: in-progress
 priority: ""
 due: ""
 assignee: ""

@@ -29,7 +29,7 @@ func SetOsExit(fn func(int)) {
 // NewStartCommand builds the "kanban start" cobra command.
 // It accepts a single task ID, delegates to the StartTask use case, and maps
 // each result or error to the correct stdout/stderr message and exit code.
-func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
+func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "start <task-id>",
 		Short:         "Start working on a task (transitions todo -> in-progress)",
@@ -56,8 +56,8 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 				return exitError("git identity not configured — run: git config --global user.name \"Your Name\"")
 			}
 
-			uc := usecases.NewStartTask(config, tasks)
-			result, err := uc.Execute(repoRoot, taskID, identity.Name)
+			uc := usecases.NewStartTask(config, tasks, log)
+			result, err := uc.Execute(repoRoot, taskID, identity.Email)
 			if err != nil {
 				if errors.Is(err, ports.ErrInvalidTransition) {
 					return exitError(fmt.Sprintf("Task %s is already finished", taskID))
@@ -74,13 +74,6 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 			if result.AlreadyInProgress {
 				writeLine(out, fmt.Sprintf("Task %s is already in progress", taskID))
 				return nil
-			}
-
-			taskFilePath := fmt.Sprintf(".kanban/tasks/%s.md", taskID)
-			commitMsg := fmt.Sprintf("%s: todo->in-progress [trigger:manual]", taskID)
-			if commitErr := git.CommitFiles(repoRoot, commitMsg, []string{taskFilePath}); commitErr != nil {
-				// Non-fatal: task is already transitioned; log the commit failure but don't block the developer.
-				writeLine(errOut, fmt.Sprintf("Warning: could not commit task file: %v", commitErr))
 			}
 
 			writeLine(out, fmt.Sprintf("Started %s: %s", taskID, result.Task.Title))

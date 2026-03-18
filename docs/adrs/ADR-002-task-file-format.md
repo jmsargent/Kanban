@@ -1,9 +1,11 @@
 # ADR-002: Task File Format — Markdown with YAML Front Matter
 
-**Status**: Accepted
+**Status**: Partially Superseded
 **Date**: 2026-03-15
-**Feature**: kanban-tasks
+**Amended**: 2026-03-18
+**Feature**: kanban-tasks; board-state-in-git
 **Resolves**: OD-01
+**Superseded by (status field only)**: ADR-011 — the `status:` field in YAML front matter is deprecated and replaced by `.kanban/transitions.log` as the authoritative state source. All other decisions in this ADR remain in effect.
 
 ---
 
@@ -138,3 +140,32 @@ Rejection rationale: JSON git diffs are noisy (confirmed risk R-03 from DISCUSS 
 - Developers editing files directly must understand the `---` delimiter convention; deviating from it corrupts the file
 
 **Enforcement**: The `KanbanFileSystemAdapter` validates front matter structure on read. A corrupted front matter produces a recoverable error with guidance, not a crash.
+
+---
+
+## Amendment — 2026-03-18 (board-state-in-git feature)
+
+The `status:` field in YAML front matter is **deprecated** effective US-BSG-02.
+
+**New task file structure** (US-BSG-02 and later):
+
+```
+---
+id: TASK-001
+title: Fix OAuth login bug
+priority: P2
+due: 2026-03-20
+assignee: alex@example.com
+created_by: alex@example.com
+---
+
+<!-- State managed by .kanban/transitions.log -->
+
+Optional freeform description in Markdown body.
+```
+
+The `status:` field is no longer written by the CLI for new tasks. Existing task files retain their `status:` field as a legacy read-only fallback for `GetBoard` during the migration transition period (see ADR-012). The fallback will be removed in a post-migration cleanup release.
+
+The `assignee` field is normalised to an email address to support `kanban board --me` filtering against `git config user.email`.
+
+All other format decisions (YAML front matter delimited by `---`, `.md` extension, Markdown body for description) remain unchanged.

@@ -43,6 +43,19 @@ func (f *historyFakeTaskRepo) Update(repoRoot string, task domain.Task) error { 
 func (f *historyFakeTaskRepo) Delete(repoRoot, taskID string) error           { return nil }
 func (f *historyFakeTaskRepo) NextID(repoRoot string) (string, error)         { return "", nil }
 
+// historyFakeLog satisfies ports.TransitionLogRepository for GetTaskHistory tests.
+type historyFakeLog struct {
+	entries []domain.TransitionEntry
+}
+
+func (f *historyFakeLog) Append(_ string, _ domain.TransitionEntry) error { return nil }
+func (f *historyFakeLog) LatestStatus(_, _ string) (domain.TaskStatus, error) {
+	return domain.StatusTodo, nil
+}
+func (f *historyFakeLog) History(_, _ string) ([]domain.TransitionEntry, error) {
+	return f.entries, nil
+}
+
 // historyFakeGitPort satisfies ports.GitPort for GetTaskHistory tests.
 // It records LogFile calls and returns configured entries.
 type historyFakeGitPort struct {
@@ -86,7 +99,7 @@ func TestGetTaskHistory_ReturnsHeaderAndEntries_WhenTaskHasCommits(t *testing.T)
 		},
 	}
 
-	uc := usecases.NewGetTaskHistory(cfg, tasks, git)
+	uc := usecases.NewGetTaskHistory(cfg, tasks, git, &historyFakeLog{})
 	result, err := uc.Execute(repoRoot, "TASK-001")
 
 	if err != nil {
@@ -115,7 +128,7 @@ func TestGetTaskHistory_ReturnsEmptyEntries_WhenTaskHasNoCommits(t *testing.T) {
 	tasks := newHistoryFakeTaskRepo(task)
 	git := &historyFakeGitPort{logFileEntries: nil}
 
-	uc := usecases.NewGetTaskHistory(cfg, tasks, git)
+	uc := usecases.NewGetTaskHistory(cfg, tasks, git, &historyFakeLog{})
 	result, err := uc.Execute(repoRoot, "TASK-002")
 
 	if err != nil {
@@ -166,7 +179,7 @@ func TestGetTaskHistory_ReturnsError_ForInvalidPreconditions(t *testing.T) {
 			}
 			git := &historyFakeGitPort{}
 
-			uc := usecases.NewGetTaskHistory(tc.cfg, tasks, git)
+			uc := usecases.NewGetTaskHistory(tc.cfg, tasks, git, &historyFakeLog{})
 			_, err := uc.Execute(repoRoot, tc.taskID)
 
 			if !errors.Is(err, tc.wantErr) {
