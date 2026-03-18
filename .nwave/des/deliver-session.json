@@ -1,8 +1,0 @@
-{
-  "feature_id": "board-state-in-git",
-  "started_at": "2026-03-18T00:00:00Z",
-  "phase": "roadmap-creation",
-  "crafter": "nw-software-crafter",
-  "paradigm": "object-oriented",
-  "mutation_strategy": "disabled"
-}

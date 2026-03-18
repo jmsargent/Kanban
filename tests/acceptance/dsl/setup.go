@@ -337,6 +337,25 @@ func CommitHookInstalled() Step {
 	}
 }
 
+// WithStagedFile creates a file at name (relative to repoDir) with content and
+// stages it with git add, simulating a developer who has pending staged changes
+// before running a kanban command.
+func WithStagedFile(name, content string) Step {
+	return Step{
+		Description: fmt.Sprintf("file %q is staged", name),
+		Run: func(ctx *Context) error {
+			path := filepath.Join(ctx.repoDir, name)
+			if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+				return fmt.Errorf("write %s: %w", name, err)
+			}
+			if _, err := gitCmd(ctx, "add", "--", name); err != nil {
+				return fmt.Errorf("git add %s: %w", name, err)
+			}
+			return nil
+		},
+	}
+}
+
 // EnvVarSet appends name=value to ctx.env.
 func EnvVarSet(name, value string) Step {
 	return Step{
