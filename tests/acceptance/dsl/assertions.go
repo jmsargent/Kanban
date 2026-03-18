@@ -105,21 +105,122 @@ func taskFilePath(ctx *Context, taskID string) string {
 	return filepath.Join(ctx.repoDir, ".kanban", "tasks", taskID+".md")
 }
 
-// TaskHasStatus reads the task file for taskID and asserts status == expected.
+// TaskHasStatus asserts the effective status of taskID equals expected.
+//
+// Status resolution order (reflects the migration from YAML → transitions.log):
+//  1. If transitions.log contains entries for taskID, the last entry's To field
+//     is the authoritative status.
+//  2. Otherwise fall back to the status: field in the YAML front matter (written
+//     by legacy use cases that have not yet been migrated to transitions.log).
+//  3. If neither source has a status, default to "todo".
 func TaskHasStatus(taskID, expected string) Step {
 	return Step{
 		Description: fmt.Sprintf("task %s has status %q", taskID, expected),
 		Run: func(ctx *Context) error {
-			content, err := os.ReadFile(taskFilePath(ctx, taskID))
-			if err != nil {
-				return fmt.Errorf("task file %s not found: %w", taskID, err)
+			// Ensure the task file itself exists.
+			if _, err := os.Stat(taskFilePath(ctx, taskID)); os.IsNotExist(err) {
+				return fmt.Errorf("task file %s not found", taskID)
 			}
-			if !strings.Contains(string(content), "status: "+expected) {
-				return fmt.Errorf("expected task %s to have status %q\nFile content:\n%s", taskID, expected, string(content))
+
+			actual := resolveTaskStatus(ctx, taskID)
+			if actual != expected {
+				content, _ := os.ReadFile(taskFilePath(ctx, taskID))
+				return fmt.Errorf("expected task %s to have status %q\nActual status: %q\nFile content:\n%s", taskID, expected, actual, string(content))
 			}
 			return nil
 		},
 	}
+}
+
+// resolveTaskStatus returns the effective status for taskID by checking
+// transitions.log first, then the YAML front matter, then defaulting to "todo".
+func resolveTaskStatus(ctx *Context, taskID string) string {
+	// 1. Check transitions.log
+	if s := statusFromTransitionsLog(ctx, taskID); s != "todo" {
+		return s
+	}
+	// Check if transitions.log has an explicit "todo" entry (i.e., the log
+	// exists and has an entry that resolves to todo — treat that as todo).
+	if hasTransitionsLogEntry(ctx, taskID) {
+		return "todo"
+	}
+	// 2. Fall back to YAML status field (legacy tasks updated via tasks.Update)
+	if s := statusFromYAML(ctx, taskID); s != "" {
+		return s
+	}
+	// 3. Default
+	return "todo"
+}
+
+// hasTransitionsLogEntry returns true if transitions.log contains any entry for taskID.
+func hasTransitionsLogEntry(ctx *Context, taskID string) bool {
+	logPath := filepath.Join(ctx.repoDir, ".kanban", "transitions.log")
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		return false
+	}
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) == 5 && fields[1] == taskID {
+			return true
+		}
+	}
+	return false
+}
+
+// statusFromTransitionsLog returns the latest status for taskID from transitions.log,
+// or "todo" if no entry exists.
+func statusFromTransitionsLog(ctx *Context, taskID string) string {
+	logPath := filepath.Join(ctx.repoDir, ".kanban", "transitions.log")
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		return "todo"
+	}
+	last := ""
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) != 5 {
+			continue
+		}
+		if fields[1] != taskID {
+			continue
+		}
+		parts := strings.SplitN(fields[2], "->", 2)
+		if len(parts) == 2 {
+			last = parts[1]
+		}
+	}
+	if last == "" {
+		return "todo"
+	}
+	return last
+}
+
+// statusFromYAML extracts the status: field from a task's YAML front matter.
+// Returns "" if the field is absent (new-style files omit it).
+func statusFromYAML(ctx *Context, taskID string) string {
+	data, err := os.ReadFile(taskFilePath(ctx, taskID))
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "status:") {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				return strings.TrimSpace(parts[1])
+			}
+		}
+	}
+	return ""
 }
 
 // TaskStatusRemains is an alias for TaskHasStatus with a distinct description

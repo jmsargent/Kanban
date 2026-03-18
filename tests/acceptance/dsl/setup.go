@@ -112,7 +112,10 @@ func NotAGitRepo() Step {
 }
 
 // ATaskWithStatus creates a task via "kanban new" and, if status is not "todo",
-// directly rewrites the status field in the task file.
+// sets up the precondition by:
+//   - Writing a transitions.log entry (authoritative for TaskHasStatus assertions)
+//   - Injecting a status: field into the task YAML (needed by legacy use cases
+//     such as StartTask that still read status from the task file via FindByID)
 func ATaskWithStatus(title, status string) Step {
 	return Step{
 		Description: fmt.Sprintf("task %q with status %q", title, status),
@@ -126,19 +129,104 @@ func ATaskWithStatus(title, status string) Step {
 				return fmt.Errorf("could not determine task ID from output: %s", ctx.lastOutput)
 			}
 			if status != "todo" {
-				taskPath := taskFilePath(ctx, taskID)
-				content, err := os.ReadFile(taskPath)
-				if err != nil {
-					return fmt.Errorf("read task file: %w", err)
+				// Write to transitions.log (authoritative for assertions)
+				if err := appendTransitionLogEntry(ctx, taskID, "todo", status); err != nil {
+					return fmt.Errorf("set task status via transitions.log: %w", err)
 				}
-				updated := strings.ReplaceAll(string(content), "status: todo", "status: "+status)
-				if err := os.WriteFile(taskPath, []byte(updated), 0644); err != nil {
-					return fmt.Errorf("write task file: %w", err)
+				// Also inject into YAML so legacy use cases (StartTask, etc.) see
+				// the correct status when reading via FindByID.
+				if err := injectStatusIntoYAML(ctx, taskID, status); err != nil {
+					return fmt.Errorf("inject status into task YAML: %w", err)
 				}
 			}
 			return nil
 		},
 	}
+}
+
+// injectStatusIntoYAML inserts a "status: <value>" line as the first YAML key
+// in the task file's front matter, immediately after any comment lines that
+// follow the opening "---" delimiter. This allows legacy use cases that read
+// status from YAML (via FindByID) to see the correct precondition.
+//
+// If the file already contains a "status:" line it is replaced in-place to
+// avoid duplicate keys that would cause YAML parse errors.
+func injectStatusIntoYAML(ctx *Context, taskID, status string) error {
+	taskPath := taskFilePath(ctx, taskID)
+	data, err := os.ReadFile(taskPath)
+	if err != nil {
+		return fmt.Errorf("read task file: %w", err)
+	}
+	content := string(data)
+
+	// If there is already a status: line, replace it rather than add another.
+	if strings.Contains(content, "\nstatus:") {
+		updated := replaceStatusLine(content, status)
+		return os.WriteFile(taskPath, []byte(updated), 0o644)
+	}
+
+	// No existing status field: insert after the opening "---\n" and any
+	// comment lines, just before the first real YAML key.
+	lines := strings.Split(content, "\n")
+	var out []string
+	inserted := false
+	inFrontMatter := false
+	for i, line := range lines {
+		if !inFrontMatter && line == "---" {
+			inFrontMatter = true
+			out = append(out, line)
+			continue
+		}
+		if inFrontMatter && !inserted {
+			trimmed := strings.TrimSpace(line)
+			// Skip blank lines and comment lines before inserting.
+			if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+				out = append(out, line)
+				continue
+			}
+			// Insert status before this line (the first real YAML key).
+			out = append(out, "status: "+status)
+			inserted = true
+		}
+		_ = i
+		out = append(out, line)
+	}
+	return os.WriteFile(taskPath, []byte(strings.Join(out, "\n")), 0o644)
+}
+
+// replaceStatusLine replaces the first "status: <anything>" line in content
+// with "status: <newStatus>".
+func replaceStatusLine(content, newStatus string) string {
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "status:") {
+			lines[i] = "status: " + newStatus
+			break
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// appendTransitionLogEntry writes a single line to .kanban/transitions.log to
+// record a status transition. Used by test setup helpers to establish
+// preconditions without invoking the kanban binary.
+func appendTransitionLogEntry(ctx *Context, taskID, from, to string) error {
+	logDir := filepath.Join(ctx.repoDir, ".kanban")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		return fmt.Errorf("mkdir .kanban: %w", err)
+	}
+	logPath := filepath.Join(logDir, "transitions.log")
+	line := fmt.Sprintf("%s %s %s->%s test@example.com manual\n",
+		time.Now().UTC().Format(time.RFC3339),
+		taskID, from, to,
+	)
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return fmt.Errorf("open transitions.log: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+	_, err = f.WriteString(line)
+	return err
 }
 
 // ATaskWithStatusAs creates a task with ATaskWithStatus logic, then renames the

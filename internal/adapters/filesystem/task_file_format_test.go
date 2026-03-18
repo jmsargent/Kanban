@@ -1,6 +1,8 @@
 // acceptance: Created task file contains valid YAML front matter
 // Driving port: TaskRepository.Save
-// Asserts: written file begins with "---\n" and contains id, title, status, priority, due, assignee fields
+// Asserts: written file begins with "---\n", contains id/title/priority/due/assignee fields,
+// does NOT contain status: (status is tracked in .kanban/transitions.log),
+// and DOES contain a comment referencing transitions.log.
 package filesystem_test
 
 import (
@@ -49,11 +51,21 @@ func TestSave_CreatesFileWithValidYAMLFrontMatter(t *testing.T) {
 		t.Errorf("file does not begin with YAML front matter delimiter '---\\n': %q", content[:min(len(content), 20)])
 	}
 
-	// Must contain all required fields
-	for _, field := range []string{"id:", "title:", "status:", "priority:", "due:", "assignee:"} {
+	// Must contain all required non-status fields
+	for _, field := range []string{"id:", "title:", "priority:", "due:", "assignee:"} {
 		if !strings.Contains(content, field) {
 			t.Errorf("front matter missing field %q", field)
 		}
+	}
+
+	// Status is tracked in transitions.log — must NOT appear in the task file
+	if strings.Contains(content, "status:") {
+		t.Errorf("task file must not contain 'status:' field (status tracked in transitions.log)\nContent:\n%s", content)
+	}
+
+	// Must contain comment directing readers to transitions.log
+	if !strings.Contains(content, "transitions.log") {
+		t.Errorf("task file must contain 'transitions.log' comment\nContent:\n%s", content)
 	}
 }
 

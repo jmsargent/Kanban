@@ -24,8 +24,20 @@ func NewTaskRepository() *TaskRepository {
 	return &TaskRepository{}
 }
 
-// taskFrontMatter is the YAML serialisation shape for a Task header.
+// taskFrontMatter is the YAML serialisation shape for writing new task files.
+// Status is intentionally omitted: status is tracked in .kanban/transitions.log.
 type taskFrontMatter struct {
+	ID        string `yaml:"id"`
+	Title     string `yaml:"title"`
+	Priority  string `yaml:"priority"`
+	Due       string `yaml:"due"`
+	Assignee  string `yaml:"assignee"`
+	CreatedBy string `yaml:"created_by"`
+}
+
+// taskFrontMatterRead is used for deserialising existing task files which may
+// still contain a legacy status: field written before the transitions.log migration.
+type taskFrontMatterRead struct {
 	ID        string `yaml:"id"`
 	Title     string `yaml:"title"`
 	Status    string `yaml:"status"`
@@ -70,13 +82,17 @@ func (r *TaskRepository) Save(repoRoot string, task domain.Task) error {
 
 // Update overwrites an existing task file atomically.
 // Returns ErrTaskNotFound if no file exists for the task ID.
+//
+// Note: Update preserves the status field in the YAML front matter for
+// backward compatibility with use cases that have not yet been migrated to
+// write status via transitions.log. New task files created via Save omit status.
 func (r *TaskRepository) Update(repoRoot string, task domain.Task) error {
 	finalPath := taskFilePath(repoRoot, task.ID)
 	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
 		return ports.ErrTaskNotFound
 	}
 
-	content, err := marshalTask(task)
+	content, err := marshalTaskWithStatus(task)
 	if err != nil {
 		return fmt.Errorf("marshal task: %w", err)
 	}
@@ -165,9 +181,20 @@ func (r *TaskRepository) NextID(repoRoot string) (string, error) {
 	return fmt.Sprintf("TASK-%03d", maxNum+1), nil
 }
 
-// marshalTask serialises a Task to Markdown with YAML front matter.
-func marshalTask(task domain.Task) ([]byte, error) {
-	fm := taskFrontMatter{
+// marshalTaskWithStatus serialises a Task including its status field.
+// Used by Update to preserve status for use cases not yet migrated to
+// write transitions via transitions.log.
+func marshalTaskWithStatus(task domain.Task) ([]byte, error) {
+	type fmWithStatus struct {
+		ID        string `yaml:"id"`
+		Title     string `yaml:"title"`
+		Status    string `yaml:"status"`
+		Priority  string `yaml:"priority"`
+		Due       string `yaml:"due"`
+		Assignee  string `yaml:"assignee"`
+		CreatedBy string `yaml:"created_by"`
+	}
+	fm := fmWithStatus{
 		ID:        task.ID,
 		Title:     task.Title,
 		Status:    string(task.Status),
@@ -186,6 +213,38 @@ func marshalTask(task domain.Task) ([]byte, error) {
 
 	var sb strings.Builder
 	sb.WriteString("---\n")
+	sb.Write(header)
+	sb.WriteString("---\n")
+	if task.Description != "" {
+		sb.WriteString("\n")
+		sb.WriteString(task.Description)
+		sb.WriteString("\n")
+	}
+	return []byte(sb.String()), nil
+}
+
+// marshalTask serialises a Task to Markdown with YAML front matter.
+// Status is not included in the YAML — it is derived from .kanban/transitions.log.
+func marshalTask(task domain.Task) ([]byte, error) {
+	fm := taskFrontMatter{
+		ID:        task.ID,
+		Title:     task.Title,
+		Priority:  task.Priority,
+		Assignee:  task.Assignee,
+		CreatedBy: task.CreatedBy,
+	}
+	if task.Due != nil {
+		fm.Due = task.Due.Format(dueDateLayout)
+	}
+
+	header, err := yaml.Marshal(fm)
+	if err != nil {
+		return nil, err
+	}
+
+	var sb strings.Builder
+	sb.WriteString("---\n")
+	sb.WriteString("# Status tracked in .kanban/transitions.log\n")
 	sb.Write(header)
 	sb.WriteString("---\n")
 	if task.Description != "" {
@@ -221,15 +280,22 @@ func unmarshalTask(data []byte) (domain.Task, error) {
 	body := strings.TrimPrefix(parts[1], "\n")
 	body = strings.TrimSuffix(body, "\n")
 
-	var fm taskFrontMatter
+	var fm taskFrontMatterRead
 	if err := yaml.Unmarshal([]byte(yamlBlock), &fm); err != nil {
 		return domain.Task{}, fmt.Errorf("parse front matter: %w", err)
+	}
+
+	// Default to StatusTodo when no status field is present (new-style files
+	// written after the transitions.log migration omit the status field).
+	status := domain.TaskStatus(fm.Status)
+	if status == "" {
+		status = domain.StatusTodo
 	}
 
 	task := domain.Task{
 		ID:          fm.ID,
 		Title:       fm.Title,
-		Status:      domain.TaskStatus(fm.Status),
+		Status:      status,
 		Priority:    fm.Priority,
 		Assignee:    fm.Assignee,
 		CreatedBy:   fm.CreatedBy,
