@@ -1590,3 +1590,15 @@
 {"context_type":"failure_notification","event":"HOOK_POST_TOOL_USE_INJECTED","hook_id":"e76908c7-a5fc-4d25-ad92-dfa5753c0d43","is_des_task":true,"timestamp":"2026-03-18T12:29:44.225655+00:00"}
 {"decision":"allow","duration_ms":6.836208,"event":"HOOK_COMPLETED","exit_code":0,"handler":"post_tool_use","hook_id":"7df9da5e-1720-4591-b552-2cc49594a3c5","timestamp":"2026-03-18T12:29:44.225780+00:00"}
 {"decision":"allow","duration_ms":5.895542,"event":"HOOK_COMPLETED","exit_code":0,"handler":"post_tool_use","hook_id":"e76908c7-a5fc-4d25-ad92-dfa5753c0d43","timestamp":"2026-03-18T12:29:44.225857+00:00"}
+{"event":"HOOK_INVOKED","handler":"pre_tool_use","hook_id":"eefed079-2df3-4038-99bd-9412154c01a7","input_summary":{"subagent_type":"nw:nw-software-crafter"},"timestamp":"2026-03-18T16:26:04.307953+00:00"}
+{"event":"HOOK_INVOKED","handler":"pre_tool_use","hook_id":"f6d84329-286e-422f-aad3-f79b6cd4f636","input_summary":{"subagent_type":"nw:nw-software-crafter"},"timestamp":"2026-03-18T16:26:04.307908+00:00"}
+{"event":"HOOK_PRE_TOOL_USE_BLOCKED","hook_id":"f6d84329-286e-422f-aad3-f79b6cd4f636","reason":"MISSING: Mandatory section 'RECORDING_INTEGRITY' not found","timestamp":"2026-03-18T16:26:04.316353+00:00"}
+{"decision":"block","duration_ms":12.209167,"event":"HOOK_COMPLETED","exit_code":2,"handler":"pre_tool_use","hook_id":"f6d84329-286e-422f-aad3-f79b6cd4f636","timestamp":"2026-03-18T16:26:04.316664+00:00"}
+{"event":"HOOK_PRE_TOOL_USE_BLOCKED","hook_id":"eefed079-2df3-4038-99bd-9412154c01a7","reason":"MISSING: Mandatory section 'RECORDING_INTEGRITY' not found","timestamp":"2026-03-18T16:26:04.317118+00:00"}
+{"decision":"block","duration_ms":13.587458,"event":"HOOK_COMPLETED","exit_code":2,"handler":"pre_tool_use","hook_id":"eefed079-2df3-4038-99bd-9412154c01a7","timestamp":"2026-03-18T16:26:04.317397+00:00"}
+{"event":"HOOK_INVOKED","handler":"pre_tool_use","hook_id":"48a969ca-e4e6-401d-964f-f9d096c61341","input_summary":{"subagent_type":"nw:nw-software-crafter"},"timestamp":"2026-03-18T16:26:29.316363+00:00"}
+{"event":"HOOK_INVOKED","handler":"pre_tool_use","hook_id":"290707e8-a1cc-483e-a239-608636354373","input_summary":{"subagent_type":"nw:nw-software-crafter"},"timestamp":"2026-03-18T16:26:29.317064+00:00"}
+{"context":"des_validated","event":"HOOK_PRE_TOOL_USE_ALLOWED","hook_id":"48a969ca-e4e6-401d-964f-f9d096c61341","timestamp":"2026-03-18T16:26:29.318589+00:00"}
+{"context":"des_validated","event":"HOOK_PRE_TOOL_USE_ALLOWED","hook_id":"290707e8-a1cc-483e-a239-608636354373","timestamp":"2026-03-18T16:26:29.318977+00:00"}
+{"decision":"allow","duration_ms":3.152208,"event":"HOOK_COMPLETED","exit_code":0,"handler":"pre_tool_use","hook_id":"48a969ca-e4e6-401d-964f-f9d096c61341","task_correlation_id":"cd98ea22-6bd9-42d1-a445-85a06b0c7ccd","timestamp":"2026-03-18T16:26:29.319086+00:00"}
+{"decision":"allow","duration_ms":2.558125,"event":"HOOK_COMPLETED","exit_code":0,"handler":"pre_tool_use","hook_id":"290707e8-a1cc-483e-a239-608636354373","task_correlation_id":"e034457c-d9e4-4152-b3c2-5b5fd6978c49","timestamp":"2026-03-18T16:26:29.319399+00:00"}
