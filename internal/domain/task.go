@@ -31,8 +31,9 @@ type Column struct {
 
 // Board groups columns and the tasks within them.
 type Board struct {
-	Columns []Column
-	Tasks   map[TaskStatus][]Task
+	Columns         []Column
+	Tasks           map[TaskStatus][]Task
+	UnassignedCount int // number of tasks skipped due to no assignee when a filter is active
 }
 
 // Transition records a status change for a task.

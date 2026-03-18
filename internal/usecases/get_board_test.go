@@ -40,7 +40,43 @@ func (f *fakeTransitionLog) History(repoRoot, taskID string) ([]domain.Transitio
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-// Test Budget: 3 behaviors x 2 = 6 max unit tests (using 3)
+// Test Budget: 4 behaviors x 2 = 8 max unit tests (using 4)
+
+func TestGetBoard_ReturnsUnassignedCount_WhenFilterActiveAndUnassignedTasksExist(t *testing.T) {
+	// Behavior: when a filterAssignee is set, tasks with no assignee are excluded
+	// from the board but their count is surfaced in Board.UnassignedCount so the
+	// CLI adapter can warn the developer.
+	repoRoot := tmpRepo(t)
+	cfg := &fakeConfigRepo{readResult: ports.Config{
+		Columns: []domain.Column{
+			{Name: "todo", Label: "TODO"},
+			{Name: "in-progress", Label: "IN PROGRESS"},
+			{Name: "done", Label: "DONE"},
+		},
+	}}
+	tasks := &fakeTaskRepo{listAll: []domain.Task{
+		{ID: "TASK-001", Title: "My task", Assignee: "dev@example.com"},
+		{ID: "TASK-002", Title: "Unassigned task", Assignee: ""},
+	}}
+	log := newFakeTransitionLog(map[string]domain.TaskStatus{
+		"TASK-001": domain.StatusTodo,
+		"TASK-002": domain.StatusTodo,
+	})
+
+	uc := usecases.NewGetBoard(cfg, tasks, log)
+	board, err := uc.Execute(repoRoot, "dev@example.com")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if board.UnassignedCount != 1 {
+		t.Errorf("expected UnassignedCount=1, got: %d", board.UnassignedCount)
+	}
+	// Unassigned task must not appear in board columns.
+	if len(board.Tasks[domain.StatusTodo]) != 1 {
+		t.Errorf("expected 1 task in TODO (my task only), got: %d", len(board.Tasks[domain.StatusTodo]))
+	}
+}
 
 func TestGetBoard_GroupsTasksByStatus_WhenTasksExist(t *testing.T) {
 	repoRoot := tmpRepo(t)

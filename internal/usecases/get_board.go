@@ -40,8 +40,12 @@ func (u *GetBoard) Execute(repoRoot string, filterAssignee string) (domain.Board
 		grouped[domain.TaskStatus(col.Name)] = []domain.Task{}
 	}
 
+	unassignedCount := 0
 	for _, t := range allTasks {
 		if filterAssignee != "" && t.Assignee != filterAssignee {
+			if t.Assignee == "" {
+				unassignedCount++
+			}
 			continue
 		}
 
@@ -54,7 +58,8 @@ func (u *GetBoard) Execute(repoRoot string, filterAssignee string) (domain.Board
 	}
 
 	return domain.Board{
-		Columns: cfg.Columns,
-		Tasks:   grouped,
+		Columns:         cfg.Columns,
+		Tasks:           grouped,
+		UnassignedCount: unassignedCount,
 	}, nil
 }

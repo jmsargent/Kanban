@@ -70,8 +70,13 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 
 // printBoardFiltered renders the board when the --me filter is active.
 // When no tasks match the filter it prints an informational message instead of
-// an empty column structure.
+// an empty column structure. When unassigned tasks were excluded, a warning is
+// printed so the developer knows work exists outside the filtered view.
 func printBoardFiltered(board domain.Board, assignee string) {
+	if board.UnassignedCount > 0 {
+		fmt.Printf("Warning: %d unassigned task(s) are not shown by --me filter\n", board.UnassignedCount)
+	}
+
 	totalTasks := 0
 	for _, tasks := range board.Tasks {
 		totalTasks += len(tasks)
