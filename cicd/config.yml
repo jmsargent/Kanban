@@ -46,7 +46,7 @@ parameters:
     default: "v6.1.0"
   goreleaser-version:
     type: string
-    default: "v2.3.2"
+    default: "v2.14.3"
 
 orbs:
   go: circleci/go@3.0.2

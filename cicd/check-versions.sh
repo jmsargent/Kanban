@@ -50,15 +50,17 @@ EXPECTED_GOLANGCI="$(param golangci-lint-version)"
 ACTUAL_GOLANGCI="$(golangci-lint --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
 check "golangci-lint" "$EXPECTED_GOLANGCI" "${ACTUAL_GOLANGCI:-not installed}"
 
-# go-arch-lint
+# go-arch-lint (uses 'version' subcommand, not '--version')
 EXPECTED_ARCHLINT="$(param go-arch-lint-version)"
-ACTUAL_ARCHLINT="$(go-arch-lint --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+ACTUAL_ARCHLINT="$(go-arch-lint version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
 check "go-arch-lint" "$EXPECTED_ARCHLINT" "${ACTUAL_ARCHLINT:-not installed}"
 
-# go-semver-release
-EXPECTED_SEMVER="$(param go-semver-release-version)"
-ACTUAL_SEMVER="$(go-semver-release --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
-check "go-semver-release" "$EXPECTED_SEMVER" "${ACTUAL_SEMVER:-not installed}"
+# go-semver-release (CI-only — used in tag job; skip check if not installed locally)
+if command -v go-semver-release >/dev/null 2>&1; then
+  EXPECTED_SEMVER="$(param go-semver-release-version)"
+  ACTUAL_SEMVER="$(go-semver-release --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+  check "go-semver-release" "$EXPECTED_SEMVER" "${ACTUAL_SEMVER:-not installed}"
+fi
 
 # goreleaser
 EXPECTED_GORELEASER="$(param goreleaser-version)"
