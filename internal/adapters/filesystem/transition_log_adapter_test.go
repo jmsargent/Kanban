@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -62,6 +63,50 @@ func TestTransitionLogAdapter_LatestStatus_ReturnsStatusTodo_WhenNoEntry(t *test
 	}
 	if status != domain.StatusTodo {
 		t.Errorf("expected StatusTodo for missing entry, got %q", status)
+	}
+}
+
+// Behavior 4: Concurrent Append calls for the same task+transition produce exactly 1 line
+// (idempotency maintained under concurrency — the lock must cover read-check-write)
+func TestTransitionLogAdapter_Append_ConcurrentSameTransition_ProducesOneLine(t *testing.T) {
+	repoRoot := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoRoot, ".kanban"), 0o755); err != nil {
+		t.Fatalf("mkdir .kanban: %v", err)
+	}
+	adapter := filesystem.NewTransitionLogAdapter()
+
+	entry := domain.TransitionEntry{
+		Timestamp: time.Now().UTC(),
+		TaskID:    "TASK-001",
+		From:      domain.StatusTodo,
+		To:        domain.StatusInProgress,
+		Author:    "dev@example.com",
+		Trigger:   "manual",
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = adapter.Append(repoRoot, entry)
+		}()
+	}
+	wg.Wait()
+
+	logPath := filepath.Join(repoRoot, ".kanban", "transitions.log")
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("read transitions.log: %v", err)
+	}
+	lines := 0
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		if strings.TrimSpace(line) != "" {
+			lines++
+		}
+	}
+	if lines != 1 {
+		t.Errorf("expected exactly 1 line after 10 concurrent appends of same transition, got %d\nContent:\n%s", lines, string(data))
 	}
 }
 

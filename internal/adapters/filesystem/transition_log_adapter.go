@@ -36,6 +36,11 @@ func transitionsLogFilePath(repoRoot string) string {
 // Append records a new transition entry. It creates the file and parent
 // directories if they do not exist. Writes are serialised with an exclusive
 // flock so concurrent callers never interleave bytes.
+//
+// Idempotency: if the task's latest recorded status already equals entry.To,
+// the write is skipped. This check-and-write is performed atomically under the
+// exclusive lock, preventing duplicate entries from concurrent callers that all
+// observe the same "before" state.
 func (a *TransitionLogAdapter) Append(repoRoot string, entry domain.TransitionEntry) error {
 	dir := filepath.Join(repoRoot, ".kanban")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -43,7 +48,7 @@ func (a *TransitionLogAdapter) Append(repoRoot string, entry domain.TransitionEn
 	}
 
 	logPath := transitionsLogFilePath(repoRoot)
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return fmt.Errorf("open transitions.log: %w", err)
 	}
@@ -53,6 +58,15 @@ func (a *TransitionLogAdapter) Append(repoRoot string, entry domain.TransitionEn
 		return fmt.Errorf("flock transitions.log: %w", err)
 	}
 	defer func() { _ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN) }()
+
+	// Re-read the latest status for this task while holding the lock.
+	// If it already equals entry.To, another concurrent caller already wrote
+	// this transition — skip to preserve idempotency.
+	if latestStatus, err := a.latestStatusUnderLock(f, entry.TaskID); err == nil {
+		if latestStatus == entry.To {
+			return nil
+		}
+	}
 
 	line := fmt.Sprintf("%s %s %s->%s %s %s\n",
 		entry.Timestamp.UTC().Format(time.RFC3339),
@@ -67,6 +81,34 @@ func (a *TransitionLogAdapter) Append(repoRoot string, entry domain.TransitionEn
 		return fmt.Errorf("write transitions.log: %w", err)
 	}
 	return nil
+}
+
+// latestStatusUnderLock reads the open file f (which the caller holds an
+// exclusive flock on) from the beginning and returns the latest recorded
+// status for taskID. Returns ("", nil) when no entry exists for taskID.
+func (a *TransitionLogAdapter) latestStatusUnderLock(f *os.File, taskID string) (domain.TaskStatus, error) {
+	if _, err := f.Seek(0, 0); err != nil {
+		return "", fmt.Errorf("seek transitions.log: %w", err)
+	}
+	var latest domain.TaskStatus
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		entry, err := parseLogLine(line)
+		if err != nil {
+			continue
+		}
+		if entry.TaskID == taskID {
+			latest = entry.To
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("scan transitions.log: %w", err)
+	}
+	return latest, nil
 }
 
 // LatestStatus returns the most recent TaskStatus recorded for taskID.
