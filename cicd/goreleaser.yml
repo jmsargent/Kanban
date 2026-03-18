@@ -107,7 +107,7 @@ changelog:
 release:
   github:
     owner: "{{ .Env.GITHUB_REPOSITORY_OWNER }}"
-    name: kanban-tasks
+    name: Kanban
   # Draft: false — publish immediately (continuous deployment)
   draft: false
   prerelease: auto
@@ -125,7 +125,7 @@ release:
 
     Install via go install:
     ```sh
-    go install github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/kanban-tasks/cmd/kanban@{{.Version}}
+    go install github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/Kanban/cmd/kanban@{{.Version}}
     ```
 
     Or download a binary below for your platform.
@@ -148,7 +148,7 @@ brews:
     # [skip ci] prevents CI in the homebrew-kanban repo from re-triggering
     # on the automated formula commit. Critical: prevents infinite CI loops.
     commit_msg_template: "chore(formula): update kanban to {{.Version}} [skip ci]"
-    homepage: "https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/kanban-tasks"
+    homepage: "https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/Kanban"
     description: "Git-native kanban task management CLI — board state driven by commits and CI"
     license: "MIT"
     directory: Formula
