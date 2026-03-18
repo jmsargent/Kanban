@@ -155,10 +155,8 @@ jobs:
       - install-go-semver-release
       - run:
           command: |
-            git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"
-            go-semver-release release . \
+            go-semver-release release "https://${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" \
               --tag-prefix v \
-              --remote-name origin \
               --access-token $GITHUB_TOKEN \
               --branches '[{"name": "main"}]'
 
