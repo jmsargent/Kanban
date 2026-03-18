@@ -101,6 +101,20 @@ commands:
           key: go-semver-release-<< pipeline.parameters.go-semver-release-version >>
           paths:
             - /home/circleci/go/bin/go-semver-release
+  install-goreleaser:
+    steps:
+      - restore_cache:
+          keys:
+            - goreleaser-<< pipeline.parameters.goreleaser-version >>
+      - run:
+          command: |
+            if [ ! -f "$(go env GOPATH)/bin/goreleaser" ]; then
+              go install github.com/goreleaser/goreleaser/v2@<< pipeline.parameters.goreleaser-version >>
+            fi
+      - save_cache:
+          key: goreleaser-<< pipeline.parameters.goreleaser-version >>
+          paths:
+            - /home/circleci/go/bin/goreleaser
 
 jobs:
   validate-and-build:
@@ -157,6 +171,12 @@ jobs:
         - run:
             name: Compute and push semver tag
             command: |
+              # Guard: skip if commit message contains [skip release] (case-insensitive).
+              if git log -1 --pretty=%B | grep -qi '\[skip release\]'; then
+                echo "[skip release] detected in commit message — skipping tag"
+                exit 0
+              fi
+
               # 1. Guard Clause: If this commit already has a tag, exit gracefully.
               # This prevents the "tag already exists" error on retries or re-runs.
               if git describe --tags --exact-match HEAD >/dev/null 2>&1; then
@@ -178,10 +198,18 @@ jobs:
       - run:
           command: git fetch --tags
       - go/mod-download
+      - install-goreleaser
       - run:
+          name: Publish release
           command: |
+            # Guard: skip if commit message contains [skip release] (case-insensitive).
+            if git log -1 --pretty=%B | grep -qi '\[skip release\]'; then
+              echo "[skip release] detected in commit message — skipping release"
+              exit 0
+            fi
+
             export GITHUB_REPOSITORY_OWNER=$CIRCLE_PROJECT_USERNAME
-            curl -sfL https://goreleaser.com/static/run | VERSION=<< pipeline.parameters.goreleaser-version >> bash -s -- release --config cicd/goreleaser.yml --clean
+            goreleaser release --config cicd/goreleaser.yml --clean
 
 workflows:
   ci-cd:
