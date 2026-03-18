@@ -160,7 +160,6 @@ jobs:
               git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"
               
               if git describe --tags --exact-match HEAD >/dev/null 2>&1; then
-                echo "Current commit is already tagged. Skipping."
                 exit 0
               fi
 
