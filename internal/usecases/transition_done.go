@@ -95,6 +95,7 @@ func (u *TransitionToDone) Execute(repoRoot, from, to string) error {
 	}
 
 	if len(transitioned) == 0 {
+		_, _ = fmt.Fprintf(u.output, "[kanban] no tasks to transition to done\n")
 		return nil
 	}
 
