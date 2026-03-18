@@ -35,6 +35,7 @@ package acceptance
 //   14. TestPipeline_GoreleaserCache_CIOnlyDocumented                 (Tier 3, skip)
 
 import (
+	"os"
 	"testing"
 
 	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
@@ -50,6 +51,9 @@ import (
 //
 // This is the first test to enable. All others begin as t.Skip.
 func TestPipeline_ValidateTarget_PassesWhenAllChecksGreen(t *testing.T) {
+	if os.Getenv("KANBAN_VALIDATE_DEPTH") != "" {
+		t.Skip("skipping: running at recursion depth > 0 inside make validate")
+	}
 	pc := dsl.NewPipelineContext(t)
 	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
 	dsl.PipelineGiven(pc, dsl.AllToolVersionsMatchPipeline())
@@ -60,6 +64,7 @@ func TestPipeline_ValidateTarget_PassesWhenAllChecksGreen(t *testing.T) {
 	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[2/5]"))
 	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[3/5] go-arch-lint"))
 	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[4/5]"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[5/5]"))
 	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("PASS"))
 }
 
