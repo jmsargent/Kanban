@@ -63,21 +63,21 @@ func (u *TransitionToDone) Execute(repoRoot, from, to string) error {
 		}
 	}
 
-	var updatedPaths []string
+	var transitioned []string
 	for _, id := range taskIDs {
-		task, findErr := u.tasks.FindByID(repoRoot, id)
-		if findErr != nil {
+		if _, findErr := u.tasks.FindByID(repoRoot, id); findErr != nil {
 			continue
-		}
-		if task.Status != domain.StatusInProgress {
-			continue
-		}
-		task.Status = domain.StatusDone
-		if updateErr := u.tasks.Update(repoRoot, task); updateErr != nil {
-			return fmt.Errorf("update task %s: %w", id, updateErr)
 		}
 
-		// Record in the log (authoritative for GetBoard status). Non-fatal.
+		// Derive current status from transitions.log (authoritative source).
+		currentStatus, statusErr := u.log.LatestStatus(repoRoot, id)
+		if statusErr != nil {
+			continue
+		}
+		if currentStatus != domain.StatusInProgress {
+			continue
+		}
+
 		entry := domain.TransitionEntry{
 			Timestamp: time.Now().UTC(),
 			TaskID:    id,
@@ -86,19 +86,19 @@ func (u *TransitionToDone) Execute(repoRoot, from, to string) error {
 			Author:    "ci-done",
 			Trigger:   "ci-done",
 		}
-		_ = u.log.Append(repoRoot, entry)
+		if err := u.log.Append(repoRoot, entry); err != nil {
+			return fmt.Errorf("append transition for %s: %w", id, err)
+		}
 
 		_, _ = fmt.Fprintf(u.output, "[kanban] %s moved  in-progress -> done\n", id)
-		updatedPaths = append(updatedPaths, taskFilePath(repoRoot, id))
+		transitioned = append(transitioned, id)
 	}
 
-	if len(updatedPaths) == 0 {
+	if len(transitioned) == 0 {
 		return nil
 	}
-	return u.git.CommitFiles(repoRoot, "chore(kanban): mark tasks done [skip ci]", updatedPaths)
+
+	transitionsLogPath := filepath.Join(repoRoot, ".kanban", "transitions.log")
+	return u.git.CommitFiles(repoRoot, "chore(kanban): mark tasks done [skip ci]", []string{transitionsLogPath})
 }
 
-// taskFilePath returns the filesystem path for a task file given its ID and repoRoot.
-func taskFilePath(repoRoot, taskID string) string {
-	return filepath.Join(repoRoot, ".kanban", "tasks", taskID+".md")
-}

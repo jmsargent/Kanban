@@ -120,41 +120,44 @@ func (u *TransitionToInProgress) Execute(repoRoot, message string) (retErr error
 	}
 
 	for _, id := range ids {
-		task, findErr := u.tasks.FindByID(repoRoot, id)
-		if errors.Is(findErr, ports.ErrTaskNotFound) {
-			_, _ = fmt.Fprintf(u.out, "Warning: task %s not found\n", id)
-			continue
-		}
-		if findErr != nil {
+		if _, findErr := u.tasks.FindByID(repoRoot, id); findErr != nil {
+			if errors.Is(findErr, ports.ErrTaskNotFound) {
+				_, _ = fmt.Fprintf(u.out, "Warning: task %s not found\n", id)
+			}
 			// Non-fatal: continue with remaining IDs
 			continue
 		}
 
-		if task.Status != domain.StatusTodo {
+		// Derive current status from transitions.log — not from task YAML field.
+		currentStatus, statusErr := u.log.LatestStatus(repoRoot, id)
+		if statusErr != nil {
+			if !errors.Is(statusErr, ports.ErrTaskNotFound) {
+				continue // non-fatal log read error
+			}
+			currentStatus = domain.StatusTodo // no log entries → implicit todo
+		}
+
+		// The commit-msg hook only handles todo → in-progress.
+		if currentStatus != domain.StatusTodo {
 			continue
 		}
 
-		prevStatus := task.Status
-		task.Status = domain.StatusInProgress
-		if updateErr := u.tasks.Update(repoRoot, task); updateErr != nil {
-			// Non-fatal: continue with remaining IDs
+		if !domain.CanTransitionTo(currentStatus, domain.StatusInProgress) {
 			continue
 		}
 
-		// Record the transition in the log (authoritative for GetBoard status).
-		// Author is set to "hook" when git identity is not available in this context.
+		// Append to transitions.log — the task file is never touched by the hook.
 		entry := domain.TransitionEntry{
 			Timestamp: time.Now().UTC(),
 			TaskID:    id,
-			From:      prevStatus,
+			From:      currentStatus,
 			To:        domain.StatusInProgress,
 			Author:    "hook",
 			Trigger:   "commit-hook",
 		}
-		// Log write is non-fatal — status is also persisted in YAML above.
-		_ = u.log.Append(repoRoot, entry)
+		_ = u.log.Append(repoRoot, entry) // non-fatal: errors go to hook.log
 
-		_, _ = fmt.Fprintf(u.out, "kanban: %s moved  %s -> %s\n", id, prevStatus, task.Status)
+		_, _ = fmt.Fprintf(u.out, "kanban: %s moved  %s -> %s\n", id, currentStatus, domain.StatusInProgress)
 	}
 	return nil
 }

@@ -205,7 +205,6 @@ func TestTransitionsLog_HookAppendsOneLine_OnCommit(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS02)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -225,7 +224,6 @@ func TestTransitionsLog_HookDoesNotModifyTaskFiles(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS02)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -245,7 +243,6 @@ func TestTransitionsLog_HookExitsZero_OnSuccess(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS02)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -311,7 +308,6 @@ func TestTransitionsLog_HookDoesNotModifyCommitMessage_WhenLogFails(t *testing.T
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS02)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

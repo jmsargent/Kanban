@@ -71,6 +71,10 @@ func (u *InitRepo) Execute() error {
 		return fmt.Errorf("install hook: %w", err)
 	}
 
+	if err = u.git.CommitFiles(repoRoot, "kanban: initialise repository", []string{".kanban/config", ".gitignore"}); err != nil {
+		return fmt.Errorf("commit initial setup: %w", err)
+	}
+
 	_, _ = fmt.Fprintln(u.out, "Initialised kanban at .kanban/")
 	return nil
 }

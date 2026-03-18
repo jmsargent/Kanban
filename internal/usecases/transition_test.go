@@ -59,7 +59,26 @@ func (r *transitionTaskRepo) NextID(repoRoot string) (string, error) { return "T
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 5)
+// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 6)
+
+func TestTransitionToInProgress_DoesNotModifyTaskFile_WhenCommitReferencesTask(t *testing.T) {
+	repoRoot := tmpRepo(t)
+	task := domain.Task{ID: "TASK-001", Title: "Fix bug", Status: domain.StatusTodo}
+	tasks := newTransitionTaskRepo(task)
+	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
+	out := &strings.Builder{}
+
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
+	err := uc.Execute(repoRoot, "TASK-001: start work")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	// The hook must NOT modify the task file — status is tracked in transitions.log only.
+	if tasks.updated != nil {
+		t.Fatal("hook must not update the task file; status is tracked in transitions.log only")
+	}
+}
 
 func TestTransitionToInProgress_TransitionsTodoTask_WhenCommitReferencesIt(t *testing.T) {
 	repoRoot := tmpRepo(t)
@@ -74,11 +93,9 @@ func TestTransitionToInProgress_TransitionsTodoTask_WhenCommitReferencesIt(t *te
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if tasks.updated == nil {
-		t.Fatal("expected task to be updated via TaskRepository")
-	}
-	if tasks.updated.Status != domain.StatusInProgress {
-		t.Errorf("expected status in-progress, got: %s", tasks.updated.Status)
+	// Task file must NOT be updated — status is tracked in transitions.log only.
+	if tasks.updated != nil {
+		t.Error("hook must not update the task file")
 	}
 	if !strings.Contains(out.String(), "kanban: TASK-001") {
 		t.Errorf("expected transition output to contain 'kanban: TASK-001', got: %q", out.String())
@@ -90,12 +107,13 @@ func TestTransitionToInProgress_TransitionsTodoTask_WhenCommitReferencesIt(t *te
 
 func TestTransitionToInProgress_SkipsTask_WhenAlreadyInProgress(t *testing.T) {
 	repoRoot := tmpRepo(t)
-	task := domain.Task{ID: "TASK-002", Title: "API work", Status: domain.StatusInProgress}
+	task := domain.Task{ID: "TASK-002", Title: "API work"}
 	tasks := newTransitionTaskRepo(task)
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
+	// Log reports task already in-progress (authoritative source).
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(map[string]domain.TaskStatus{"TASK-002": domain.StatusInProgress}), out)
 	err := uc.Execute(repoRoot, "TASK-002: add throttle middleware")
 
 	if err != nil {
@@ -111,12 +129,13 @@ func TestTransitionToInProgress_SkipsTask_WhenAlreadyInProgress(t *testing.T) {
 
 func TestTransitionToInProgress_SkipsTask_WhenDone(t *testing.T) {
 	repoRoot := tmpRepo(t)
-	task := domain.Task{ID: "TASK-003", Title: "Finished work", Status: domain.StatusDone}
+	task := domain.Task{ID: "TASK-003", Title: "Finished work"}
 	tasks := newTransitionTaskRepo(task)
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
+	// Log reports task already done (authoritative source).
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(map[string]domain.TaskStatus{"TASK-003": domain.StatusDone}), out)
 	err := uc.Execute(repoRoot, "TASK-003: minor cleanup")
 
 	if err != nil {
@@ -185,16 +204,33 @@ func TestTransitionToInProgress_IsNoOp_WhenNotInitialised(t *testing.T) {
 	}
 }
 
-func TestTransitionToInProgress_ReturnsNilOnUnrecoverableError_WhenUpdateFails(t *testing.T) {
+func TestTransitionToInProgress_ReturnsNil_WhenLogAppendFails(t *testing.T) {
 	repoRoot := tmpRepo(t)
-	task := domain.Task{ID: "TASK-001", Title: "Broken task", Status: domain.StatusTodo}
+	task := domain.Task{ID: "TASK-001", Title: "Broken task"}
 	tasks := newTransitionTaskRepo(task)
-	tasks.updateErr = errors.New("disk full")
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
-	// Errors must be swallowed (hook must never fail)
-	_ = uc.Execute(repoRoot, "TASK-001: some work")
-	// No assertion on error — hook always exits 0, errors go to hook.log
+	// Even when log.Append fails, the hook must swallow the error (exits 0).
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, &errorOnAppendLog{}, out)
+	err := uc.Execute(repoRoot, "TASK-001: some work")
+	// Hook must never propagate errors — always returns nil.
+	if err != nil {
+		t.Errorf("expected nil error when log.Append fails, got: %v", err)
+	}
+}
+
+// errorOnAppendLog is a fake TransitionLogRepository whose Append always fails.
+type errorOnAppendLog struct{}
+
+func (f *errorOnAppendLog) Append(_ string, _ domain.TransitionEntry) error {
+	return errors.New("log unwritable")
+}
+
+func (f *errorOnAppendLog) LatestStatus(_, _ string) (domain.TaskStatus, error) {
+	return domain.StatusTodo, nil // default todo so transition is attempted
+}
+
+func (f *errorOnAppendLog) History(_, _ string) ([]domain.TransitionEntry, error) {
+	return nil, nil
 }
