@@ -97,3 +97,7 @@ func (g *fakeGitPort) AppendToGitignore(repoRoot, entry string) error {
 func (g *fakeGitPort) GetIdentity() (ports.Identity, error) {
 	return ports.Identity{}, nil
 }
+
+func (g *fakeGitPort) LogFile(_ string, _ string) ([]ports.CommitEntry, error) {
+	return nil, nil
+}

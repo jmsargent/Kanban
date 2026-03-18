@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/kanban-tasks/kanban/internal/ports"
 )
@@ -146,6 +147,51 @@ func runGitIn(dir string, args ...string) error {
 		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
+}
+
+// LogFile returns the commit history for a specific file within the repository
+// at repoRoot, following renames. Results are oldest-first.
+// Format: "%H|%aI|%ae|%s" — SHA, author ISO 8601 date, author email, subject.
+func (a *GitAdapter) LogFile(repoRoot, filePath string) ([]ports.CommitEntry, error) {
+	cmd := exec.Command("git", "log", "--follow", "--format=%H|%aI|%ae|%s", "--", filePath)
+	cmd.Dir = repoRoot
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git log --follow: %w", err)
+	}
+
+	var entries []ports.CommitEntry
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "|", 4)
+		if len(parts) != 4 {
+			continue
+		}
+		ts, err := time.Parse(time.RFC3339, parts[1])
+		if err != nil {
+			ts = time.Time{}
+		}
+		entries = append(entries, ports.CommitEntry{
+			SHA:       parts[0],
+			Timestamp: ts,
+			Author:    parts[2],
+			Message:   parts[3],
+		})
+	}
+
+	// Reverse to return oldest-first (git log returns newest-first by default).
+	for i, j := 0, len(entries)-1; i < j; i, j = i+1, j-1 {
+		entries[i], entries[j] = entries[j], entries[i]
+	}
+
+	if entries == nil {
+		entries = []ports.CommitEntry{}
+	}
+	return entries, nil
 }
 
 // Compile-time interface compliance check.

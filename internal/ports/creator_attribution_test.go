@@ -28,4 +28,7 @@ func (f *fakeGitPortWithIdentity) CommitMessagesInRange(_, _ string) ([]string, 
 func (f *fakeGitPortWithIdentity) CommitFiles(_, _ string, _ []string) error         { return nil }
 func (f *fakeGitPortWithIdentity) InstallHook(_ string) error                        { return nil }
 func (f *fakeGitPortWithIdentity) AppendToGitignore(_, _ string) error               { return nil }
-func (f *fakeGitPortWithIdentity) GetIdentity() (ports.Identity, error)              { return ports.Identity{}, nil }
+func (f *fakeGitPortWithIdentity) GetIdentity() (ports.Identity, error) { return ports.Identity{}, nil }
+func (f *fakeGitPortWithIdentity) LogFile(_, _ string) ([]ports.CommitEntry, error) {
+	return nil, nil
+}

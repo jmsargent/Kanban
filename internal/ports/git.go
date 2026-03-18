@@ -34,4 +34,10 @@ type GitPort interface {
 	// configured in the current git context.
 	// Returns ErrGitIdentityNotConfigured when user.name is not set.
 	GetIdentity() (Identity, error)
+
+	// LogFile returns commit history for a specific file path within the
+	// repository at repoRoot, following renames (equivalent to git log --follow).
+	// Results are returned oldest-first. Returns an empty slice when the file
+	// has no commits.
+	LogFile(repoRoot, filePath string) ([]CommitEntry, error)
 }

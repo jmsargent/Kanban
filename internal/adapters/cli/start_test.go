@@ -35,6 +35,10 @@ func (f *fakeGitPortCLI) GetIdentity() (ports.Identity, error) {
 	return f.identity, f.getIdentityErr
 }
 
+func (f *fakeGitPortCLI) LogFile(_ string, _ string) ([]ports.CommitEntry, error) {
+	return nil, nil
+}
+
 type fakeConfigRepoCLI struct {
 	readErr error
 }
