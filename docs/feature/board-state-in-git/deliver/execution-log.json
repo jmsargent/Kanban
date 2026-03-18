@@ -316,6 +316,195 @@
       "s": "EXECUTED",
       "d": "PASS",
       "t": "2026-03-18T16:34:02Z"
+    },
+    {
+      "sid": "02-04",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T16:41:06Z"
+    },
+    {
+      "sid": "02-04",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T17:03:01Z"
+    },
+    {
+      "sid": "02-04",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T17:03:04Z"
+    },
+    {
+      "sid": "02-04",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T17:03:05Z"
+    },
+    {
+      "sid": "02-04",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T17:10:28Z"
+    },
+    {
+      "sid": "02-04",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T17:10:28Z"
+    },
+    {
+      "sid": "02-05",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T18:29:08Z"
+    },
+    {
+      "sid": "02-05",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T18:30:06Z"
+    },
+    {
+      "sid": "02-05",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T18:36:17Z"
+    },
+    {
+      "sid": "02-05",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T18:36:17Z"
+    },
+    {
+      "sid": "02-05",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T18:36:17Z"
+    },
+    {
+      "sid": "02-05",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T18:36:17Z"
+    },
+    {
+      "sid": "02-05",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T18:36:17Z"
+    },
+    {
+      "sid": "02-06",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T19:04:11Z"
+    },
+    {
+      "sid": "02-06",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T19:04:14Z"
+    },
+    {
+      "sid": "02-06",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: all 4 acceptance tests pass after implementation fix; no separate unit test needed \u2014 the 'no tasks' path is fully covered by TestTransitionsLog_CiDoneWithNoMatchingTasks_ExitsZeroWithMessage",
+      "t": "2026-03-18T19:04:23Z"
+    },
+    {
+      "sid": "02-06",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T19:04:26Z"
+    },
+    {
+      "sid": "02-06",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T19:05:09Z"
+    },
+    {
+      "sid": "02-07",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T21:35:00Z"
+    },
+    {
+      "sid": "02-07",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T21:35:03Z"
+    },
+    {
+      "sid": "02-07",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: architecture holds by design, no production code change needed",
+      "t": "2026-03-18T21:35:06Z"
+    },
+    {
+      "sid": "02-07",
+      "p": "GREEN",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: acceptance test passed on first run, no implementation required",
+      "t": "2026-03-18T21:35:10Z"
+    },
+    {
+      "sid": "02-07",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T21:35:13Z"
+    },
+    {
+      "sid": "02-08",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T21:37:26Z"
+    },
+    {
+      "sid": "02-08",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T21:37:30Z"
+    },
+    {
+      "sid": "02-08",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "APPROVED_SKIP: no production code changes required; validation step confirms transitions.log survives rebase as a tracked file",
+      "t": "2026-03-18T21:37:34Z"
+    },
+    {
+      "sid": "02-08",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-18T21:37:38Z"
     }
   ]
 }
