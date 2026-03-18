@@ -14,8 +14,6 @@ import (
 	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
 )
 
-const skipUS03 = "pending: US-BSG-03 not yet implemented"
-
 // TestBoardMe_ShowsOnlyCurrentDeveloperTasks validates AC-03-1 and AC-03-2:
 // "kanban board --me" shows only tasks assigned to the current developer's
 // git author email and hides tasks assigned to other developers. This lets
@@ -115,7 +113,6 @@ func TestBoardMe_WorksWithTransitionsLogStatusStorage(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip(skipUS03)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
