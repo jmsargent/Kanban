@@ -11,15 +11,13 @@ import (
 	"time"
 )
 
-// projectRoot returns the absolute path to the project root directory.
-// It resolves up from the tests/acceptance/dsl package location.
-func projectRoot() (string, error) {
-	// Walk up from cwd until we find a Makefile or cicd/ directory.
+// ProjectRoot returns the absolute path to the project root directory.
+// It walks up from the current working directory until it finds a cicd/ directory.
+func ProjectRoot() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("getwd: %w", err)
 	}
-	// Acceptance tests run with cwd = tests/acceptance, so resolve from there.
 	for i := 0; i < 5; i++ {
 		if _, err := os.Stat(filepath.Join(dir, "cicd")); err == nil {
 			return dir, nil
@@ -30,8 +28,8 @@ func projectRoot() (string, error) {
 }
 
 // shellCmd runs a shell command in dir with the provided env additions.
-// It captures combined output and returns exit code + output.
-func shellCmd(dir string, extraEnv []string, timeout time.Duration, name string, args ...string) (string, int, error) {
+// It captures combined stdout+stderr and returns the output and exit code.
+func shellCmd(dir string, extraEnv []string, timeout time.Duration, name string, args ...string) (string, int) {
 	cmdCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -51,7 +49,7 @@ func shellCmd(dir string, extraEnv []string, timeout time.Duration, name string,
 	} else if err != nil {
 		exitCode = 1
 	}
-	return output, exitCode, nil
+	return output, exitCode
 }
 
 // PipelineContext holds state for a pipeline-level test scenario.
@@ -83,7 +81,7 @@ func NewPipelineContext(t interface {
 	Skipf(string, ...interface{})
 }) *PipelineContext {
 	t.Helper()
-	root, err := projectRoot()
+	root, err := ProjectRoot()
 	if err != nil {
 		t.Fatalf("pipeline test setup: %v", err)
 	}
@@ -215,7 +213,7 @@ func DeveloperRunsMakeTarget(target string) PipelineStep {
 	return PipelineStep{
 		Description: fmt.Sprintf("developer runs make %s", target),
 		Run: func(pc *PipelineContext) error {
-			output, exit, _ := shellCmd(pc.projectRoot, nil, 5*time.Minute, "make", target)
+			output, exit := shellCmd(pc.projectRoot, nil, 5*time.Minute, "make", target)
 			pc.lastOutput = output
 			pc.lastExit = exit
 			return nil
@@ -229,7 +227,7 @@ func DeveloperRunsCheckVersions() PipelineStep {
 		Description: "developer runs cicd/check-versions.sh",
 		Run: func(pc *PipelineContext) error {
 			script := filepath.Join(pc.projectRoot, "cicd", "check-versions.sh")
-			output, exit, _ := shellCmd(pc.projectRoot, nil, 30*time.Second, "bash", script)
+			output, exit := shellCmd(pc.projectRoot, nil, 30*time.Second, "bash", script)
 			pc.lastOutput = output
 			pc.lastExit = exit
 			return nil
@@ -244,7 +242,7 @@ func DeveloperRunsPreCommitHook() PipelineStep {
 		Description: "developer triggers the pre-commit quality gate",
 		Run: func(pc *PipelineContext) error {
 			script := filepath.Join(pc.projectRoot, "cicd", "pre-commit")
-			output, exit, _ := shellCmd(pc.projectRoot, nil, 5*time.Minute, "sh", script)
+			output, exit := shellCmd(pc.projectRoot, nil, 5*time.Minute, "sh", script)
 			pc.lastOutput = output
 			pc.lastExit = exit
 			return nil
@@ -399,7 +397,7 @@ func AllToolVersionsMatchPipeline() PipelineStep {
 		Description: "all local tool versions match the pipeline configuration",
 		Run: func(pc *PipelineContext) error {
 			script := filepath.Join(pc.projectRoot, "cicd", "check-versions.sh")
-			output, exit, _ := shellCmd(pc.projectRoot, nil, 30*time.Second, "bash", script)
+			output, exit := shellCmd(pc.projectRoot, nil, 30*time.Second, "bash", script)
 			if exit != 0 {
 				pc.t.Skipf("skipping: local tool versions do not match pipeline — run cicd/check-versions.sh to see mismatches:\n%s", output)
 			}

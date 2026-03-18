@@ -14,22 +14,13 @@
 # GITHUB_TOKEN (scoped to: Contents read+write on kanban repo)
 # HOMEBREW_TAP_GITHUB_TOKEN (scoped to: homebrew-kanban repo contents only)
 
-
-
 version: 2.1
 
-
-
 # ---------------------------------------------------------------------------
-
 # Tool versions — update here to change versions across the entire pipeline.
-
 # Run cicd/check-versions.sh to verify your local tools match these values.
-
 # Note: the circleci/go orb version (below) cannot use parameters — update
-
 # it manually alongside go-image-version if upgrading Go.
-
 # ---------------------------------------------------------------------------
 parameters:
   go-image-version:

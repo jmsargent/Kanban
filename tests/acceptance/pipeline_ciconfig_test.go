@@ -12,31 +12,18 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-)
 
-// ciConfigPath resolves cicd/config.yml relative to the test file location.
-func ciConfigPath(t *testing.T) string {
-	t.Helper()
-	// Walk up from cwd until cicd/ is found (same logic as projectRoot in DSL).
-	dir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("getwd: %v", err)
-	}
-	for i := 0; i < 5; i++ {
-		candidate := filepath.Join(dir, "cicd", "config.yml")
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-		dir = filepath.Dir(dir)
-	}
-	t.Fatalf("cicd/config.yml not found from %s", dir)
-	return ""
-}
+	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
+)
 
 // readCIConfig reads cicd/config.yml and returns its content.
 func readCIConfig(t *testing.T) string {
 	t.Helper()
-	path := ciConfigPath(t)
+	root, err := dsl.ProjectRoot()
+	if err != nil {
+		t.Fatalf("locate project root: %v", err)
+	}
+	path := filepath.Join(root, "cicd", "config.yml")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read cicd/config.yml: %v", err)
