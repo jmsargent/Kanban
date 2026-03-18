@@ -11,9 +11,10 @@
 # (installed by: kanban install-hook).
 #
 # Steps run in sequence. Any failure blocks the commit (exit 1).
+#   0. check-versions.sh    — prerequisite gate: local tools match CI pipeline
 #   1. go test ./...         — unit + integration tests
 #   2. golangci-lint run     — composite linter
-#   3. go-arch-lint check    — architecture rule enforcement
+#   3. architecture check    — enforce package dependency rules
 #   4. go build              — compile binary to temp path
 #   5. acceptance tests      — E2E tests against the compiled binary
 
@@ -23,6 +24,14 @@ BINARY_PATH="$(mktemp -t kanban-precommit-XXXXXX)"
 trap 'rm -f "$BINARY_PATH"' EXIT
 
 echo "--- pre-commit: kanban-tasks quality gates ---"
+
+# Step 0: Prerequisite gate — verify local tool versions match the CI pipeline
+echo "[0/5] check-versions.sh"
+if ! "$(git rev-parse --show-toplevel)/cicd/check-versions.sh"; then
+    echo "FAIL [0/5] check-versions — update local tools to match cicd/config.yml"
+    exit 1
+fi
+echo "PASS [0/5] check-versions.sh"
 
 # Step 1: Unit and integration tests
 echo "[1/5] go test ./..."
@@ -41,12 +50,12 @@ fi
 echo "PASS [2/5] golangci-lint"
 
 # Step 3: Architecture enforcement
-#echo "[3/5] go-arch-lint check"
-#if ! go-arch-lint check; then
-#    echo "FAIL [3/5] go-arch-lint — fix architecture violations before committing"
-#    exit 1
-#fi
-#echo "PASS [3/5] go-arch-lint"
+echo "[3/5] go-arch-lint check"
+if ! go-arch-lint check; then
+    echo "FAIL [3/5] go-arch-lint — fix architecture violations before committing"
+    exit 1
+fi
+echo "PASS [3/5] go-arch-lint"
 
 # Step 4: Build binary to temp path
 echo "[4/5] go build"
