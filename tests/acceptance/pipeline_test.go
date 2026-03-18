@@ -67,8 +67,6 @@ func TestPipeline_ValidateTarget_PassesWhenAllChecksGreen(t *testing.T) {
 // TestPipeline_Makefile_ContainsRequiredTargets asserts the Makefile declares
 // all targets the developer needs to mirror CI jobs locally.
 func TestPipeline_Makefile_ContainsRequiredTargets(t *testing.T) {
-	t.Skip("enable after walking skeleton passes")
-
 	pc := dsl.NewPipelineContext(t)
 	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
 	dsl.PipelineThen(pc, dsl.MakefileContainsTarget("validate"))
