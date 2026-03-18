@@ -1,0 +1,82 @@
+feature: auto-assign-on-start
+journey: developer-starts-task-and-is-assigned
+type: backend-cli
+research_depth: lightweight
+
+actor: developer
+trigger: "kanban start <task-id>"
+goal: task claimed and assigned in one command
+
+steps:
+  - id: invoke
+    actor: developer
+    action: "runs: kanban start <task-id>"
+    feeling: focused
+
+  - id: resolve-repo
+    actor: system
+    action: "git.RepoRoot() — resolves repository context"
+    output: repoRoot string
+
+  - id: resolve-identity
+    actor: system
+    action: "git.GetIdentity() — reads git config user.name"
+    output: "Identity{Name, Email}"
+    error_path:
+      condition: user.name not configured
+      handling: "stderr: git identity not configured; exit 1 (no state change)"
+
+  - id: find-task
+    actor: system
+    action: "tasks.FindByID(repoRoot, taskID)"
+    output: "Task{ID, Title, Status, Assignee, ...}"
+    error_paths:
+      - condition: task not found
+        handling: "stderr: Task <id> not found; exit 1"
+      - condition: not initialised
+        handling: "stderr: kanban not initialised; exit 1"
+
+  - id: check-transition
+    actor: system
+    action: "domain.CanTransitionTo(status, in-progress)"
+    error_paths:
+      - condition: status == done
+        handling: "stderr: Task <id> is already finished; exit 1"
+      - condition: status == in-progress
+        handling: "stdout: Task <id> is already in progress; exit 0 (no state change)"
+
+  - id: assign
+    actor: system
+    action: "set task.Assignee = identity.Name (when non-empty)"
+    side_effect:
+      condition: previous assignee was non-empty and different
+      output: "capture PreviousAssignee for warning"
+
+  - id: transition
+    actor: system
+    action: "set task.Status = in-progress"
+
+  - id: persist
+    actor: system
+    action: "tasks.Update(repoRoot, task) — atomic write"
+
+  - id: output
+    actor: system
+    action: "stdout: Started <id>: <title>"
+    variant_output:
+      condition: PreviousAssignee non-empty
+      action: "stdout: Note: task was previously assigned to <PreviousAssignee>"
+
+emotional_arc:
+  - step: invoke
+    emotion: neutral/focused
+  - step: output
+    emotion: confident
+
+shared_artifacts:
+  - name: task.Assignee
+    source: "git config user.name via GitPort.GetIdentity()"
+    consumed_by: [task_file, board_display]
+  - name: StartTaskResult.PreviousAssignee
+    source: "task.Assignee before update"
+    consumed_by: [cli_warning_output]
