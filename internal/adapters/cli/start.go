@@ -76,6 +76,13 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 				return nil
 			}
 
+			taskFilePath := fmt.Sprintf(".kanban/tasks/%s.md", taskID)
+			commitMsg := fmt.Sprintf("%s: todo->in-progress [trigger:manual]", taskID)
+			if commitErr := git.CommitFiles(repoRoot, commitMsg, []string{taskFilePath}); commitErr != nil {
+				// Non-fatal: task is already transitioned; log the commit failure but don't block the developer.
+				writeLine(errOut, fmt.Sprintf("Warning: could not commit task file: %v", commitErr))
+			}
+
 			writeLine(out, fmt.Sprintf("Started %s: %s", taskID, result.Task.Title))
 			if result.PreviousAssignee != "" {
 				writeLine(out, fmt.Sprintf("Note: task was previously assigned to %s", result.PreviousAssignee))

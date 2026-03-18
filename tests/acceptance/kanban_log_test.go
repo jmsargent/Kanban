@@ -46,7 +46,6 @@ func TestKanbanLog_ShowsTransitionFields_InEachEntry(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip("pending: AC-01-2 — transition field display not yet implemented")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -74,7 +73,6 @@ func TestKanbanLog_SortsEntries_OldestFirst(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip("pending: AC-01-3 — chronological ordering not yet implemented")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -175,7 +173,6 @@ func TestKanbanLog_UsesDomainLanguage_NotRawGitMessages(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip("pending: AC-01-9 — domain language formatting not yet implemented")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -199,7 +196,6 @@ func TestKanbanLog_ShowsCommitSHA_AsSupplementaryContext(t *testing.T) {
 	if os.Getenv("KANBAN_BIN") == "" {
 		t.Skip("KANBAN_BIN not set — run via make acceptance")
 	}
-	t.Skip("pending: AC-01-10 — commit SHA display not yet implemented")
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

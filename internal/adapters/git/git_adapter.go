@@ -140,13 +140,34 @@ func (a *GitAdapter) GetIdentity() (ports.Identity, error) {
 }
 
 // runGitIn runs a git command with the given arguments in the specified directory.
+// It inherits the current process environment but strips git identity override vars
+// (GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, GIT_COMMITTER_EMAIL)
+// so that commits use the repository's local git config rather than any outer
+// git operation context (e.g. when invoked from within a commit-msg hook).
 func runGitIn(dir string, args ...string) error {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
+	cmd.Env = filterGitIdentityEnv(os.Environ())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
+}
+
+// filterGitIdentityEnv returns env with GIT_AUTHOR_* and GIT_COMMITTER_* vars
+// removed so that git reads identity from repository local config.
+func filterGitIdentityEnv(env []string) []string {
+	filtered := make([]string, 0, len(env))
+	for _, e := range env {
+		if strings.HasPrefix(e, "GIT_AUTHOR_NAME=") ||
+			strings.HasPrefix(e, "GIT_AUTHOR_EMAIL=") ||
+			strings.HasPrefix(e, "GIT_COMMITTER_NAME=") ||
+			strings.HasPrefix(e, "GIT_COMMITTER_EMAIL=") {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	return filtered
 }
 
 // LogFile returns the commit history for a specific file within the repository
