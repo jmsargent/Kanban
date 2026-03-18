@@ -14,20 +14,20 @@ import (
 
 // NewHookCommand builds the "kanban _hook" internal command family.
 // These commands are invoked by git hooks installed during "kanban init".
-func NewHookCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
+func NewHookCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository) *cobra.Command {
 	hook := &cobra.Command{
 		Use:    "_hook",
 		Short:  "Internal hook commands (invoked by git hooks)",
 		Hidden: true,
 	}
-	hook.AddCommand(newCommitMsgHookCommand(git, config, tasks))
+	hook.AddCommand(newCommitMsgHookCommand(git, config, tasks, log))
 	return hook
 }
 
 // newCommitMsgHookCommand handles "kanban _hook commit-msg <msg-file>".
 // It reads the commit message, finds TASK-NNN references, and advances todo tasks to in-progress.
 // The hook ALWAYS exits 0 — panics and errors are written to .kanban/hook.log.
-func newCommitMsgHookCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
+func newCommitMsgHookCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository) *cobra.Command {
 	return &cobra.Command{
 		Use:    "commit-msg <msg-file>",
 		Short:  "Advance tasks referenced in a commit message",
@@ -47,7 +47,7 @@ func newCommitMsgHookCommand(git ports.GitPort, config ports.ConfigRepository, t
 				return nil
 			}
 
-			uc := usecases.NewTransitionToInProgress(config, tasks, cmd.OutOrStdout())
+			uc := usecases.NewTransitionToInProgress(config, tasks, log, cmd.OutOrStdout())
 			if execErr := uc.Execute(repoRoot, string(data)); execErr != nil {
 				appendHookLog(repoRoot, fmt.Sprintf("transition error: %v", execErr))
 			}

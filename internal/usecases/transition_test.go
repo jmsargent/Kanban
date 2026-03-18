@@ -68,7 +68,7 @@ func TestTransitionToInProgress_TransitionsTodoTask_WhenCommitReferencesIt(t *te
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, out)
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
 	err := uc.Execute(repoRoot, "TASK-001: start OAuth work")
 
 	if err != nil {
@@ -95,7 +95,7 @@ func TestTransitionToInProgress_SkipsTask_WhenAlreadyInProgress(t *testing.T) {
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, out)
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
 	err := uc.Execute(repoRoot, "TASK-002: add throttle middleware")
 
 	if err != nil {
@@ -116,7 +116,7 @@ func TestTransitionToInProgress_SkipsTask_WhenDone(t *testing.T) {
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, out)
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
 	err := uc.Execute(repoRoot, "TASK-003: minor cleanup")
 
 	if err != nil {
@@ -136,7 +136,7 @@ func TestTransitionToInProgress_HandlesNotFound_WhenTaskMissing(t *testing.T) {
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, out)
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
 	err := uc.Execute(repoRoot, "TASK-099: some work")
 
 	if err != nil {
@@ -154,7 +154,7 @@ func TestTransitionToInProgress_ProducesNoOutput_WhenNoTaskMatchInMessage(t *tes
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, out)
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
 	err := uc.Execute(repoRoot, "fix typo in README")
 
 	if err != nil {
@@ -174,7 +174,7 @@ func TestTransitionToInProgress_IsNoOp_WhenNotInitialised(t *testing.T) {
 	cfg := newFreshConfigRepo() // ErrNotInitialised
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, out)
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
 	err := uc.Execute(repoRoot, "TASK-001: some work")
 
 	if err != nil {
@@ -193,7 +193,7 @@ func TestTransitionToInProgress_ReturnsNilOnUnrecoverableError_WhenUpdateFails(t
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-[0-9]+`}}
 	out := &strings.Builder{}
 
-	uc := usecases.NewTransitionToInProgress(cfg, tasks, out)
+	uc := usecases.NewTransitionToInProgress(cfg, tasks, newFakeTransitionLog(nil), out)
 	// Errors must be swallowed (hook must never fail)
 	_ = uc.Execute(repoRoot, "TASK-001: some work")
 	// No assertion on error — hook always exits 0, errors go to hook.log

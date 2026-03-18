@@ -8,7 +8,39 @@ import (
 	"github.com/kanban-tasks/kanban/internal/usecases"
 )
 
-// Test Budget: 2 behaviors x 2 = 4 max unit tests (using 2)
+// ─── Fake TransitionLogRepository ────────────────────────────────────────────
+
+// fakeTransitionLog is an in-memory fake implementing ports.TransitionLogRepository.
+// It maps taskID -> TaskStatus to simulate log entries.
+type fakeTransitionLog struct {
+	latestStatus map[string]domain.TaskStatus
+}
+
+func newFakeTransitionLog(statuses map[string]domain.TaskStatus) *fakeTransitionLog {
+	if statuses == nil {
+		statuses = make(map[string]domain.TaskStatus)
+	}
+	return &fakeTransitionLog{latestStatus: statuses}
+}
+
+func (f *fakeTransitionLog) Append(repoRoot string, entry domain.TransitionEntry) error {
+	return nil
+}
+
+func (f *fakeTransitionLog) LatestStatus(repoRoot, taskID string) (domain.TaskStatus, error) {
+	if status, ok := f.latestStatus[taskID]; ok {
+		return status, nil
+	}
+	return domain.StatusTodo, nil
+}
+
+func (f *fakeTransitionLog) History(repoRoot, taskID string) ([]domain.TransitionEntry, error) {
+	return []domain.TransitionEntry{}, nil
+}
+
+// ─── Tests ───────────────────────────────────────────────────────────────────
+
+// Test Budget: 3 behaviors x 2 = 6 max unit tests (using 3)
 
 func TestGetBoard_GroupsTasksByStatus_WhenTasksExist(t *testing.T) {
 	repoRoot := tmpRepo(t)
@@ -20,13 +52,18 @@ func TestGetBoard_GroupsTasksByStatus_WhenTasksExist(t *testing.T) {
 		},
 	}}
 	tasks := &fakeTaskRepo{listAll: []domain.Task{
-		{ID: "TASK-001", Title: "Todo work", Status: domain.StatusTodo},
-		{ID: "TASK-002", Title: "Active work", Status: domain.StatusInProgress},
-		{ID: "TASK-003", Title: "Finished work", Status: domain.StatusDone},
+		{ID: "TASK-001", Title: "Todo work"},
+		{ID: "TASK-002", Title: "Active work"},
+		{ID: "TASK-003", Title: "Finished work"},
 	}}
+	log := newFakeTransitionLog(map[string]domain.TaskStatus{
+		"TASK-001": domain.StatusTodo,
+		"TASK-002": domain.StatusInProgress,
+		"TASK-003": domain.StatusDone,
+	})
 
-	uc := usecases.NewGetBoard(cfg, tasks)
-	board, err := uc.Execute(repoRoot)
+	uc := usecases.NewGetBoard(cfg, tasks, log)
+	board, err := uc.Execute(repoRoot, "")
 
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -55,9 +92,10 @@ func TestGetBoard_ReturnsEmptyBoard_WhenNoTasksExist(t *testing.T) {
 		},
 	}}
 	tasks := &fakeTaskRepo{listAll: []domain.Task{}}
+	log := newFakeTransitionLog(nil)
 
-	uc := usecases.NewGetBoard(cfg, tasks)
-	board, err := uc.Execute(repoRoot)
+	uc := usecases.NewGetBoard(cfg, tasks, log)
+	board, err := uc.Execute(repoRoot, "")
 
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -70,5 +108,34 @@ func TestGetBoard_ReturnsEmptyBoard_WhenNoTasksExist(t *testing.T) {
 		len(board.Tasks[domain.StatusDone])
 	if total != 0 {
 		t.Errorf("expected 0 tasks on empty board, got: %d", total)
+	}
+}
+
+func TestGetBoard_PlacesTaskInTodo_WhenNoLogEntryExists(t *testing.T) {
+	// Behavior: a task with no log entry defaults to TODO regardless of the
+	// YAML status field. This enforces that GetBoard uses the log, not YAML.
+	repoRoot := tmpRepo(t)
+	cfg := &fakeConfigRepo{readResult: ports.Config{
+		Columns: []domain.Column{
+			{Name: "todo", Label: "TODO"},
+			{Name: "in-progress", Label: "IN PROGRESS"},
+			{Name: "done", Label: "DONE"},
+		},
+	}}
+	// Task has no Status field in YAML (zero value), and no log entry.
+	tasks := &fakeTaskRepo{listAll: []domain.Task{
+		{ID: "TASK-001", Title: "New task"},
+	}}
+	// Empty log — no entries for TASK-001 — LatestStatus returns StatusTodo.
+	log := newFakeTransitionLog(nil)
+
+	uc := usecases.NewGetBoard(cfg, tasks, log)
+	board, err := uc.Execute(repoRoot, "")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if len(board.Tasks[domain.StatusTodo]) != 1 {
+		t.Errorf("expected 1 task in TODO column, got: %d", len(board.Tasks[domain.StatusTodo]))
 	}
 }

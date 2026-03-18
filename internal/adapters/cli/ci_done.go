@@ -13,7 +13,7 @@ import (
 // NewCIDoneCommand builds the "kanban ci-done" command.
 // It advances all in-progress tasks referenced by commits in the pipeline range to done
 // and commits the updated files back with [skip ci] to prevent CI recursion.
-func NewCIDoneCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
+func NewCIDoneCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository) *cobra.Command {
 	var fromRef string
 	var toRef string
 
@@ -31,7 +31,7 @@ func NewCIDoneCommand(git ports.GitPort, config ports.ConfigRepository, tasks po
 			from := resolveFrom(fromRef)
 			to := resolveTo(toRef)
 
-			uc := usecases.NewTransitionToDone(git, tasks, config, os.Stdout)
+			uc := usecases.NewTransitionToDone(git, tasks, config, log, os.Stdout)
 			if execErr := uc.Execute(repoRoot, from, to); execErr != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", execErr)
 				os.Exit(1)

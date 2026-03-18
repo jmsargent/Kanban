@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"time"
 
 	"github.com/kanban-tasks/kanban/internal/domain"
 	"github.com/kanban-tasks/kanban/internal/ports"
@@ -75,12 +76,13 @@ func (u *TransitionTask) AdvanceByCommitMessage(repoRoot, message string) error 
 type TransitionToInProgress struct {
 	config ports.ConfigRepository
 	tasks  ports.TaskRepository
+	log    ports.TransitionLogRepository
 	out    io.Writer
 }
 
 // NewTransitionToInProgress constructs a TransitionToInProgress use case.
-func NewTransitionToInProgress(config ports.ConfigRepository, tasks ports.TaskRepository, out io.Writer) *TransitionToInProgress {
-	return &TransitionToInProgress{config: config, tasks: tasks, out: out}
+func NewTransitionToInProgress(config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository, out io.Writer) *TransitionToInProgress {
+	return &TransitionToInProgress{config: config, tasks: tasks, log: log, out: out}
 }
 
 // Execute scans message for task ID references, and for each todo task found
@@ -138,6 +140,19 @@ func (u *TransitionToInProgress) Execute(repoRoot, message string) (retErr error
 			// Non-fatal: continue with remaining IDs
 			continue
 		}
+
+		// Record the transition in the log (authoritative for GetBoard status).
+		// Author is set to "hook" when git identity is not available in this context.
+		entry := domain.TransitionEntry{
+			Timestamp: time.Now().UTC(),
+			TaskID:    id,
+			From:      prevStatus,
+			To:        domain.StatusInProgress,
+			Author:    "hook",
+			Trigger:   "commit-hook",
+		}
+		// Log write is non-fatal — status is also persisted in YAML above.
+		_ = u.log.Append(repoRoot, entry)
 
 		_, _ = fmt.Fprintf(u.out, "kanban: %s moved  %s -> %s\n", id, prevStatus, task.Status)
 	}

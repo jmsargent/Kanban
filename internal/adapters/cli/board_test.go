@@ -21,6 +21,31 @@ type fakeTaskRepoBoardCLI struct {
 	tasks []domain.Task
 }
 
+// fakeTransitionLogCLI is an in-memory fake implementing ports.TransitionLogRepository.
+// It derives status from the task's Status field for CLI adapter tests.
+type fakeTransitionLogCLI struct {
+	statuses map[string]domain.TaskStatus
+}
+
+func newFakeTransitionLogCLI(tasks []domain.Task) *fakeTransitionLogCLI {
+	m := make(map[string]domain.TaskStatus, len(tasks))
+	for _, t := range tasks {
+		m[t.ID] = t.Status
+	}
+	return &fakeTransitionLogCLI{statuses: m}
+}
+
+func (f *fakeTransitionLogCLI) Append(_ string, _ domain.TransitionEntry) error { return nil }
+func (f *fakeTransitionLogCLI) LatestStatus(_, taskID string) (domain.TaskStatus, error) {
+	if s, ok := f.statuses[taskID]; ok {
+		return s, nil
+	}
+	return domain.StatusTodo, nil
+}
+func (f *fakeTransitionLogCLI) History(_, _ string) ([]domain.TransitionEntry, error) {
+	return nil, nil
+}
+
 func (f *fakeTaskRepoBoardCLI) ListAll(_ string) ([]domain.Task, error) { return f.tasks, nil }
 func (f *fakeTaskRepoBoardCLI) FindByID(_, _ string) (domain.Task, error) {
 	return domain.Task{}, ports.ErrTaskNotFound
@@ -56,8 +81,9 @@ func execBoardOutput(t *testing.T, tasks []domain.Task) string {
 	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
 	config := &fakeConfigRepoCLI{}
 	repo := &fakeTaskRepoBoardCLI{tasks: tasks}
+	log := newFakeTransitionLogCLI(tasks)
 
-	cmd := cli.NewBoardCommand(git, config, repo)
+	cmd := cli.NewBoardCommand(git, config, repo, log)
 	root := &cobra.Command{Use: "kanban", SilenceUsage: true}
 	root.AddCommand(cmd)
 	root.SetArgs([]string{"board"})
@@ -95,8 +121,9 @@ func execBoardJSONOutput(t *testing.T, tasks []domain.Task) string {
 	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
 	config := &fakeConfigRepoCLI{}
 	repo := &fakeTaskRepoBoardCLI{tasks: tasks}
+	log := newFakeTransitionLogCLI(tasks)
 
-	cmd := cli.NewBoardCommand(git, config, repo)
+	cmd := cli.NewBoardCommand(git, config, repo, log)
 	root := &cobra.Command{Use: "kanban", SilenceUsage: true}
 	root.AddCommand(cmd)
 	root.SetArgs([]string{"board", "--json"})

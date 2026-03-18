@@ -100,7 +100,7 @@ func TestTransitionToDone_AdvancesInProgressTask_WhenReferencedInCommits(t *test
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, newFakeTransitionLog(nil), output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
@@ -126,7 +126,7 @@ func TestTransitionToDone_SkipsTodoTask_WhenReferencedInCommits(t *testing.T) {
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, newFakeTransitionLog(nil), output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
@@ -148,7 +148,7 @@ func TestTransitionToDone_SkipsDoneTask_WhenReferencedInCommits(t *testing.T) {
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, newFakeTransitionLog(nil), output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
@@ -170,7 +170,7 @@ func TestTransitionToDone_CommitsUpdatedFiles_WhenTasksAdvanced(t *testing.T) {
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, newFakeTransitionLog(nil), output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
@@ -191,7 +191,7 @@ func TestTransitionToDone_SkipsCommit_WhenNoTasksAdvanced(t *testing.T) {
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, newFakeTransitionLog(nil), output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
@@ -211,7 +211,7 @@ func TestTransitionToDone_UsesDefaultPattern_WhenConfigPatternEmpty(t *testing.T
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: ""}}
 	output := &strings.Builder{}
 
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, newFakeTransitionLog(nil), output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
@@ -232,7 +232,7 @@ func TestTransitionToDone_AdvancesMultipleTasks_WhenReferencedInSameCommit(t *te
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, newFakeTransitionLog(nil), output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {

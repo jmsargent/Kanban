@@ -5,6 +5,7 @@ import (
 	"io"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/kanban-tasks/kanban/internal/domain"
 	"github.com/kanban-tasks/kanban/internal/ports"
@@ -16,6 +17,7 @@ type TransitionToDone struct {
 	git    ports.GitPort
 	tasks  ports.TaskRepository
 	config ports.ConfigRepository
+	log    ports.TransitionLogRepository
 	output io.Writer
 }
 
@@ -24,9 +26,10 @@ func NewTransitionToDone(
 	git ports.GitPort,
 	tasks ports.TaskRepository,
 	config ports.ConfigRepository,
+	log ports.TransitionLogRepository,
 	output io.Writer,
 ) *TransitionToDone {
-	return &TransitionToDone{git: git, tasks: tasks, config: config, output: output}
+	return &TransitionToDone{git: git, tasks: tasks, config: config, log: log, output: output}
 }
 
 // Execute reads commits in the range [from, to], finds task IDs referenced in
@@ -73,6 +76,18 @@ func (u *TransitionToDone) Execute(repoRoot, from, to string) error {
 		if updateErr := u.tasks.Update(repoRoot, task); updateErr != nil {
 			return fmt.Errorf("update task %s: %w", id, updateErr)
 		}
+
+		// Record in the log (authoritative for GetBoard status). Non-fatal.
+		entry := domain.TransitionEntry{
+			Timestamp: time.Now().UTC(),
+			TaskID:    id,
+			From:      domain.StatusInProgress,
+			To:        domain.StatusDone,
+			Author:    "ci-done",
+			Trigger:   "ci-done",
+		}
+		_ = u.log.Append(repoRoot, entry)
+
 		_, _ = fmt.Fprintf(u.output, "[kanban] %s moved  in-progress -> done\n", id)
 		updatedPaths = append(updatedPaths, taskFilePath(repoRoot, id))
 	}
