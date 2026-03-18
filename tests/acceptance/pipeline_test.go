@@ -56,7 +56,10 @@ func TestPipeline_ValidateTarget_PassesWhenAllChecksGreen(t *testing.T) {
 	dsl.PipelineWhen(pc, dsl.DeveloperRunsMakeTarget("validate"))
 	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
 	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[0/5] check-versions"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[1/5]"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[2/5]"))
 	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[3/5] go-arch-lint"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[4/5]"))
 	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("PASS"))
 }
 

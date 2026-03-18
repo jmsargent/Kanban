@@ -12,6 +12,10 @@ validate:
 	@go-arch-lint check
 	@echo "[4/5] go build ./..."
 	@go build ./...
+	@if [ -z "$$KANBAN_VALIDATE_DEPTH" ]; then \
+		echo "[5/5] acceptance tests"; \
+		KANBAN_VALIDATE_DEPTH=1 $(MAKE) acceptance; \
+	fi
 	@echo "PASS"
 
 ## acceptance: build kanban binary and run acceptance tests
@@ -19,7 +23,7 @@ acceptance:
 	@echo "Building kanban binary..."
 	@go build -o kanban ./cmd/kanban
 	@echo "Running acceptance tests..."
-	@KANBAN_BIN=./kanban go test ./tests/acceptance/...
+	@KANBAN_BIN="$(CURDIR)/kanban" go test ./tests/acceptance/...
 
 ## ci: run validate then acceptance (mirrors CI pipeline locally)
 ci:

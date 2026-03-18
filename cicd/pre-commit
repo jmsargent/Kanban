@@ -67,7 +67,7 @@ echo "PASS [4/5] go build"
 
 # Step 5: Acceptance tests (E2E) against the compiled binary
 echo "[5/5] acceptance tests"
-if ! KANBAN_BINARY="$BINARY_PATH" go test ./tests/acceptance/...; then
+if ! KANBAN_BIN="$BINARY_PATH" go test ./tests/acceptance/...; then
     echo "FAIL [5/5] acceptance tests — fix E2E failures before committing"
     exit 1
 fi
