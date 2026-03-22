@@ -11,8 +11,8 @@ import (
 )
 
 // NewCIDoneCommand builds the "kanban ci-done" command.
-// It advances all in-progress tasks referenced by commits in the pipeline range to done
-// and commits the updated files back with [skip ci] to prevent CI recursion.
+// It advances all in-progress tasks referenced by commits in the pipeline range to done.
+// No git commit is performed (C-03).
 func NewCIDoneCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	var fromRef string
 	var toRef string
