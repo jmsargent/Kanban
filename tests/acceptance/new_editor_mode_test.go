@@ -119,7 +119,6 @@ func TestNewEditorMode_EmptyTitle_RejectedWithExitCode2(t *testing.T) {
 //
 // This test covers AC-06.
 func TestNewEditorMode_TitleArgument_NoEditorOpened(t *testing.T) {
-	t.Skip("pending: new-editor-mode not yet implemented")
 
 	ctx := dsl.NewContext(t)
 
