@@ -41,7 +41,7 @@ func renderLogEntry(entry ports.CommitEntry) string {
 
 // NewLogCommand builds the "kanban log <task-id>" cobra command.
 // It displays the task header and its transition history.
-func NewLogCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository) *cobra.Command {
+func NewLogCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "log <task-id>",
 		Short:         "Show the git commit history for a task",
@@ -63,7 +63,7 @@ func NewLogCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports
 				return exitError("Not a git repository. Run 'kanban init' first.")
 			}
 
-			uc := usecases.NewGetTaskHistory(config, tasks, git, log)
+			uc := usecases.NewGetTaskHistory(config, tasks, git)
 			result, err := uc.Execute(repoRoot, taskID)
 			if err != nil {
 				if errors.Is(err, ports.ErrTaskNotFound) {

@@ -64,7 +64,7 @@ func (f *fakeTransitionLogLog) History(_, _ string) ([]domain.TransitionEntry, e
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
-func execLog(t *testing.T, git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository, taskID string) (stdout string, exitCode int) {
+func execLog(t *testing.T, git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, taskID string) (stdout string, exitCode int) {
 	t.Helper()
 
 	var outBuf, errBuf bytes.Buffer
@@ -72,7 +72,7 @@ func execLog(t *testing.T, git ports.GitPort, config ports.ConfigRepository, tas
 	cli.SetOsExit(func(code int) { capturedCode = code })
 	t.Cleanup(func() { cli.SetOsExit(nil) })
 
-	cmd := cli.NewLogCommand(git, config, tasks, log)
+	cmd := cli.NewLogCommand(git, config, tasks)
 	cmd.SetOut(&outBuf)
 	cmd.SetErr(&errBuf)
 
@@ -107,7 +107,7 @@ func TestLogCommand_RendersTransitionFields(t *testing.T) {
 	config := &fakeConfigRepoLog{}
 	tasks := &fakeTaskRepoLog{task: task}
 
-	stdout, exitCode := execLog(t, git, config, tasks, &fakeTransitionLogLog{}, "TASK-001")
+	stdout, exitCode := execLog(t, git, config, tasks, "TASK-001")
 
 	if exitCode != 0 {
 		t.Errorf("expected exit 0, got %d\nOutput: %s", exitCode, stdout)
@@ -146,7 +146,7 @@ func TestLogCommand_RendersCommitSHAAsSupplementaryContext(t *testing.T) {
 	config := &fakeConfigRepoLog{}
 	tasks := &fakeTaskRepoLog{task: task}
 
-	stdout, exitCode := execLog(t, git, config, tasks, &fakeTransitionLogLog{}, "TASK-001")
+	stdout, exitCode := execLog(t, git, config, tasks, "TASK-001")
 
 	if exitCode != 0 {
 		t.Errorf("expected exit 0, got %d\nOutput: %s", exitCode, stdout)

@@ -19,14 +19,14 @@ func NewRootCommand(git ports.GitPort, config ports.ConfigRepository, tasks port
 	root.AddCommand(NewInitCommand(git, config))
 	root.AddCommand(NewCreateCommand(git, config, tasks))
 	root.AddCommand(NewAddCommand(git, config, tasks))
-	root.AddCommand(NewBoardCommand(git, config, tasks, log))
+	root.AddCommand(NewBoardCommand(git, config, tasks))
 	root.AddCommand(NewHookCommand(git, config, tasks, log))
-	root.AddCommand(NewCIDoneCommand(git, config, tasks, log))
+	root.AddCommand(NewCIDoneCommand(git, config, tasks))
 	root.AddCommand(NewEditCommand(git, config, tasks, editor))
 	root.AddCommand(NewDeleteCommand(git, config, tasks))
-	root.AddCommand(NewStartCommand(git, config, tasks, log))
+	root.AddCommand(NewStartCommand(git, config, tasks))
 	root.AddCommand(NewDoneCommand(git, tasks))
-	root.AddCommand(NewLogCommand(git, config, tasks, log))
+	root.AddCommand(NewLogCommand(git, config, tasks))
 
 	return root
 }

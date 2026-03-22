@@ -3,9 +3,7 @@ package usecases
 import (
 	"fmt"
 	"io"
-	"path/filepath"
 	"regexp"
-	"time"
 
 	"github.com/kanban-tasks/kanban/internal/domain"
 	"github.com/kanban-tasks/kanban/internal/ports"
@@ -17,7 +15,6 @@ type TransitionToDone struct {
 	git    ports.GitPort
 	tasks  ports.TaskRepository
 	config ports.ConfigRepository
-	log    ports.TransitionLogRepository
 	output io.Writer
 }
 
@@ -26,15 +23,14 @@ func NewTransitionToDone(
 	git ports.GitPort,
 	tasks ports.TaskRepository,
 	config ports.ConfigRepository,
-	log ports.TransitionLogRepository,
 	output io.Writer,
 ) *TransitionToDone {
-	return &TransitionToDone{git: git, tasks: tasks, config: config, log: log, output: output}
+	return &TransitionToDone{git: git, tasks: tasks, config: config, output: output}
 }
 
 // Execute reads commits in the range [from, to], finds task IDs referenced in
 // those messages, and advances any in-progress tasks to done.
-// If no tasks are advanced, no commit is made.
+// No git commit is performed (C-03).
 func (u *TransitionToDone) Execute(repoRoot, from, to string) error {
 	cfg, err := u.config.Read(repoRoot)
 	if err != nil {
@@ -65,41 +61,28 @@ func (u *TransitionToDone) Execute(repoRoot, from, to string) error {
 
 	var transitioned []string
 	for _, id := range taskIDs {
-		if _, findErr := u.tasks.FindByID(repoRoot, id); findErr != nil {
+		task, findErr := u.tasks.FindByID(repoRoot, id)
+		if findErr != nil {
 			continue
 		}
 
-		// Derive current status from transitions.log (authoritative source).
-		currentStatus, statusErr := u.log.LatestStatus(repoRoot, id)
-		if statusErr != nil {
-			continue
-		}
-		if currentStatus != domain.StatusInProgress {
+		if task.Status != domain.StatusInProgress {
 			continue
 		}
 
-		entry := domain.TransitionEntry{
-			Timestamp: time.Now().UTC(),
-			TaskID:    id,
-			From:      domain.StatusInProgress,
-			To:        domain.StatusDone,
-			Author:    "ci-done",
-			Trigger:   "ci-done",
-		}
-		if err := u.log.Append(repoRoot, entry); err != nil {
-			return fmt.Errorf("append transition for %s: %w", id, err)
+		task.Status = domain.StatusDone
+		if updateErr := u.tasks.Update(repoRoot, task); updateErr != nil {
+			return fmt.Errorf("update task %s: %w", id, updateErr)
 		}
 
-		_, _ = fmt.Fprintf(u.output, "[kanban] %s moved  in-progress -> done\n", id)
+		_, _ = fmt.Fprintf(u.output, "[kanban] %s moved in-progress -> done\n", id)
 		transitioned = append(transitioned, id)
 	}
 
 	if len(transitioned) == 0 {
 		_, _ = fmt.Fprintf(u.output, "[kanban] no tasks to transition to done\n")
-		return nil
 	}
 
-	transitionsLogPath := filepath.Join(repoRoot, ".kanban", "transitions.log")
-	return u.git.CommitFiles(repoRoot, "chore(kanban): mark tasks done [skip ci]", []string{transitionsLogPath})
+	return nil
 }
 

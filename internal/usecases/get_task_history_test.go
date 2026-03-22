@@ -99,7 +99,7 @@ func TestGetTaskHistory_ReturnsHeaderAndEntries_WhenTaskHasCommits(t *testing.T)
 		},
 	}
 
-	uc := usecases.NewGetTaskHistory(cfg, tasks, git, &historyFakeLog{})
+	uc := usecases.NewGetTaskHistory(cfg, tasks, git)
 	result, err := uc.Execute(repoRoot, "TASK-001")
 
 	if err != nil {
@@ -128,7 +128,7 @@ func TestGetTaskHistory_ReturnsEmptyEntries_WhenTaskHasNoCommits(t *testing.T) {
 	tasks := newHistoryFakeTaskRepo(task)
 	git := &historyFakeGitPort{logFileEntries: nil}
 
-	uc := usecases.NewGetTaskHistory(cfg, tasks, git, &historyFakeLog{})
+	uc := usecases.NewGetTaskHistory(cfg, tasks, git)
 	result, err := uc.Execute(repoRoot, "TASK-002")
 
 	if err != nil {
@@ -179,7 +179,7 @@ func TestGetTaskHistory_ReturnsError_ForInvalidPreconditions(t *testing.T) {
 			}
 			git := &historyFakeGitPort{}
 
-			uc := usecases.NewGetTaskHistory(tc.cfg, tasks, git, &historyFakeLog{})
+			uc := usecases.NewGetTaskHistory(tc.cfg, tasks, git)
 			_, err := uc.Execute(repoRoot, tc.taskID)
 
 			if !errors.Is(err, tc.wantErr) {

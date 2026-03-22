@@ -96,13 +96,11 @@ func TestTransitionToDone_AdvancesInProgressTask_WhenReferencedInCommits(t *test
 	repoRoot := tmpRepo(t)
 	git := &spyGitPort{messages: []string{"TASK-001: implement feature"}}
 	tasks := newSpyTaskRepo()
-	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001"}
+	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001", Status: domain.StatusInProgress}
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	// Log reports task as in-progress (authoritative source).
-	log := newFakeTransitionLog(map[string]domain.TaskStatus{"TASK-001": domain.StatusInProgress})
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, log, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
@@ -124,15 +122,14 @@ func TestTransitionToDone_SkipsTodoTask_WhenReferencedInCommits(t *testing.T) {
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	// Log returns todo status (default) — task must not be transitioned.
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, newFakeTransitionLog(nil), output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if git.commitFilesCalled {
-		t.Error("expected no commit when todo task is referenced")
+	if len(tasks.updated) != 0 {
+		t.Error("expected no update when todo task is referenced")
 	}
 }
 
@@ -140,43 +137,43 @@ func TestTransitionToDone_SkipsDoneTask_WhenReferencedInCommits(t *testing.T) {
 	repoRoot := tmpRepo(t)
 	git := &spyGitPort{messages: []string{"TASK-003: cleanup"}}
 	tasks := newSpyTaskRepo()
-	tasks.byID["TASK-003"] = domain.Task{ID: "TASK-003"}
+	tasks.byID["TASK-003"] = domain.Task{ID: "TASK-003", Status: domain.StatusDone}
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	// Log reports task already done — must not be transitioned again.
-	log := newFakeTransitionLog(map[string]domain.TaskStatus{"TASK-003": domain.StatusDone})
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, log, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if git.commitFilesCalled {
-		t.Error("expected no commit when done task is referenced")
+	if len(tasks.updated) != 0 {
+		t.Error("expected no update when done task is referenced")
 	}
 }
 
-func TestTransitionToDone_CommitsUpdatedFiles_WhenTasksAdvanced(t *testing.T) {
+func TestTransitionToDone_UpdatesTaskFile_WhenTasksAdvanced(t *testing.T) {
 	repoRoot := tmpRepo(t)
 	git := &spyGitPort{messages: []string{"TASK-001: feature done"}}
 	tasks := newSpyTaskRepo()
-	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001"}
+	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001", Status: domain.StatusInProgress}
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	log := newFakeTransitionLog(map[string]domain.TaskStatus{"TASK-001": domain.StatusInProgress})
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, log, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if !git.commitFilesCalled {
-		t.Error("expected CommitFiles to be called after advancing tasks")
+	if len(tasks.updated) == 0 {
+		t.Error("expected Update to be called after advancing tasks")
 	}
-	if !strings.Contains(git.commitFilesMsg, "[skip ci]") {
-		t.Errorf("expected commit message to contain [skip ci], got: %s", git.commitFilesMsg)
+	if tasks.updated[0].Status != domain.StatusDone {
+		t.Errorf("expected task status to be done, got: %s", tasks.updated[0].Status)
+	}
+	if git.commitFilesCalled {
+		t.Error("expected no git commit (C-03)")
 	}
 }
 
@@ -187,14 +184,14 @@ func TestTransitionToDone_SkipsCommit_WhenNoTasksAdvanced(t *testing.T) {
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, newFakeTransitionLog(nil), output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if git.commitFilesCalled {
-		t.Error("expected CommitFiles NOT to be called when no tasks were advanced")
+	if len(tasks.updated) != 0 {
+		t.Error("expected no Update when no tasks were advanced")
 	}
 }
 
@@ -202,13 +199,12 @@ func TestTransitionToDone_UsesDefaultPattern_WhenConfigPatternEmpty(t *testing.T
 	repoRoot := tmpRepo(t)
 	git := &spyGitPort{messages: []string{"TASK-001: implement feature"}}
 	tasks := newSpyTaskRepo()
-	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001"}
+	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001", Status: domain.StatusInProgress}
 	// CITaskPattern is empty
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: ""}}
 	output := &strings.Builder{}
 
-	log := newFakeTransitionLog(map[string]domain.TaskStatus{"TASK-001": domain.StatusInProgress})
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, log, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
@@ -223,16 +219,12 @@ func TestTransitionToDone_AdvancesMultipleTasks_WhenReferencedInSameCommit(t *te
 	repoRoot := tmpRepo(t)
 	git := &spyGitPort{messages: []string{"TASK-001 and TASK-002: implementation complete"}}
 	tasks := newSpyTaskRepo()
-	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001"}
-	tasks.byID["TASK-002"] = domain.Task{ID: "TASK-002"}
+	tasks.byID["TASK-001"] = domain.Task{ID: "TASK-001", Status: domain.StatusInProgress}
+	tasks.byID["TASK-002"] = domain.Task{ID: "TASK-002", Status: domain.StatusInProgress}
 	cfg := &fakeConfigRepo{readResult: ports.Config{CITaskPattern: `TASK-\d+`}}
 	output := &strings.Builder{}
 
-	log := newFakeTransitionLog(map[string]domain.TaskStatus{
-		"TASK-001": domain.StatusInProgress,
-		"TASK-002": domain.StatusInProgress,
-	})
-	uc := usecases.NewTransitionToDone(git, tasks, cfg, log, output)
+	uc := usecases.NewTransitionToDone(git, tasks, cfg, output)
 	err := uc.Execute(repoRoot, "", "HEAD")
 
 	if err != nil {
