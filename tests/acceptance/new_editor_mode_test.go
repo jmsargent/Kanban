@@ -41,7 +41,6 @@ func TestNewEditorMode_WalkingSkeleton_TaskCreated(t *testing.T) {
 //
 // This test covers AC-02.
 func TestNewEditorMode_BlankTemplate_StructureCorrect(t *testing.T) {
-	t.Skip("pending: new-editor-mode not yet implemented")
 
 	ctx := dsl.NewContext(t)
 
