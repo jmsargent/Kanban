@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +28,22 @@ func newCommitMsgHookCommand() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+	}
+}
+
+// NewInstallHookCommand returns a deprecated stub for "kanban install-hook".
+// It exits 1 with a removal notice. Hidden so it does not appear in --help.
+func NewInstallHookCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:    "install-hook",
+		Short:  "Deprecated: kanban no longer manages git hooks",
+		Hidden: true,
+		Args:   cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Fprintln(cmd.ErrOrStderr(), "install-hook has been removed; kanban no longer manages git hooks")
+			osExit(1)
 			return nil
 		},
 	}
