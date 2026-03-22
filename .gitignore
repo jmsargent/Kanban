@@ -2,3 +2,4 @@
 private-notes
 kanban
 tests/acceptance/kanban-tasks/bin/
+.on-local-machine
