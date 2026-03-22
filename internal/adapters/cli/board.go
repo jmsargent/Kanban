@@ -15,7 +15,7 @@ import (
 
 // NewBoardCommand builds the "kanban board" cobra command.
 // It retrieves all tasks, groups them by status, and prints a columnar display.
-func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository) *cobra.Command {
+func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	var jsonOutput bool
 	var meFilter bool
 
@@ -40,7 +40,7 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 				filterAssignee = identity.Email
 			}
 
-			uc := usecases.NewGetBoard(config, tasks, log)
+			uc := usecases.NewGetBoard(config, tasks)
 			board, err := uc.Execute(repoRoot, filterAssignee)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)

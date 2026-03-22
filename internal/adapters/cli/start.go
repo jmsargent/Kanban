@@ -29,7 +29,7 @@ func SetOsExit(fn func(int)) {
 // NewStartCommand builds the "kanban start" cobra command.
 // It accepts a single task ID, delegates to the StartTask use case, and maps
 // each result or error to the correct stdout/stderr message and exit code.
-func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, log ports.TransitionLogRepository) *cobra.Command {
+func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "start <task-id>",
 		Short:         "Start working on a task (transitions todo -> in-progress)",
@@ -56,7 +56,7 @@ func NewStartCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 				return exitError("git identity not configured — run: git config --global user.name \"Your Name\"")
 			}
 
-			uc := usecases.NewStartTask(config, tasks, log)
+			uc := usecases.NewStartTask(config, tasks)
 			result, err := uc.Execute(repoRoot, taskID, identity.Email)
 			if err != nil {
 				if errors.Is(err, ports.ErrInvalidTransition) {
