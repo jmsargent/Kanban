@@ -56,19 +56,20 @@ func TestPipeline_CIConfig_GoreleaserCommandUsesCache(t *testing.T) {
 	}
 }
 
-// TestPipeline_CIConfig_TagJobHasSkipReleaseGuard asserts the tag job contains
-// the [skip release] shell guard so CI skips tagging when the commit message
-// contains [skip release].
+// TestPipeline_CIConfig_TagJobHasSkipReleaseGuard asserts the [skip release]
+// shell guard exists in the Makefile ci-tag target (called by the CI tag job).
+// The guard skips tagging when the commit message contains [skip release].
 func TestPipeline_CIConfig_TagJobHasSkipReleaseGuard(t *testing.T) {
-	config := readCIConfig(t)
+	root := findProjectRoot(t)
+	makefile := readMakefile(t, root)
 
-	if !strings.Contains(config, "[skip release]") {
-		t.Error("cicd/config.yml does not contain '[skip release]' guard")
+	if !strings.Contains(makefile, "[skip release]") {
+		t.Error("Makefile ci-tag target does not contain '[skip release]' guard")
 	}
 
 	// grep -qi is the case-insensitive, position-independent pattern required by ADR-009.
-	if !strings.Contains(config, "grep -qi") {
-		t.Error("cicd/config.yml does not use 'grep -qi' for case-insensitive [skip release] detection")
+	if !strings.Contains(makefile, "grep -qi") {
+		t.Error("Makefile ci-tag target does not use 'grep -qi' for case-insensitive [skip release] detection")
 	}
 }
 

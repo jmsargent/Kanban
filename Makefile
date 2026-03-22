@@ -1,4 +1,9 @@
-.PHONY: validate acceptance ci release-snapshot release tag-dry help
+# Derived from git remote — used by ci-tag and ci-release.
+# Override on the command line if needed: make ci-tag GITHUB_OWNER=myorg GITHUB_REPO=myrepo
+GITHUB_OWNER ?= $(shell git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/[^/]+\.git|\1|;s|.*[:/]([^/]+)/[^/]+$$|\1|')
+GITHUB_REPO  ?= $(shell git remote get-url origin 2>/dev/null | sed -E 's|.*[:/][^/]+/([^/]+)\.git|\1|;s|.*[:/][^/]+/([^/]+)$$|\1|')
+
+.PHONY: validate acceptance ci release-snapshot release tag-dry ci-tag ci-checkout-tagged ci-release help
 
 ## validate: run static quality gates locally (mirrors CI validate-and-build job)
 validate:
@@ -37,6 +42,42 @@ release:
 tag-dry:
 	@go-semver-release release --dry-run
 
+## ci-tag: compute and push semver tag (mirrors CI tag job; requires GITHUB_TOKEN)
+ci-tag:
+	@if git log -1 --pretty=%B | grep -qi '\[skip release\]'; then \
+	  echo "[skip release] detected in commit message — skipping tag"; \
+	  exit 0; \
+	fi
+	@if git describe --tags --exact-match HEAD >/dev/null 2>&1; then \
+	  echo "Commit $$(git rev-parse --short HEAD) is already tagged. Skipping."; \
+	  exit 0; \
+	fi
+	@go-semver-release release "https://${GITHUB_TOKEN}@github.com/$(GITHUB_OWNER)/$(GITHUB_REPO).git" \
+	  --tag-prefix v \
+	  --access-token $${GITHUB_TOKEN} \
+	  --branches '[{"name": "main"}]'
+
+## ci-checkout-tagged: checkout the commit the latest tag points to (mirrors CI release job pre-step)
+ci-checkout-tagged:
+	@git fetch --tags
+	@LATEST_TAG=$$(git tag --sort=-version:refname | grep '^v' | head -1); \
+	TAG_SHA=$$(git rev-list -n1 "$$LATEST_TAG"); \
+	CURRENT_SHA=$$(git rev-parse HEAD); \
+	if [ "$$TAG_SHA" != "$$CURRENT_SHA" ]; then \
+	  echo "Tag $$LATEST_TAG points to $$TAG_SHA, not $$CURRENT_SHA — checking out tagged commit"; \
+	  git checkout "$$TAG_SHA"; \
+	else \
+	  echo "Tag $$LATEST_TAG correctly points to current HEAD $$CURRENT_SHA"; \
+	fi
+
+## ci-release: publish release via goreleaser (mirrors CI release job; requires GITHUB_TOKEN)
+ci-release:
+	@if git log -1 --pretty=%B | grep -qi '\[skip release\]'; then \
+	  echo "[skip release] detected in commit message — skipping release"; \
+	  exit 0; \
+	fi
+	@GITHUB_REPOSITORY_OWNER=$(GITHUB_OWNER) goreleaser release --config cicd/goreleaser.yml --clean
+
 ## help: list available make targets
 help:
 	@echo "Available targets:"
@@ -46,4 +87,7 @@ help:
 	@echo "  release-snapshot build cross-compile targets without publishing"
 	@echo "  release         publish a release via goreleaser"
 	@echo "  tag-dry         dry-run semantic version tagging"
+	@echo "  ci-tag          compute and push semver tag (requires GITHUB_TOKEN)"
+	@echo "  ci-checkout-tagged checkout the commit the latest tag points to"
+	@echo "  ci-release      publish release via goreleaser (requires GITHUB_TOKEN)"
 	@echo "  help            list available make targets"

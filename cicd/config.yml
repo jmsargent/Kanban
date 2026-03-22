@@ -180,46 +180,20 @@ jobs:
         - install-go-semver-release
         - run:
             name: Compute and push semver tag
-            command: |
-              # Guard: skip if commit message contains [skip release] (case-insensitive).
-              if git log -1 --pretty=%B | grep -qi '\[skip release\]'; then
-                echo "[skip release] detected in commit message — skipping tag"
-                exit 0
-              fi
-
-              # 1. Guard Clause: If this commit already has a tag, exit gracefully.
-              # This prevents the "tag already exists" error on retries or re-runs.
-              if git describe --tags --exact-match HEAD >/dev/null 2>&1; then
-                echo "Commit $(git rev-parse --short HEAD) is already tagged. Skipping."
-                exit 0
-              fi
-
-              # 2. Use the URL directly. This is the most stable path for the go-git library.
-              # Using the ${TOKEN}@github.com format is the most compatible with go-semver-release.
-              go-semver-release release "https://${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" \
-                --tag-prefix v \
-                --access-token $GITHUB_TOKEN \
-                --branches '[{"name": "main"}]'
+            command: make ci-tag GITHUB_OWNER=$CIRCLE_PROJECT_USERNAME GITHUB_REPO=$CIRCLE_PROJECT_REPONAME
 
   release:
     executor: go-executor
     steps:
       - checkout
       - run:
-          command: git fetch --tags
+          name: Checkout tagged commit
+          command: make ci-checkout-tagged
       - go/mod-download
       - install-goreleaser
       - run:
           name: Publish release
-          command: |
-            # Guard: skip if commit message contains [skip release] (case-insensitive).
-            if git log -1 --pretty=%B | grep -qi '\[skip release\]'; then
-              echo "[skip release] detected in commit message — skipping release"
-              exit 0
-            fi
-
-            export GITHUB_REPOSITORY_OWNER=$CIRCLE_PROJECT_USERNAME
-            goreleaser release --config cicd/goreleaser.yml --clean
+          command: make ci-release GITHUB_OWNER=$CIRCLE_PROJECT_USERNAME
 
 workflows:
   ci-cd:
