@@ -155,8 +155,6 @@ func TestNewEditorMode_EditorUnavailable_ExitsWithRuntimeError(t *testing.T) {
 //
 // This test covers AC-08.
 func TestNewEditorMode_KanbanNotInitialised_PreflightBlocksEditor(t *testing.T) {
-	t.Skip("pending: new-editor-mode not yet implemented")
-
 	ctx := dsl.NewContext(t)
 
 	// A script that fails loudly if called — its presence on disk is enough;
