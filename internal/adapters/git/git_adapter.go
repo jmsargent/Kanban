@@ -48,43 +48,6 @@ func (a *GitAdapter) CommitMessagesInRange(from, to string) ([]string, error) {
 	return messages, nil
 }
 
-// CommitFiles stages the given paths and creates a commit with the supplied message.
-// "[skip ci]" is always appended to the message to prevent CI recursion.
-func (a *GitAdapter) CommitFiles(repoRoot, message string, paths []string) error {
-	addArgs := append([]string{"add", "--"}, paths...)
-	if err := runGitIn(repoRoot, addArgs...); err != nil {
-		return fmt.Errorf("git add: %w", err)
-	}
-	annotated := message + " [skip ci]"
-	if err := runGitIn(repoRoot, "commit", "-m", annotated); err != nil {
-		return fmt.Errorf("git commit: %w", err)
-	}
-	return nil
-}
-
-// InstallHook writes the kanban commit-msg hook script to .git/hooks/commit-msg
-// and sets it executable (0755). Overwrites any existing hook.
-// The hook uses the absolute path of the currently running kanban binary so it
-// works regardless of $PATH.
-func (a *GitAdapter) InstallHook(repoRoot string) error {
-	hooksDir := filepath.Join(repoRoot, ".git", "hooks")
-	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
-		return fmt.Errorf("create hooks dir: %w", err)
-	}
-
-	exe, err := os.Executable()
-	if err != nil {
-		exe = "kanban" // fallback to PATH lookup
-	}
-
-	hookPath := filepath.Join(hooksDir, "commit-msg")
-	script := fmt.Sprintf("#!/bin/sh\n%s _hook commit-msg \"$1\"\n", exe)
-	if err := os.WriteFile(hookPath, []byte(script), 0o755); err != nil {
-		return fmt.Errorf("write hook: %w", err)
-	}
-	return nil
-}
-
 // AppendToGitignore adds entry to .gitignore at the repository root if not already present.
 // Creates .gitignore if it does not exist.
 func (a *GitAdapter) AppendToGitignore(repoRoot, entry string) error {
@@ -137,37 +100,6 @@ func (a *GitAdapter) GetIdentity() (ports.Identity, error) {
 	}
 
 	return ports.Identity{Name: name, Email: email}, nil
-}
-
-// runGitIn runs a git command with the given arguments in the specified directory.
-// It inherits the current process environment but strips git identity override vars
-// (GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, GIT_COMMITTER_EMAIL)
-// so that commits use the repository's local git config rather than any outer
-// git operation context (e.g. when invoked from within a commit-msg hook).
-func runGitIn(dir string, args ...string) error {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	cmd.Env = filterGitIdentityEnv(os.Environ())
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
-	}
-	return nil
-}
-
-// filterGitIdentityEnv returns env with GIT_AUTHOR_* and GIT_COMMITTER_* vars
-// removed so that git reads identity from repository local config.
-func filterGitIdentityEnv(env []string) []string {
-	filtered := make([]string, 0, len(env))
-	for _, e := range env {
-		if strings.HasPrefix(e, "GIT_AUTHOR_NAME=") ||
-			strings.HasPrefix(e, "GIT_AUTHOR_EMAIL=") ||
-			strings.HasPrefix(e, "GIT_COMMITTER_NAME=") ||
-			strings.HasPrefix(e, "GIT_COMMITTER_EMAIL=") {
-			continue
-		}
-		filtered = append(filtered, e)
-	}
-	return filtered
 }
 
 // LogFile returns the commit history for a specific file within the repository

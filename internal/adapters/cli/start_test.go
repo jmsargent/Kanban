@@ -27,10 +27,8 @@ func (f *fakeGitPortCLI) RepoRoot() (string, error) {
 	return f.repoRoot, f.repoRootErr
 }
 
-func (f *fakeGitPortCLI) InstallHook(_ string) error                          { return nil }
 func (f *fakeGitPortCLI) AppendToGitignore(_, _ string) error                 { return nil }
 func (f *fakeGitPortCLI) CommitMessagesInRange(_, _ string) ([]string, error) { return nil, nil }
-func (f *fakeGitPortCLI) CommitFiles(_, _ string, _ []string) error           { return nil }
 func (f *fakeGitPortCLI) GetIdentity() (ports.Identity, error) {
 	return f.identity, f.getIdentityErr
 }

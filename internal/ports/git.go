@@ -1,10 +1,21 @@
 package ports
 
+import "time"
+
 // Identity holds the git author identity (name and email) for a repository user.
 // This is an infrastructure concern sourced from git config — it belongs in ports.
 type Identity struct {
 	Name  string
 	Email string
+}
+
+// CommitEntry represents a single commit in git history for a file.
+// It is returned by GitPort.LogFile.
+type CommitEntry struct {
+	SHA       string
+	Timestamp time.Time
+	Author    string
+	Message   string
 }
 
 // GitPort is the driven port for all git operations required by use cases.
@@ -17,14 +28,6 @@ type GitPort interface {
 	// CommitMessagesInRange returns the commit messages for all commits
 	// reachable from `to` but not from `from` (equivalent to `git log from..to`).
 	CommitMessagesInRange(from, to string) ([]string, error)
-
-	// CommitFiles stages the given paths and creates a commit with the supplied
-	// message inside the repository at repoRoot.
-	CommitFiles(repoRoot, message string, paths []string) error
-
-	// InstallHook writes the kanban commit-msg hook into the .git/hooks directory
-	// of the repository at repoRoot, making it executable.
-	InstallHook(repoRoot string) error
 
 	// AppendToGitignore adds entry to the .gitignore file at the root of repoRoot,
 	// creating the file if it does not exist.

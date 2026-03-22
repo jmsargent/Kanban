@@ -68,10 +68,6 @@ func (f *historyFakeGitPort) RepoRoot() (string, error) { return "", nil }
 func (f *historyFakeGitPort) CommitMessagesInRange(from, to string) ([]string, error) {
 	return nil, nil
 }
-func (f *historyFakeGitPort) CommitFiles(repoRoot, message string, paths []string) error {
-	return nil
-}
-func (f *historyFakeGitPort) InstallHook(repoRoot string) error   { return nil }
 func (f *historyFakeGitPort) AppendToGitignore(repoRoot, entry string) error { return nil }
 func (f *historyFakeGitPort) GetIdentity() (ports.Identity, error) {
 	return ports.Identity{}, nil

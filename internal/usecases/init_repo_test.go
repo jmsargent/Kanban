@@ -23,11 +23,6 @@ func (f *fakeGitPort) RepoRoot() (string, error) {
 	return f.repoRootResult, f.repoRootErr
 }
 
-func (f *fakeGitPort) InstallHook(repoRoot string) error {
-	f.installedHook = true
-	return nil
-}
-
 func (f *fakeGitPort) AppendToGitignore(repoRoot, entry string) error {
 	f.gitignoreEntry = entry
 	return nil
@@ -35,10 +30,6 @@ func (f *fakeGitPort) AppendToGitignore(repoRoot, entry string) error {
 
 func (f *fakeGitPort) CommitMessagesInRange(from, to string) ([]string, error) {
 	return nil, nil
-}
-
-func (f *fakeGitPort) CommitFiles(repoRoot, message string, paths []string) error {
-	return nil
 }
 
 func (f *fakeGitPort) GetIdentity() (ports.Identity, error) {

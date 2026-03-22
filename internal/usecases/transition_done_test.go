@@ -20,25 +20,13 @@ import (
 
 type spyGitPort struct {
 	messages          []string
-	commitFilesRoot   string
-	commitFilesMsg    string
-	commitFilesPaths  []string
-	commitFilesErr    error
 	commitFilesCalled bool
 }
 
 func (s *spyGitPort) RepoRoot() (string, error)           { return "", nil }
-func (s *spyGitPort) InstallHook(repoRoot string) error   { return nil }
 func (s *spyGitPort) AppendToGitignore(r, e string) error { return nil }
 func (s *spyGitPort) CommitMessagesInRange(from, to string) ([]string, error) {
 	return s.messages, nil
-}
-func (s *spyGitPort) CommitFiles(repoRoot, message string, paths []string) error {
-	s.commitFilesCalled = true
-	s.commitFilesRoot = repoRoot
-	s.commitFilesMsg = message
-	s.commitFilesPaths = paths
-	return s.commitFilesErr
 }
 
 func (s *spyGitPort) GetIdentity() (ports.Identity, error) {

@@ -82,14 +82,6 @@ func (g *fakeGitPort) CommitMessagesInRange(from, to string) ([]string, error) {
 	return nil, nil
 }
 
-func (g *fakeGitPort) CommitFiles(repoRoot, message string, paths []string) error {
-	return nil
-}
-
-func (g *fakeGitPort) InstallHook(repoRoot string) error {
-	return nil
-}
-
 func (g *fakeGitPort) AppendToGitignore(repoRoot, entry string) error {
 	return nil
 }

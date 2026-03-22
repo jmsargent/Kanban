@@ -105,38 +105,6 @@ func TestCommitMessagesInRange_ReturnsMessagesInRange(t *testing.T) {
 	}
 }
 
-func TestCommitFiles_CreatesCommitAnnotatedWithSkipCI(t *testing.T) {
-	dir := t.TempDir()
-	initRepo(t, dir)
-
-	// Need at least one existing commit so we can add another
-	writeAndCommit(t, dir, "init.txt", "init", "initial commit")
-
-	// Create a new file to be staged and committed via the adapter
-	newFile := filepath.Join(dir, "task.md")
-	if err := os.WriteFile(newFile, []byte("# task"), 0o644); err != nil {
-		t.Fatalf("write task.md: %v", err)
-	}
-
-	adapter := gitadapter.NewGitAdapter()
-	err := adapter.CommitFiles(dir, "add task card", []string{"task.md"})
-	if err != nil {
-		t.Fatalf("CommitFiles: %v", err)
-	}
-
-	// Read the last commit message from the repo
-	out, err := exec.Command("git", "-C", dir, "log", "-1", "--format=%s").Output()
-	if err != nil {
-		t.Fatalf("git log: %v", err)
-	}
-	subject := strings.TrimSpace(string(out))
-	if !strings.Contains(subject, "[skip ci]") {
-		t.Errorf("commit subject %q does not contain [skip ci]", subject)
-	}
-	if !strings.Contains(subject, "add task card") {
-		t.Errorf("commit subject %q does not contain original message", subject)
-	}
-}
 
 func TestGetIdentity_ReturnsConfiguredNameAndEmail(t *testing.T) {
 	dir := t.TempDir()
@@ -159,35 +127,3 @@ func TestGetIdentity_ReturnsConfiguredNameAndEmail(t *testing.T) {
 	}
 }
 
-func TestInstallHook_WritesExecutableCommitMsgScript(t *testing.T) {
-	dir := t.TempDir()
-	initRepo(t, dir)
-
-	adapter := gitadapter.NewGitAdapter()
-	if err := adapter.InstallHook(dir); err != nil {
-		t.Fatalf("InstallHook: %v", err)
-	}
-
-	hookPath := filepath.Join(dir, ".git", "hooks", "commit-msg")
-	info, err := os.Stat(hookPath)
-	if err != nil {
-		t.Fatalf("hook not written: %v", err)
-	}
-	if info.Mode()&0o111 == 0 {
-		t.Errorf("hook file mode %o is not executable", info.Mode())
-	}
-
-	content, err := os.ReadFile(hookPath)
-	if err != nil {
-		t.Fatalf("read hook: %v", err)
-	}
-	script := string(content)
-	if !strings.HasPrefix(script, "#!/bin/sh") {
-		t.Errorf("hook does not start with #!/bin/sh:\n%s", script)
-	}
-
-	exe, _ := os.Executable()
-	if !strings.Contains(script, exe+" _hook commit-msg") {
-		t.Errorf("hook does not use absolute path %q:\n%s", exe, script)
-	}
-}

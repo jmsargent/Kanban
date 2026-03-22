@@ -1,19 +1,8 @@
 package ports
 
 import (
-	"time"
-
 	"github.com/kanban-tasks/kanban/internal/domain"
 )
-
-// CommitEntry represents a single commit in git history for a file.
-// It is returned by GitPort.LogFile.
-type CommitEntry struct {
-	SHA       string
-	Timestamp time.Time
-	Author    string
-	Message   string
-}
 
 // TransitionLogRepository is the driven port for reading and appending to
 // the transitions audit log. Implementations live in internal/adapters.

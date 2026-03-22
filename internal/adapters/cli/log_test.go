@@ -23,10 +23,8 @@ type fakeGitPortLog struct {
 }
 
 func (f *fakeGitPortLog) RepoRoot() (string, error)                           { return f.repoRoot, nil }
-func (f *fakeGitPortLog) InstallHook(_ string) error                          { return nil }
 func (f *fakeGitPortLog) AppendToGitignore(_, _ string) error                 { return nil }
 func (f *fakeGitPortLog) CommitMessagesInRange(_, _ string) ([]string, error) { return nil, nil }
-func (f *fakeGitPortLog) CommitFiles(_, _ string, _ []string) error           { return nil }
 func (f *fakeGitPortLog) GetIdentity() (ports.Identity, error)                { return ports.Identity{}, nil }
 func (f *fakeGitPortLog) LogFile(_ string, _ string) ([]ports.CommitEntry, error) {
 	return f.entries, nil
