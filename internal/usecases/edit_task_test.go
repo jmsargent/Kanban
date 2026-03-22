@@ -95,6 +95,16 @@ func (s *editFileStub) WriteTemp(task domain.Task) (string, error) {
 	return f.Name(), err
 }
 
+func (s *editFileStub) WriteTempNew() (string, error) {
+	f, err := os.CreateTemp("", "kanban-new-*.yaml")
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = f.Close() }()
+	_, err = f.WriteString("title: \"\"\n# title is required\npriority: \"\"\nassignee: \"\"\n")
+	return f.Name(), err
+}
+
 func (s *editFileStub) ReadTemp(path string) (ports.EditSnapshot, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
