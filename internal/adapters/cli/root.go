@@ -8,7 +8,7 @@ import (
 
 // NewRootCommand builds the root "kanban" cobra command and registers all
 // sub-commands. Collaborators are injected so this function is testable.
-func NewRootCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, editor ports.EditFilePort, log ports.TransitionLogRepository) *cobra.Command {
+func NewRootCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, editor ports.EditFilePort) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "kanban",
 		Short: "Kanban task manager for git repositories",
@@ -20,7 +20,7 @@ func NewRootCommand(git ports.GitPort, config ports.ConfigRepository, tasks port
 	root.AddCommand(NewCreateCommand(git, config, tasks))
 	root.AddCommand(NewAddCommand(git, config, tasks))
 	root.AddCommand(NewBoardCommand(git, config, tasks))
-	root.AddCommand(NewHookCommand(git, config, tasks, log))
+	root.AddCommand(NewHookCommand())
 	root.AddCommand(NewCIDoneCommand(git, config, tasks))
 	root.AddCommand(NewEditCommand(git, config, tasks, editor))
 	root.AddCommand(NewDeleteCommand(git, config, tasks))
