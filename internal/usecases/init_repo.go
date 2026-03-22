@@ -28,8 +28,7 @@ func NewInitRepo(git ports.GitPort, config ports.ConfigRepository, out io.Writer
 //  1. Resolves the repository root via GitPort.
 //  2. Returns ErrNotGitRepo when not inside a git repository.
 //  3. Skips initialisation if already done (idempotent).
-//  4. Writes the default config, appends the hook log to .gitignore,
-//     and installs the commit-msg hook.
+//  4. Writes the default config and tasks directory. No git commit is made (C-03).
 func (u *InitRepo) Execute() error {
 	repoRoot, err := u.git.RepoRoot()
 	if err != nil {
@@ -61,18 +60,6 @@ func (u *InitRepo) Execute() error {
 
 	if err = u.config.Write(repoRoot, defaultConfig); err != nil {
 		return fmt.Errorf("write config: %w", err)
-	}
-
-	if err = u.git.AppendToGitignore(repoRoot, ".kanban/hook.log"); err != nil {
-		return fmt.Errorf("append to .gitignore: %w", err)
-	}
-
-	if err = u.git.InstallHook(repoRoot); err != nil {
-		return fmt.Errorf("install hook: %w", err)
-	}
-
-	if err = u.git.CommitFiles(repoRoot, "kanban: initialise repository", []string{".kanban/config", ".gitignore"}); err != nil {
-		return fmt.Errorf("commit initial setup: %w", err)
 	}
 
 	_, _ = fmt.Fprintln(u.out, "Initialised kanban at .kanban/")

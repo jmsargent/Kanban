@@ -102,7 +102,7 @@ func TestInitRepo_CreatesDefaultConfigWithColumns(t *testing.T) {
 	}
 }
 
-func TestInitRepo_InstallsHookAndAppendsGitignore(t *testing.T) {
+func TestInitRepo_DoesNotInstallHookOrModifyGitignore(t *testing.T) {
 	repoRoot := tmpRepo(t)
 	git := &fakeGitPort{repoRootResult: repoRoot}
 	cfg := newFreshConfigRepo()
@@ -114,11 +114,11 @@ func TestInitRepo_InstallsHookAndAppendsGitignore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if !git.installedHook {
-		t.Error("expected InstallHook to be called")
+	if git.installedHook {
+		t.Error("expected InstallHook NOT to be called (C-03)")
 	}
-	if !strings.Contains(git.gitignoreEntry, "hook.log") {
-		t.Errorf("expected .kanban/hook.log appended to .gitignore, got: %q", git.gitignoreEntry)
+	if git.gitignoreEntry != "" {
+		t.Errorf("expected AppendToGitignore NOT to be called, got entry: %q", git.gitignoreEntry)
 	}
 }
 
