@@ -97,8 +97,6 @@ func TestNewEditorMode_OptionalFields_Persisted(t *testing.T) {
 //
 // This test covers AC-05.
 func TestNewEditorMode_EmptyTitle_RejectedWithExitCode2(t *testing.T) {
-	t.Skip("pending: new-editor-mode not yet implemented")
-
 	ctx := dsl.NewContext(t)
 
 	editorScript, err := dsl.EditorScriptThatLeavesBlankTitle(ctx)

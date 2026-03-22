@@ -106,12 +106,8 @@ func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks po
 }
 
 // unwrapMessage extracts the human-readable message from a wrapped error.
+// Returns the full error string so the domain message (e.g. "title cannot be
+// empty") is always present in the output.
 func unwrapMessage(err error) string {
-	// ErrInvalidInput is wrapped as "invalid input: <message>"
-	// Extract the domain message for display.
-	inner := errors.Unwrap(err)
-	if inner != nil {
-		return inner.Error()
-	}
 	return err.Error()
 }
