@@ -193,7 +193,15 @@ jobs:
       - install-goreleaser
       - run:
           name: Publish release
-          command: make ci-release GITHUB_OWNER=$CIRCLE_PROJECT_USERNAME
+          command: |
+            # Guard: skip if commit message contains [skip release] (case-insensitive).
+            if git log -1 --pretty=%B | grep -qi '\[skip release\]'; then
+              echo "[skip release] detected in commit message — skipping release"
+              exit 0
+            fi
+
+            export GITHUB_REPOSITORY_OWNER=$CIRCLE_PROJECT_USERNAME
+            goreleaser release --config cicd/goreleaser.yml --clean
 
 workflows:
   ci-cd:
