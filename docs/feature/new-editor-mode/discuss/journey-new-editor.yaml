@@ -1,0 +1,219 @@
+journey:
+  name: "kanban new — editor mode"
+  feature_id: "new-editor-mode"
+  goal: "Developer captures a new task using their preferred editor, without typing the title inline"
+  persona: "Alex Chen — developer using kanban as personal git-native task tracker"
+
+  emotional_arc:
+    start: "Slightly interrupted — needs to context-switch from coding to task capture"
+    middle: "Focused — inside the editor, their natural environment"
+    end: "Relieved — task confirmed and captured, back to coding"
+  arc_pattern: "Problem Relief"
+
+steps:
+  - id: 1
+    name: "Invocation — no-arg detection"
+    command: "kanban new"
+    description: |
+      Developer runs 'kanban new' with no positional argument.
+      The binary detects zero args and routes to editor mode instead
+      of passing an empty title to AddTask.
+
+    tui_mockup: |
+      $ kanban new
+      [editor opens — no output to terminal before editor launches]
+
+    shared_artifacts:
+      - name: "EDITOR"
+        source: "os.Getenv(\"EDITOR\"), fallback \"vi\""
+        displayed_as: "${EDITOR}"
+        consumers:
+          - "openEditor() in usecases/edit_task.go (shared function)"
+          - "editor mode in kanban new"
+
+    emotional_state:
+      entry: "Slightly interrupted — must context-switch"
+      exit: "Familiar — same command they already know"
+
+    integration_checkpoint: |
+      git.RepoRoot() must succeed before editor is opened.
+      git.GetIdentity() must succeed before editor is opened.
+      Both are validated pre-editor to avoid opening editor then failing.
+
+    gherkin: |
+      Scenario: Developer runs kanban new with no arguments
+        Given Alex is in a git repository with kanban initialised
+        And $EDITOR is set to "nvim"
+        When Alex runs "kanban new" via CLI with no arguments
+        Then the editor opens immediately with a blank task template
+
+  - id: 2
+    name: "Editor buffer — blank task template"
+    command: "(editor open, user filling in fields)"
+    description: |
+      The editor presents a blank task template with comment guidance.
+      Alex fills in the title (required) and optionally priority,
+      assignee, and description. Then saves and quits.
+
+    tui_mockup: |
+      +-- /tmp/kanban-new-7f3a.yaml ---------------------------------------+
+      |                                                                    |
+      |  # New task — fill in the fields below, then save and quit.       |
+      |  # Lines beginning with # are ignored.                            |
+      |  # title is required; all other fields are optional.              |
+      |                                                                    |
+      |  title: ""                                                         |
+      |  priority: ""                                                      |
+      |  assignee: ""                                                      |
+      |  description: ""                                                   |
+      |                                                                    |
+      +--------------------------------------------------------------------+
+
+    shared_artifacts:
+      - name: "TMP_FILE"
+        source: "editor.WriteTemp(emptyTask)"
+        displayed_as: "${TMP_FILE}"
+        consumers:
+          - "openEditor(tmpFile) — path passed to editor process"
+          - "editor.ReadTemp(tmpFile) — parsed after editor exits"
+      - name: "TASK_TITLE"
+        source: "editor temp file — title field, parsed by ReadTemp"
+        displayed_as: "${TASK_TITLE}"
+        consumers:
+          - "AddTask.Execute input.Title"
+          - "success stdout: Created ${TASK_ID}: ${TASK_TITLE}"
+
+    emotional_state:
+      entry: "Focused — inside their editor, comfortable environment"
+      exit: "Confident — fields filled, saved and quit"
+
+    integration_checkpoint: |
+      The blank task template must be written using the same
+      EditFilePort.WriteTemp mechanism used by 'kanban edit'.
+      A zero-value domain.Task is passed so all fields render
+      as empty strings, not with existing values.
+
+    gherkin: |
+      Scenario: Editor presents a blank task template
+        Given the editor has been opened by "kanban new"
+        When the editor buffer is displayed
+        Then Alex sees fields: title, priority, assignee, description
+        And Alex sees comment lines explaining that title is required
+        And all fields are initially empty
+
+  - id: 3
+    name: "Parse and validate — title required"
+    command: "(editor exits, binary resumes)"
+    description: |
+      After the editor exits, the binary reads the temp file via
+      EditFilePort.ReadTemp. It validates that title is non-empty.
+      Empty title → exit 2. Non-empty title → proceed to AddTask.
+
+    shared_artifacts:
+      - name: "TASK_TITLE"
+        source: "editor temp file — title field"
+        displayed_as: "${TASK_TITLE}"
+        consumers:
+          - "validation: must not be empty"
+          - "AddTask.Execute input.Title"
+
+    emotional_state:
+      entry: "Waiting — sub-second, not perceived"
+      exit: "Confirmed — either task created or clear error"
+
+    integration_checkpoint: |
+      Validation must happen before calling AddTask.Execute.
+      Empty title → stderr "title cannot be empty" + exit 2.
+      This matches how 'kanban edit' handles the same validation
+      (edit_task.go line 74: ErrInvalidInput when title becomes empty).
+
+    gherkin: |
+      Scenario: Task title is validated before creation
+        Given Alex saved the editor with title "Fix nil pointer in auth handler"
+        When the binary reads the temp file
+        Then the task is created with that title
+        And Alex sees "Created TASK-042: Fix nil pointer in auth handler"
+
+  - id: 4
+    name: "Task created — success output"
+    command: "(stdout confirmation)"
+    description: |
+      AddTask.Execute persists the task file atomically and returns
+      the created task. The CLI prints the same success message as
+      'kanban new <title>' does today.
+
+    tui_mockup: |
+      $ kanban new
+      Created TASK-042: Fix nil pointer in auth handler
+      Hint: reference TASK-042 in your next commit to start tracking
+
+    shared_artifacts:
+      - name: "TASK_ID"
+        source: "tasks.NextID(repoRoot) via AddTask.Execute"
+        displayed_as: "${TASK_ID}"
+        consumers:
+          - "success stdout line 1"
+          - "hint stdout line 2"
+          - "task file name: .kanban/tasks/TASK-042.md"
+
+    emotional_state:
+      entry: "Anticipating confirmation"
+      exit: "Relieved — task captured, back to coding"
+
+    integration_checkpoint: |
+      Success message format must match existing 'kanban new <title>'
+      output exactly so users observe consistent behaviour regardless
+      of which input path they used.
+
+    gherkin: |
+      Scenario: Task creation confirmed with ID and title
+        Given Alex filled in the title "Fix nil pointer in auth handler"
+        And the task was successfully saved
+        When the binary prints the confirmation
+        Then Alex sees "Created TASK-042: Fix nil pointer in auth handler"
+        And Alex sees "Hint: reference TASK-042 in your next commit to start tracking"
+        And the process exits with code 0
+
+error_paths:
+  - id: EP-1
+    name: "Editor exits with empty title"
+    trigger: "Alex saves and quits without filling in title field"
+    stderr: "title cannot be empty"
+    exit_code: 2
+    recovery: "Re-run kanban new and fill in the title field"
+
+  - id: EP-2
+    name: "$EDITOR not set and vi unavailable"
+    trigger: "EDITOR env var is empty, vi not found in PATH"
+    stderr: "Error: open editor: exec: \"vi\": executable file not found in $PATH"
+    exit_code: 1
+    recovery: "Set the EDITOR environment variable: export EDITOR=nano"
+
+  - id: EP-3
+    name: "Not in a git repository"
+    trigger: "git.RepoRoot() returns error"
+    stderr: "Not a git repository"
+    exit_code: 1
+    recovery: "Change directory to a git repository"
+
+  - id: EP-4
+    name: "kanban not initialised"
+    trigger: "config.Read() returns ErrNotInitialised"
+    stderr: "kanban not initialised — run 'kanban init' first"
+    exit_code: 1
+    recovery: "Run 'kanban init' to set up the board"
+
+integration_validation:
+  shared_artifact_consistency:
+    - artifact: "EDITOR"
+      must_match_across: [step-1, step-2]
+      failure_message: "Editor resolution must use the same openEditor() helper as 'kanban edit'"
+    - artifact: "TMP_FILE"
+      must_match_across: [step-2, step-3]
+      failure_message: "Path written by WriteTemp must be path read by ReadTemp"
+    - artifact: "TASK_ID"
+      must_match_across: [step-4]
+      failure_message: "ID shown in stdout must match ID used for task file"
+    - artifact: "success_message_format"
+      must_match_across: ["kanban new <title>", "kanban new (editor mode)"]
+      failure_message: "Output format must be identical between the two input paths"

@@ -3,7 +3,6 @@ package usecases
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/kanban-tasks/kanban/internal/domain"
@@ -51,7 +50,7 @@ func (u *EditTask) Execute(repoRoot, taskID string) (TaskDiff, error) {
 	defer func() { _ = os.Remove(tmpFile) }()
 
 	// Open editor.
-	if err := openEditor(tmpFile); err != nil {
+	if err := OpenEditor(resolveEditor(), tmpFile); err != nil {
 		return TaskDiff{}, fmt.Errorf("open editor: %w", err)
 	}
 
@@ -80,18 +79,6 @@ func (u *EditTask) Execute(repoRoot, taskID string) (TaskDiff, error) {
 	}
 
 	return TaskDiff{Before: before, After: after, ChangedFields: changed}, nil
-}
-
-func openEditor(filePath string) error {
-	editor := os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "vi"
-	}
-	cmd := exec.Command(editor, filePath)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }
 
 func applyEditFields(task domain.Task, ef ports.EditSnapshot) domain.Task {

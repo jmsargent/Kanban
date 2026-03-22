@@ -13,22 +13,18 @@ import (
 )
 
 // NewCreateCommand builds the "kanban new" cobra command.
-// It validates input, invokes the AddTask use case, and maps errors to exit codes.
-func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
+// With no positional argument it opens $EDITOR with a blank task template.
+// With a positional argument it creates the task immediately.
+func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, editor ports.EditFilePort) *cobra.Command {
 	var priority string
 	var dueStr string
 	var assignee string
 
 	cmd := &cobra.Command{
-		Use:   "new <title>",
+		Use:   "new [title]",
 		Short: "Create a new task",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			title := ""
-			if len(args) > 0 {
-				title = args[0]
-			}
-
 			repoRoot, err := git.RepoRoot()
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "Not a git repository")
@@ -41,6 +37,28 @@ func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks po
 				os.Exit(1)
 			}
 
+			// Zero-arg branch: open editor with blank template.
+			if len(args) == 0 {
+				uc := usecases.NewNewEditorTask(config, tasks, editor)
+				task, err := uc.Execute(repoRoot, identity.Name)
+				if err != nil {
+					if errors.Is(err, ports.ErrInvalidInput) {
+						fmt.Fprintf(os.Stderr, "%s\n", unwrapMessage(err))
+						os.Exit(2)
+					}
+					if errors.Is(err, ports.ErrNotInitialised) {
+						fmt.Fprintln(os.Stderr, "kanban not initialised — run 'kanban init' first")
+						os.Exit(1)
+					}
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
+				fmt.Printf("Created %s: %s\n", task.ID, task.Title)
+				fmt.Printf("Hint: reference %s in your next commit to start tracking\n", task.ID)
+				return nil
+			}
+
+			// Title-arg branch: create immediately.
 			var due *time.Time
 			if dueStr != "" {
 				parsed, parseErr := time.Parse("2006-01-02", dueStr)
@@ -52,7 +70,7 @@ func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks po
 			}
 
 			input := usecases.AddTaskInput{
-				Title:     title,
+				Title:     args[0],
 				Priority:  priority,
 				Due:       due,
 				Assignee:  assignee,

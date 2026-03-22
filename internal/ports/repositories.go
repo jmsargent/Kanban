@@ -58,6 +58,10 @@ type EditFilePort interface {
 	// Returns the path to the temp file.
 	WriteTemp(task domain.Task) (string, error)
 
+	// WriteTempNew writes a blank task template to a temporary file for use by
+	// the interactive "kanban new" flow. Returns the path to the temp file.
+	WriteTempNew() (string, error)
+
 	// ReadTemp reads the YAML temp file at path and returns the snapshot.
 	ReadTemp(path string) (EditSnapshot, error)
 }

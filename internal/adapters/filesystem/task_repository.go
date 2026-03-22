@@ -366,6 +366,27 @@ func (r *TaskRepository) WriteTemp(task domain.Task) (string, error) {
 	return f.Name(), nil
 }
 
+// WriteTempNew writes a blank task template to a temporary file for the
+// interactive "kanban new" editor flow. Returns the temp file path.
+// The caller is responsible for removing the file.
+func (r *TaskRepository) WriteTempNew() (string, error) {
+	f, err := os.CreateTemp("", "kanban-new-*.yaml")
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = f.Close() }()
+
+	template := `title: ""
+# title is required
+priority: ""
+assignee: ""
+`
+	if _, err := f.WriteString(template); err != nil {
+		return "", err
+	}
+	return f.Name(), nil
+}
+
 // ReadTemp reads the YAML temp file at path and returns an EditSnapshot.
 func (r *TaskRepository) ReadTemp(path string) (ports.EditSnapshot, error) {
 	data, err := os.ReadFile(path)
