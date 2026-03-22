@@ -42,7 +42,7 @@ func NewInstallHookCommand() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Fprintln(cmd.ErrOrStderr(), "install-hook has been removed; kanban no longer manages git hooks")
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "install-hook has been removed; kanban no longer manages git hooks")
 			osExit(1)
 			return nil
 		},

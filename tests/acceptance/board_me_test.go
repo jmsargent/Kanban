@@ -90,26 +90,3 @@ func TestBoardMe_DoesNotAffectUnfilteredBoard(t *testing.T) {
 	dsl.And(ctx, dsl.BoardOutputContains(myTaskID))
 	dsl.And(ctx, dsl.BoardOutputContains(otherTaskID))
 }
-
-// TestBoardMe_WorksWithTransitionsLogStatusStorage validates AC-03-7:
-// "kanban board --me" correctly reads status from transitions.log (not from
-// a YAML status field) and applies the --me filter on top of log-derived state.
-// This validates that the two DESIGN wave decisions (log-only status + --me filter)
-// compose correctly.
-func TestBoardMe_WorksWithTransitionsLogStatusStorage(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.TaskAssignedTo("Implement throttle middleware", "test@example.com"))
-	myTaskID := ctx.LastTaskID()
-	// Advance to in-progress via transitions.log (not via YAML status field).
-	dsl.Given(ctx, dsl.TaskStarted(myTaskID))
-
-	dsl.When(ctx, dsl.DeveloperRunsKanbanBoardWithMe())
-
-	dsl.Then(ctx, dsl.ExitsSuccessfully())
-	// The task must appear in the correct column derived from transitions.log.
-	dsl.And(ctx, dsl.BoardShowsTaskInColumn(myTaskID, "IN PROGRESS"))
-	// The task file must not have a status field — status comes from the log.
-	dsl.And(ctx, dsl.TaskFileDoesNotContainStatusField(myTaskID))
-}

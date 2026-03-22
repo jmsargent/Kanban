@@ -1,0 +1,100 @@
+feature: explicit-state-transitions
+journey_name: explicit-state-transitions
+date: 2026-03-22
+
+personas:
+  - id: developer
+    description: Developer using kanban CLI to manage task state
+  - id: ci_pipeline
+    description: CI pipeline (CircleCI) executing kanban ci-done after tests pass
+
+journeys:
+  - id: developer-done
+    persona: developer
+    goal: Mark a finished task as done and commit the change
+    phases:
+      - name: Work on Task
+        steps:
+          - actor: developer
+            action: Completes work on TASK-NNN
+            system: none
+            output: Work is done, task still shows in-progress
+      - name: Mark Done
+        steps:
+          - actor: developer
+            action: "Runs: kanban done TASK-NNN"
+            system: kanban CLI
+            output: "status: done written to task YAML (atomic)"
+            stdout: "kanban: TASK-NNN moved in-progress -> done"
+            exit_code: 0
+            no_git_subprocess: true
+      - name: Commit
+        steps:
+          - actor: developer
+            action: "Runs: git add .kanban/tasks/TASK-NNN.md && git commit"
+            system: git (developer-owned)
+            output: Commit recorded in git history
+      - name: Verify
+        steps:
+          - actor: developer
+            action: "Runs: kanban board"
+            system: kanban CLI
+            output: TASK-NNN appears in DONE column
+
+  - id: ci-done
+    persona: ci_pipeline
+    goal: Transition tasks to done after pipeline passes, without kanban auto-committing
+    phases:
+      - name: Tests Pass
+        steps:
+          - actor: ci_pipeline
+            action: All tests exit 0
+            system: CircleCI
+            output: CI proceeds to post-test steps
+      - name: Kanban Update
+        steps:
+          - actor: ci_pipeline
+            action: "Runs: kanban ci-done --since=$CIRCLE_SHA1^"
+            system: kanban CLI
+            output: Task YAML files updated to status done
+            stdout_per_task: "kanban: TASK-NNN moved in-progress -> done"
+            exit_code: 0
+            no_git_subprocess: true
+      - name: Explicit Commit
+        steps:
+          - actor: ci_pipeline
+            action: "Runs: git add .kanban/tasks/ && git commit -m 'kanban: mark tasks done [skip ci]'"
+            system: git (CI-owned, visible in CI config)
+            output: State commit added to git history
+      - name: Push
+        steps:
+          - actor: ci_pipeline
+            action: "Runs: git push"
+            system: git
+            output: Updated task files available to all team members
+
+shared_artifacts:
+  - name: task_yaml_status
+    field: "status:"
+    file_pattern: ".kanban/tasks/*.md"
+    written_by: [kanban_done, kanban_ci_done, kanban_start]
+    read_by: [kanban_board]
+
+  - name: git_identity
+    source: "git config user.name / user.email"
+    port: GitPort.GetIdentity()
+    used_by: [kanban_add_created_by, kanban_start_assignee]
+
+error_paths:
+  - scenario: task_not_found
+    trigger: "kanban done NONEXISTENT"
+    response: exit 1, stderr task not found
+  - scenario: already_done
+    trigger: "kanban done TASK-NNN (already done)"
+    response: exit 0, idempotent message
+  - scenario: ci_no_tasks_found
+    trigger: "kanban ci-done --since=SHA (no task IDs in range)"
+    response: exit 0, silent
+  - scenario: leftover_hook
+    trigger: ".git/hooks/commit-msg delegates to kanban _hook commit-msg"
+    response: exit 0, safe no-op

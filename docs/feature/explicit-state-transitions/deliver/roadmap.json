@@ -1,0 +1,324 @@
+{
+  "roadmap": {
+    "project_id": "explicit-state-transitions",
+    "created_at": "2026-03-22T16:04:29Z",
+    "total_steps": 9,
+    "phases": 4
+  },
+  "phases": [
+    {
+      "id": "01",
+      "name": "Walking skeleton: CompleteTask use case and done command",
+      "description": "Introduce the CompleteTask use case and wire the 'kanban done' CLI command. No git interactions. All done_command_test.go scenarios must pass by end of this phase.",
+      "steps": [
+        {
+          "id": "01-01",
+          "name": "CompleteTask use case",
+          "description": "Create the CompleteTask use case. Receives repoRoot and taskID; reads the task via tasks.FindByID(); if task.Status is already StatusDone returns CompleteTaskResult{AlreadyDone: true} (idempotent); otherwise sets task.Status = domain.StatusDone and persists via tasks.Update(); returns CompleteTaskResult{From, To}. No git interactions of any kind.",
+          "criteria": [
+            "internal/usecases/complete_task.go compiles with zero imports from internal/adapters",
+            "CompleteTask.Execute returns AlreadyDone=true and exits cleanly when task.Status is already 'done'",
+            "CompleteTask.Execute sets task.Status to 'done' and calls tasks.Update() for todo and in-progress tasks",
+            "CompleteTask.Execute returns ErrTaskNotFound when the task ID does not exist",
+            "Unit test in complete_task_test.go uses an in-memory mock TaskRepository — no real filesystem or git calls",
+            "internal/usecases/complete_task_test.go passes with go test ./internal/usecases/..."
+          ],
+          "files_to_create": [
+            "internal/usecases/complete_task.go",
+            "internal/usecases/complete_task_test.go"
+          ],
+          "files_to_modify": [],
+          "test_file": "tests/acceptance/done_command_test.go",
+          "scenario_name": "TestDoneCommand_InProgressTaskTransitionsToDone",
+          "estimated_hours": 2,
+          "dependencies": [],
+          "implementation_notes": "CompleteTaskResult must carry From and To fields (domain.TaskStatus) so the CLI adapter can format 'moved <from> -> done'. No TransitionLogRepository dependency. Atomic write guarantee is satisfied by the existing TaskRepository.Update() implementation which already uses write-to-tmp + os.Rename."
+        },
+        {
+          "id": "01-02",
+          "name": "done CLI command and wiring",
+          "description": "Add the 'kanban done <task-id>' cobra command in internal/adapters/cli/done.go. Register it in NewRootCommand via root.go and wire it in cmd/kanban/main.go. The command delegates entirely to CompleteTask. All five done_command_test.go acceptance scenarios must pass.",
+          "criteria": [
+            "'kanban done <task-id>' exits 0 and prints 'moved <from> -> done' when task transitions successfully",
+            "'kanban done <task-id>' exits 0 and prints 'already done' when task.Status is already 'done' (idempotent)",
+            "'kanban done <task-id>' exits 1 and prints an error containing 'not found' when task ID does not exist",
+            "HEAD SHA is unchanged after 'kanban done' completes — no git commit or git add is invoked",
+            "'kanban done' does not appear alongside any git subprocess in process table during execution",
+            "internal/adapters/cli/done.go has zero imports from internal/adapters/filesystem or internal/adapters/git",
+            "All five scenarios in tests/acceptance/done_command_test.go pass"
+          ],
+          "files_to_create": [
+            "internal/adapters/cli/done.go",
+            "internal/adapters/cli/done_test.go"
+          ],
+          "files_to_modify": [
+            "internal/adapters/cli/root.go",
+            "cmd/kanban/main.go"
+          ],
+          "test_file": "tests/acceptance/done_command_test.go",
+          "scenario_name": "TestDoneCommand_NoAutoCommit",
+          "estimated_hours": 2,
+          "dependencies": ["01-01"],
+          "implementation_notes": "done.go follows the same pattern as start.go: inject git (for RepoRoot only), config, and tasks ports; use osExit variable for testability. NewRootCommand signature gains a new parameter or reuses the existing tasks port — do not add TransitionLogRepository. cmd/kanban/main.go wiring requires no new adapter instantiation."
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "name": "Use case simplification: remove TransitionLogRepository dependency",
+      "description": "Migrate GetBoard, StartTask, TransitionToDone, and GetTaskHistory to read status from task.Status (YAML) rather than from TransitionLogRepository. Remove the log field and all log.LatestStatus/log.Append/log.History calls from those use cases. Update all use case unit tests to remove mockLog.",
+      "steps": [
+        {
+          "id": "02-01",
+          "name": "GetBoard and StartTask read and write YAML status",
+          "description": "Remove the log field from GetBoard and StartTask. GetBoard.Execute reads t.Status directly from each task struct instead of calling log.LatestStatus. StartTask.Execute reads task.Status instead of log.LatestStatus, writes updated status back via tasks.Update(), and removes the log.Append call entirely. Update NewGetBoard and NewStartTask signatures to remove the log parameter.",
+          "criteria": [
+            "GetBoard no longer imports or references ports.TransitionLogRepository",
+            "GetBoard.Execute groups tasks by task.Status (YAML field) — no log.LatestStatus call",
+            "StartTask no longer imports or references ports.TransitionLogRepository",
+            "StartTask.Execute calls tasks.Update() to persist status:in-progress to the task file",
+            "StartTask.Execute does not call log.Append",
+            "internal/usecases/get_board_test.go passes with no mockLog argument",
+            "internal/usecases/start_task_test.go passes with no mockLog argument",
+            "tests/acceptance/explicit_state_transitions_test.go TestBoard_ReadsStatusFromYAMLWithNoTransitionsLog passes",
+            "go build ./... succeeds after this step"
+          ],
+          "files_to_create": [],
+          "files_to_modify": [
+            "internal/usecases/get_board.go",
+            "internal/usecases/get_board_test.go",
+            "internal/usecases/start_task.go",
+            "internal/usecases/start_task_test.go",
+            "internal/adapters/cli/board.go",
+            "internal/adapters/cli/start.go"
+          ],
+          "test_file": "tests/acceptance/explicit_state_transitions_test.go",
+          "scenario_name": "TestBoard_ReadsStatusFromYAMLWithNoTransitionsLog",
+          "estimated_hours": 3,
+          "dependencies": ["01-02"],
+          "implementation_notes": "StartTask previously only appended to transitions.log without touching the task file. After this step it must call tasks.Update() to persist the status change, satisfying the YAML-as-source-of-truth invariant. The 'already in-progress' idempotency check becomes task.Status == domain.StatusInProgress. board.go and start.go CLI adapters must drop the log parameter from their NewGetBoard/NewStartTask constructor calls; update NewBoardCommand and NewStartCommand signatures accordingly."
+        },
+        {
+          "id": "02-02",
+          "name": "TransitionToDone and GetTaskHistory simplification",
+          "description": "Remove the log field from TransitionToDone and GetTaskHistory. TransitionToDone.Execute: derive current status from task.Status (not log.LatestStatus); call tasks.Update() to persist status:done; remove the log.Append call and the git.CommitFiles call entirely. GetTaskHistory.Execute: remove log field and log.History call; use only git.LogFile() as the single history source; remove deduplicateByTimestamp helper (no longer needed). Update both use case unit test files to remove log mock arguments.",
+          "criteria": [
+            "TransitionToDone no longer imports or references ports.TransitionLogRepository",
+            "TransitionToDone.Execute calls tasks.Update() to write status:done to the task YAML file",
+            "TransitionToDone.Execute does not call git.CommitFiles or git.Add",
+            "TransitionToDone.Execute prints '[kanban] <id> moved in-progress -> done' per transitioned task",
+            "GetTaskHistory no longer imports or references ports.TransitionLogRepository",
+            "GetTaskHistory.Execute returns entries from git.LogFile only — no merge, no deduplication",
+            "internal/usecases/transition_done_test.go passes with no mockLog argument",
+            "internal/usecases/get_task_history_test.go passes with no mockLog argument",
+            "tests/acceptance/explicit_state_transitions_test.go TestCiDone_UpdatesTaskStatusFromCommitMessages passes",
+            "go build ./... succeeds after this step"
+          ],
+          "files_to_create": [],
+          "files_to_modify": [
+            "internal/usecases/transition_done.go",
+            "internal/usecases/transition_done_test.go",
+            "internal/usecases/get_task_history.go",
+            "internal/usecases/get_task_history_test.go",
+            "internal/adapters/cli/ci_done.go",
+            "internal/adapters/cli/log.go"
+          ],
+          "test_file": "tests/acceptance/explicit_state_transitions_test.go",
+          "scenario_name": "TestCiDone_UpdatesTaskStatusFromCommitMessages",
+          "estimated_hours": 3,
+          "dependencies": ["02-01"],
+          "implementation_notes": "TransitionToDone previously committed transitions.log via git.CommitFiles — that call must be deleted entirely. The git field on TransitionToDone is still needed for git.CommitMessagesInRange; only git.CommitFiles usage is removed. The deduplicateByTimestamp and isTransitionMessage helpers in get_task_history.go are dead code once log.History is removed — delete them to avoid confusion. ci_done.go and log.go CLI adapter constructors must drop the log parameter."
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "name": "CLI and wiring cleanup",
+      "description": "Remove the TransitionLogRepository parameter from all remaining CLI adapters and from NewRootCommand. Remove the TransitionLogAdapter instantiation from main.go. Convert the _hook commit-msg subcommand to a safe no-op and convert install-hook to an error handler. Strip the .kanban/hook.log gitignore entry and InstallHook + CommitFiles calls from InitRepo.",
+      "steps": [
+        {
+          "id": "03-01",
+          "name": "Remove log parameter from CLI adapters and rewire main.go",
+          "description": "Remove the log ports.TransitionLogRepository parameter from NewRootCommand, NewBoardCommand, NewHookCommand, NewCIDoneCommand, NewStartCommand, and NewLogCommand signatures. Update cmd/kanban/main.go to remove the filesystem.NewTransitionLogAdapter() instantiation and pass only (git, config, tasks, tasks) to NewRootCommand.",
+          "criteria": [
+            "NewRootCommand signature is NewRootCommand(git, config, tasks, editor) — no log parameter",
+            "No CLI adapter file in internal/adapters/cli/ references ports.TransitionLogRepository",
+            "cmd/kanban/main.go does not import internal/adapters/filesystem for TransitionLogAdapter",
+            "go build ./... succeeds after this step",
+            "tests/acceptance/explicit_state_transitions_test.go TestBoard_GroupsTasksByYAMLStatus passes"
+          ],
+          "files_to_create": [],
+          "files_to_modify": [
+            "internal/adapters/cli/root.go",
+            "internal/adapters/cli/board.go",
+            "internal/adapters/cli/ci_done.go",
+            "internal/adapters/cli/start.go",
+            "internal/adapters/cli/log.go",
+            "internal/adapters/cli/hook.go",
+            "cmd/kanban/main.go"
+          ],
+          "test_file": "tests/acceptance/explicit_state_transitions_test.go",
+          "scenario_name": "TestBoard_GroupsTasksByYAMLStatus",
+          "estimated_hours": 1,
+          "dependencies": ["02-02"],
+          "implementation_notes": "This is a mechanical signature cleanup step. The editor (EditFilePort) parameter on NewRootCommand remains; only the log parameter is removed. After this step main.go should instantiate exactly three adapters: gitadapter.NewGitAdapter(), filesystem.NewConfigRepository(), filesystem.NewTaskRepository(). The tasks adapter satisfies both TaskRepository and EditFilePort, so it is passed twice (as tasks and editor)."
+        },
+        {
+          "id": "03-02",
+          "name": "Hook command changes: _hook no-op and install-hook error",
+          "description": "Rewrite hook.go so that the '_hook commit-msg' subcommand becomes a safe no-op (reads args, exits 0 immediately, no file I/O, no use case calls). Add a top-level 'install-hook' command that exits 1 with the message 'install-hook has been removed; kanban no longer manages git hooks'. Delete the .kanban/hooks/commit-msg file from the repository if present.",
+          "criteria": [
+            "'kanban _hook commit-msg <any-file>' exits 0 with no stdout, no stderr, and no side effects",
+            "transitions.log is absent after '_hook commit-msg' is invoked (TransitionsLogAbsent assertion passes)",
+            "'kanban install-hook' exits 1",
+            "'kanban install-hook' stderr or stdout contains 'install-hook has been removed'",
+            "'kanban --help' output does not contain 'install-hook'",
+            ".kanban/hooks/commit-msg is deleted from the repository working tree",
+            "tests/acceptance/explicit_state_transitions_test.go TestHookRemoved_CommitMsgHookDelegationIsNoOp passes",
+            "tests/acceptance/explicit_state_transitions_test.go TestHookRemoved_InstallHookAbsentFromHelp passes",
+            "tests/acceptance/explicit_state_transitions_test.go TestHookRemoved_InstallHookCommandExitsWithError passes"
+          ],
+          "files_to_create": [],
+          "files_to_modify": [
+            "internal/adapters/cli/hook.go",
+            "internal/adapters/cli/hook_test.go",
+            "internal/adapters/cli/root.go"
+          ],
+          "files_to_delete": [
+            ".kanban/hooks/commit-msg"
+          ],
+          "test_file": "tests/acceptance/explicit_state_transitions_test.go",
+          "scenario_name": "TestHookRemoved_CommitMsgHookDelegationIsNoOp",
+          "estimated_hours": 1,
+          "dependencies": ["03-01"],
+          "implementation_notes": "The _hook command group remains hidden (Hidden: true) so it does not appear in --help. The install-hook command must be visible but return exit code 1; use osExit(1) pattern consistent with start.go. The appendHookLog helper in hook.go can be deleted — it is only called from the commit-msg subcommand path which is now a no-op. Remove the TransitionToInProgress use case instantiation from hook.go."
+        },
+        {
+          "id": "03-03",
+          "name": "InitRepo no-commit",
+          "description": "Remove git.InstallHook() and git.CommitFiles() calls from InitRepo.Execute. Remove the git.AppendToGitignore(repoRoot, '.kanban/hook.log') call. Update init_repo_test.go to remove assertions or mock expectations for those git methods.",
+          "criteria": [
+            "InitRepo.Execute does not call git.InstallHook",
+            "InitRepo.Execute does not call git.CommitFiles",
+            "InitRepo.Execute does not call git.AppendToGitignore for '.kanban/hook.log'",
+            "HEAD SHA is unchanged after 'kanban init' completes",
+            ".kanban/config is created on disk",
+            ".kanban/ directory exists after 'kanban init'",
+            "init_repo_test.go passes with updated mock expectations",
+            "tests/acceptance/explicit_state_transitions_test.go TestInit_DoesNotAutoCommit passes"
+          ],
+          "files_to_create": [],
+          "files_to_modify": [
+            "internal/usecases/init_repo.go",
+            "internal/usecases/init_repo_test.go"
+          ],
+          "test_file": "tests/acceptance/explicit_state_transitions_test.go",
+          "scenario_name": "TestInit_DoesNotAutoCommit",
+          "estimated_hours": 1,
+          "dependencies": ["03-02"],
+          "implementation_notes": "After removing InstallHook and CommitFiles from InitRepo, the git field on InitRepo is still needed for git.RepoRoot(). Do not remove the git port from InitRepo. The existing acceptance test init_test.go verifies that .kanban/config is created and the board is operational post-init — ensure those tests still pass. The .gitignore entry for '.kanban/hook.log' should no longer be written; if .gitignore already contains it in existing repos that is acceptable (out of scope for this step)."
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "name": "Infrastructure cleanup: delete dead code and verify build",
+      "description": "Delete the methods, types, files, and packages that are no longer referenced after phases 01-03. Every deletion must leave the binary compilable with all tests passing.",
+      "steps": [
+        {
+          "id": "04-01",
+          "name": "Remove dead GitPort methods and TransitionToInProgress use case",
+          "description": "Remove CommitFiles and InstallHook from the GitPort interface in internal/ports/git.go. Remove their implementations and corresponding tests from internal/adapters/git/git_adapter.go and internal/adapters/git/git_adapter_test.go. Move the CommitEntry type from internal/ports/transition_log.go to internal/ports/git.go (it belongs with GitPort.LogFile). Delete internal/usecases/transition_task.go (contains TransitionToInProgress and TransitionTask, both used only by the now-dead hook path).",
+          "criteria": [
+            "ports.GitPort interface no longer declares CommitFiles or InstallHook",
+            "internal/adapters/git/git_adapter.go does not contain CommitFiles or InstallHook implementations",
+            "CommitEntry type is declared in internal/ports/git.go",
+            "internal/usecases/transition_task.go is deleted",
+            "internal/usecases/transition_test.go is deleted (or updated to remove all transition_task references)",
+            "go build ./... succeeds for all targets (linux/amd64, darwin/arm64)",
+            "go test ./... passes",
+            "go-arch-lint check passes",
+            "tests/acceptance/explicit_state_transitions_test.go TestCiDone_NoTasksInRangeExitsClean passes"
+          ],
+          "files_to_create": [],
+          "files_to_modify": [
+            "internal/ports/git.go",
+            "internal/adapters/git/git_adapter.go",
+            "internal/adapters/git/git_adapter_test.go"
+          ],
+          "files_to_delete": [
+            "internal/usecases/transition_task.go",
+            "internal/usecases/transition_test.go"
+          ],
+          "test_file": "tests/acceptance/explicit_state_transitions_test.go",
+          "scenario_name": "TestCiDone_NoTasksInRangeExitsClean",
+          "estimated_hours": 2,
+          "dependencies": ["03-03"],
+          "implementation_notes": "CommitEntry is currently declared in internal/ports/transition_log.go and used by GitPort.LogFile — after deleting transition_log.go in step 04-02 it must live in internal/ports/git.go. Move it in this step to avoid a compile break in 04-02. The compile-time interface check 'var _ ports.GitPort = (*GitAdapter)(nil)' in git_adapter.go will catch any missed method removals. advance_by_commit_test.go tests TransitionTask.AdvanceByCommitMessage — delete that file along with transition_task.go."
+        },
+        {
+          "id": "04-02",
+          "name": "Delete TransitionLogRepository port, adapter, domain type, and flock files",
+          "description": "Delete internal/ports/transition_log.go (TransitionLogRepository interface — CommitEntry already moved to git.go in 04-01). Delete internal/domain/transition_entry.go (TransitionEntry type). Delete internal/adapters/filesystem/transition_log_adapter.go, transition_log_adapter_test.go, flock_unix.go, and flock_windows.go. Verify go build, go test, and go-arch-lint all pass.",
+          "criteria": [
+            "internal/ports/transition_log.go does not exist",
+            "internal/domain/transition_entry.go does not exist",
+            "internal/adapters/filesystem/transition_log_adapter.go does not exist",
+            "internal/adapters/filesystem/transition_log_adapter_test.go does not exist",
+            "internal/adapters/filesystem/flock_unix.go does not exist",
+            "internal/adapters/filesystem/flock_windows.go does not exist",
+            "No source file in the repository imports ports.TransitionLogRepository",
+            "No source file in the repository references domain.TransitionEntry",
+            "go build ./... succeeds for all cross-compilation targets",
+            "go test ./... passes with zero failures",
+            "go-arch-lint check passes",
+            "tests/acceptance/explicit_state_transitions_test.go TestCiDone_AlreadyDoneTaskIsSkipped passes",
+            "All 9 steps across all phases have their gate acceptance test passing"
+          ],
+          "files_to_create": [],
+          "files_to_modify": [],
+          "files_to_delete": [
+            "internal/ports/transition_log.go",
+            "internal/domain/transition_entry.go",
+            "internal/adapters/filesystem/transition_log_adapter.go",
+            "internal/adapters/filesystem/transition_log_adapter_test.go",
+            "internal/adapters/filesystem/flock_unix.go",
+            "internal/adapters/filesystem/flock_windows.go"
+          ],
+          "test_file": "tests/acceptance/explicit_state_transitions_test.go",
+          "scenario_name": "TestCiDone_AlreadyDoneTaskIsSkipped",
+          "estimated_hours": 1,
+          "dependencies": ["04-01"],
+          "implementation_notes": "This step is purely deletions — no new code is written. Before deleting, run 'grep -r TransitionLogRepository .' and 'grep -r TransitionEntry .' to confirm no remaining references outside the files being deleted. The flock files are build-tag-gated (//go:build !windows and //go:build windows) and exist solely to support TransitionLogAdapter — they have no other callers. After deletion, cross-compile for linux/amd64 and darwin/arm64 to confirm the build-tag variants are clean."
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": [
+      "internal/domain/",
+      "internal/ports/",
+      "internal/usecases/",
+      "internal/adapters/cli/",
+      "internal/adapters/filesystem/",
+      "internal/adapters/git/",
+      "cmd/kanban/"
+    ],
+    "test_directories": [
+      "tests/acceptance/",
+      "internal/usecases/",
+      "internal/adapters/cli/",
+      "internal/adapters/filesystem/",
+      "internal/adapters/git/"
+    ],
+    "excluded_patterns": [
+      "vendor/**",
+      "**/*_generated.go"
+    ]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "solution-architect-reviewer",
+    "approved_at": "2026-03-22"
+  }
+}

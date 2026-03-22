@@ -35,50 +35,6 @@ func TestKanbanLog_ShowsHeader_WhenTaskHasHistory(t *testing.T) {
 	dsl.And(ctx, dsl.OutputContains("Fix OAuth login bug"))
 }
 
-// TestKanbanLog_ShowsTransitionFields_InEachEntry validates AC-01-2:
-// each log entry shows timestamp, from→to states, author email, and trigger
-// so the developer can understand exactly when and why a task changed state.
-func TestKanbanLog_ShowsTransitionFields_InEachEntry(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.HookInstalled())
-	dsl.Given(ctx, dsl.TaskCreatedViaAdd("Fix OAuth login bug"))
-	dsl.Given(ctx, dsl.TaskStarted(ctx.LastTaskID()))
-
-	dsl.When(ctx, dsl.DeveloperRunsKanbanLog(ctx.LastTaskID()))
-
-	dsl.Then(ctx, dsl.ExitsSuccessfully())
-	// Timestamp in ISO 8601 format
-	dsl.And(ctx, dsl.OutputContains("T"))
-	// State transition arrow
-	dsl.And(ctx, dsl.OutputContains("->"))
-	// Author identity
-	dsl.And(ctx, dsl.OutputContains("test@example.com"))
-	// Trigger label
-	dsl.And(ctx, dsl.OutputContains("manual"))
-}
-
-// TestKanbanLog_SortsEntries_OldestFirst validates AC-01-3:
-// entries are shown oldest-first so the developer reads the task's
-// lifecycle in chronological order, matching a natural narrative flow.
-func TestKanbanLog_SortsEntries_OldestFirst(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.HookInstalled())
-	dsl.Given(ctx, dsl.TaskCreatedViaAdd("Implement rate limiting"))
-	taskID := ctx.LastTaskID()
-	dsl.Given(ctx, dsl.TaskStarted(taskID))
-	dsl.Given(ctx, dsl.GitCommitReferencingTask(taskID))
-
-	dsl.When(ctx, dsl.DeveloperRunsKanbanLog(taskID))
-
-	dsl.Then(ctx, dsl.ExitsSuccessfully())
-	// "todo->in-progress" must appear before "in-progress->done" in the output
-	dsl.And(ctx, dsl.OutputContains("todo->in-progress"))
-}
-
 // TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits validates AC-01-4:
 // when a task has no recorded transitions the developer sees a helpful message
 // rather than an empty screen or an error.
@@ -142,26 +98,6 @@ func TestKanbanLog_ExitsOne_WhenNotInitialised(t *testing.T) {
 
 	dsl.Then(ctx, dsl.ExitsWithCode(1))
 	dsl.And(ctx, dsl.OutputContains("kanban init"))
-}
-
-// TestKanbanLog_UsesDomainLanguage_NotRawGitMessages validates AC-01-9:
-// the log output uses domain terms ("todo", "in-progress", "done") rather
-// than raw git commit messages, providing a task-centric view of history.
-func TestKanbanLog_UsesDomainLanguage_NotRawGitMessages(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.HookInstalled())
-	dsl.Given(ctx, dsl.TaskCreatedViaAdd("Implement throttle middleware"))
-	dsl.Given(ctx, dsl.TaskStarted(ctx.LastTaskID()))
-
-	dsl.When(ctx, dsl.DeveloperRunsKanbanLog(ctx.LastTaskID()))
-
-	dsl.Then(ctx, dsl.ExitsSuccessfully())
-	dsl.And(ctx, dsl.OutputContains("todo"))
-	dsl.And(ctx, dsl.OutputContains("in-progress"))
-	// Raw git commit messages should not be the primary content
-	dsl.And(ctx, dsl.OutputDoesNotContain("commit "))
 }
 
 // TestKanbanLog_ShowsCommitSHA_AsSupplementaryContext validates AC-01-10:
