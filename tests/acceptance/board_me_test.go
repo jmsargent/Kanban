@@ -8,7 +8,6 @@ package acceptance
 // Port-to-port: all scenarios invoke the kanban binary as subprocess.
 
 import (
-	"os"
 	"testing"
 
 	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
@@ -19,9 +18,6 @@ import (
 // git author email and hides tasks assigned to other developers. This lets
 // a developer on a shared board focus on their own work without noise.
 func TestBoardMe_ShowsOnlyCurrentDeveloperTasks(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -43,9 +39,6 @@ func TestBoardMe_ShowsOnlyCurrentDeveloperTasks(t *testing.T) {
 // informing the developer that unassigned tasks exist but are excluded from
 // the filtered view — so no work is silently hidden.
 func TestBoardMe_WarnsAboutUnassignedTasks(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -65,9 +58,6 @@ func TestBoardMe_WarnsAboutUnassignedTasks(t *testing.T) {
 // exits 0 and produces a clean empty-board message rather than an error or
 // a blank screen.
 func TestBoardMe_ShowsEmptyBoardGracefully_WhenNoMatchingTasks(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -86,9 +76,6 @@ func TestBoardMe_ShowsEmptyBoardGracefully_WhenNoMatchingTasks(t *testing.T) {
 // "kanban board" (without --me) continues to show all tasks regardless of
 // assignee. The --me flag only affects its own invocation.
 func TestBoardMe_DoesNotAffectUnfilteredBoard(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -110,9 +97,6 @@ func TestBoardMe_DoesNotAffectUnfilteredBoard(t *testing.T) {
 // This validates that the two DESIGN wave decisions (log-only status + --me filter)
 // compose correctly.
 func TestBoardMe_WorksWithTransitionsLogStatusStorage(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

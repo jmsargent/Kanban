@@ -1,8 +1,6 @@
 package dsl_test
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/kanban-tasks/kanban/tests/acceptance/dsl"
@@ -22,16 +20,6 @@ func TestSetupInAGitRepo(t *testing.T) {
 // TestSetupKanbanInitialised verifies that KanbanInitialised runs kanban init
 // and creates the .kanban/ directory.
 func TestSetupKanbanInitialised(t *testing.T) {
-	bin := os.Getenv("KANBAN_BIN")
-	if bin == "" {
-		abs, err := filepath.Abs("../../bin/kanban")
-		if err != nil || !fileExists(abs) {
-			t.Skip("kanban binary not built; run 'go build -o tests/acceptance/bin/kanban ./cmd/kanban' first")
-		}
-	} else if !fileExists(bin) {
-		t.Skip("KANBAN_BIN not found; binary must be built first")
-	}
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -56,16 +44,6 @@ func TestSetupNotAGitRepo(t *testing.T) {
 // TestSetupATaskWithStatus verifies that ATaskWithStatus creates a task file
 // with the specified status.
 func TestSetupATaskWithStatus(t *testing.T) {
-	bin := os.Getenv("KANBAN_BIN")
-	if bin == "" {
-		abs, err := filepath.Abs("../../bin/kanban")
-		if err != nil || !fileExists(abs) {
-			t.Skip("kanban binary not built")
-		}
-	} else if !fileExists(bin) {
-		t.Skip("KANBAN_BIN not found")
-	}
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -87,16 +65,6 @@ func TestSetupEnvVarSet(t *testing.T) {
 
 // TestSetupNoTasksExist verifies that NoTasksExist removes all task files.
 func TestSetupNoTasksExist(t *testing.T) {
-	bin := os.Getenv("KANBAN_BIN")
-	if bin == "" {
-		abs, err := filepath.Abs("../../bin/kanban")
-		if err != nil || !fileExists(abs) {
-			t.Skip("kanban binary not built")
-		}
-	} else if !fileExists(bin) {
-		t.Skip("KANBAN_BIN not found")
-	}
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -106,8 +74,3 @@ func TestSetupNoTasksExist(t *testing.T) {
 	// TaskFileExistsAs would fail — we just verify NoTasksExist doesn't error here.
 }
 
-// fileExists is a test helper.
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}

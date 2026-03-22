@@ -38,6 +38,9 @@ parameters:
   goreleaser-version:
     type: string
     default: "v2.14.3"
+  gotestsum-version:
+    type: string
+    default: "v1.13.0"
 
 orbs:
   go: circleci/go@3.0.2
@@ -92,6 +95,20 @@ commands:
           key: go-semver-release-<< pipeline.parameters.go-semver-release-version >>
           paths:
             - /home/circleci/go/bin/go-semver-release
+  install-gotestsum:
+    steps:
+      - restore_cache:
+          keys:
+            - gotestsum-<< pipeline.parameters.gotestsum-version >>
+      - run:
+          command: |
+            if [ ! -f "$(go env GOPATH)/bin/gotestsum" ]; then
+              go install gotest.tools/gotestsum@<< pipeline.parameters.gotestsum-version >>
+            fi
+      - save_cache:
+          key: gotestsum-<< pipeline.parameters.gotestsum-version >>
+          paths:
+            - /home/circleci/go/bin/gotestsum
   install-goreleaser:
     steps:
       - restore_cache:
@@ -146,9 +163,10 @@ jobs:
             echo "export PATH=$PWD:$PATH" >> $BASH_ENV
             echo "export KANBAN_BIN=$PWD/kanban" >> $BASH_ENV
       - go/mod-download
+      - install-gotestsum
       - run:
           name: E2E Tests
-          command: go test ./tests/acceptance/...
+          command: gotestsum --format testname -- ./tests/acceptance/...
 
   tag:
       executor: go-executor

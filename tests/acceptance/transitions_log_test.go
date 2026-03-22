@@ -11,7 +11,6 @@ package acceptance
 // configuration — transitions.log is an observable file output of the system.
 
 import (
-	"os"
 	"testing"
 
 	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
@@ -25,9 +24,6 @@ const skipUS02 = "pending: US-BSG-02 not yet implemented"
 // when a developer creates a new task the task file contains no "status:" field
 // because status is now derived solely from transitions.log.
 func TestTransitionsLog_NewTaskHasNoStatusField(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -43,9 +39,6 @@ func TestTransitionsLog_NewTaskHasNoStatusField(t *testing.T) {
 // explaining that status is tracked in transitions.log, helping future
 // readers understand the storage model.
 func TestTransitionsLog_NewTaskFileHasLogComment(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -60,9 +53,6 @@ func TestTransitionsLog_NewTaskFileHasLogComment(t *testing.T) {
 // a newly created task with no transitions.log entry appears in the TODO column
 // of the board, because a missing entry is treated as implicit "todo".
 func TestTransitionsLog_NewTaskAppearsInTodoColumn(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -80,9 +70,6 @@ func TestTransitionsLog_NewTaskAppearsInTodoColumn(t *testing.T) {
 // when a developer starts a task exactly one line is appended to
 // transitions.log — no duplicate writes, no bulk rewrites.
 func TestTransitionsLog_StartAppendsOneLine(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -99,9 +86,6 @@ func TestTransitionsLog_StartAppendsOneLine(t *testing.T) {
 // the line appended by "kanban start" contains all five required fields:
 // timestamp, task ID, "todo->in-progress", author email, and trigger "manual".
 func TestTransitionsLog_StartLineContainsRequiredFields(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -123,9 +107,6 @@ func TestTransitionsLog_StartLineContainsRequiredFields(t *testing.T) {
 // "kanban start" records the transition in transitions.log only — it must
 // not touch the task file, keeping task files as stable, human-authored content.
 func TestTransitionsLog_StartDoesNotModifyTaskFile(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -141,9 +122,6 @@ func TestTransitionsLog_StartDoesNotModifyTaskFile(t *testing.T) {
 // after "kanban start" the board derives the task's status from
 // transitions.log and shows the task in the IN PROGRESS column.
 func TestTransitionsLog_BoardShowsInProgress_AfterStart(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -161,9 +139,6 @@ func TestTransitionsLog_BoardShowsInProgress_AfterStart(t *testing.T) {
 // starting a task that is already in-progress exits with code 0 and an
 // informational message — not an error — because the desired state is already met.
 func TestTransitionsLog_StartOnInProgress_ExitsWithMessage(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -181,9 +156,6 @@ func TestTransitionsLog_StartOnInProgress_ExitsWithMessage(t *testing.T) {
 // starting a task that is already in-progress does not append a duplicate
 // entry to transitions.log — the log remains a clean audit trail.
 func TestTransitionsLog_StartIdempotent_NoDuplicateEntry(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -202,9 +174,6 @@ func TestTransitionsLog_StartIdempotent_NoDuplicateEntry(t *testing.T) {
 // when a developer makes a commit referencing a task the commit-msg hook
 // appends exactly one line to transitions.log recording the in-progress transition.
 func TestTransitionsLog_HookAppendsOneLine_OnCommit(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -221,9 +190,6 @@ func TestTransitionsLog_HookAppendsOneLine_OnCommit(t *testing.T) {
 // the commit-msg hook records transitions in transitions.log only and does not
 // modify any task file — keeping task files stable across commits.
 func TestTransitionsLog_HookDoesNotModifyTaskFiles(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -240,9 +206,6 @@ func TestTransitionsLog_HookDoesNotModifyTaskFiles(t *testing.T) {
 // the commit-msg hook exits 0 when it successfully records a transition,
 // so the developer's commit always proceeds.
 func TestTransitionsLog_HookExitsZero_OnSuccess(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -259,9 +222,6 @@ func TestTransitionsLog_HookExitsZero_OnSuccess(t *testing.T) {
 // even when transitions.log cannot be written the commit-msg hook exits 0 —
 // the hook must never block a commit under any circumstance.
 func TestTransitionsLog_HookExitsZero_WhenLogUnwritable(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -280,9 +240,6 @@ func TestTransitionsLog_HookExitsZero_WhenLogUnwritable(t *testing.T) {
 // developer is informed the transition was not recorded — but their commit
 // still proceeds.
 func TestTransitionsLog_HookWritesStderrWarning_WhenLogUnwritable(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -303,9 +260,6 @@ func TestTransitionsLog_HookWritesStderrWarning_WhenLogUnwritable(t *testing.T) 
 // the commit message the developer wrote must reach the repository unchanged
 // even when the hook fails to record the transition.
 func TestTransitionsLog_HookDoesNotModifyCommitMessage_WhenLogFails(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -328,9 +282,6 @@ func TestTransitionsLog_HookDoesNotModifyCommitMessage_WhenLogFails(t *testing.T
 // the board command reads status from transitions.log — it must not fall back
 // to a "status:" YAML field in the task file, validating the single source of truth.
 func TestTransitionsLog_BoardDerivesStatus_FromLogNotYAML(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	t.Skip(skipUS02)
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
@@ -352,9 +303,6 @@ func TestTransitionsLog_BoardDerivesStatus_FromLogNotYAML(t *testing.T) {
 // a task with no transitions.log entry is shown in the TODO column —
 // the implicit default state for a new task with no history.
 func TestTransitionsLog_BoardShowsTodo_WhenNoLogEntries(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -374,9 +322,6 @@ func TestTransitionsLog_BoardShowsTodo_WhenNoLogEntries(t *testing.T) {
 // when CI passes "kanban ci-done" appends a "in-progress->done" entry to
 // transitions.log for each in-progress task that was referenced in the run's commits.
 func TestTransitionsLog_CiDoneAppendsDoneEntry(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -395,9 +340,6 @@ func TestTransitionsLog_CiDoneAppendsDoneEntry(t *testing.T) {
 // the commit created by "kanban ci-done" includes only transitions.log —
 // no task files should be staged or committed by the CI step.
 func TestTransitionsLog_CiDoneCommitsOnlyTransitionsLog(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -416,9 +358,6 @@ func TestTransitionsLog_CiDoneCommitsOnlyTransitionsLog(t *testing.T) {
 // the "kanban ci-done" commit must not stage task files — ensures the
 // git history contains only intentional developer commits touching task files.
 func TestTransitionsLog_CiDoneCommitExcludesTaskFiles(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -441,9 +380,6 @@ func TestTransitionsLog_CiDoneCommitExcludesTaskFiles(t *testing.T) {
 // transitions.log entries survive a git rebase — the log is an ordinary
 // tracked file so rebase preserves it as long as there are no conflicts.
 func TestTransitionsLog_RebaseSafe_EntriesPreserved(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -460,9 +396,6 @@ func TestTransitionsLog_RebaseSafe_EntriesPreserved(t *testing.T) {
 // after a git rebase the board still derives the correct status from
 // transitions.log — the developer's view of task state is unaffected.
 func TestTransitionsLog_RebaseSafe_BoardCorrectAfterRebase(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -484,9 +417,6 @@ func TestTransitionsLog_RebaseSafe_BoardCorrectAfterRebase(t *testing.T) {
 // ends up with exactly the expected number of appended lines — no lines are lost
 // due to concurrent write races.
 func TestTransitionsLog_ConcurrentAppends_CorrectLineCount(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -505,9 +435,6 @@ func TestTransitionsLog_ConcurrentAppends_CorrectLineCount(t *testing.T) {
 // under concurrent writes, every line in transitions.log is complete and
 // well-formed — no partial writes, no truncated lines.
 func TestTransitionsLog_ConcurrentAppends_NoTruncatedLines(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -529,9 +456,6 @@ func TestTransitionsLog_ConcurrentAppends_NoTruncatedLines(t *testing.T) {
 // transitions.log still contains entries for it. The task file is authoritative
 // for task existence; the log is authoritative for state only.
 func TestTransitionsLog_DeletedTask_ExcludedFromBoard(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -551,9 +475,6 @@ func TestTransitionsLog_DeletedTask_ExcludedFromBoard(t *testing.T) {
 // exits 0 and emits an informational message rather than failing — a no-op run
 // is not an error.
 func TestTransitionsLog_CiDoneWithNoMatchingTasks_ExitsZeroWithMessage(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

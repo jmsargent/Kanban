@@ -523,9 +523,12 @@ func RebaseSquashingAllCommits() Step {
 			count := strings.TrimSpace(out)
 			_ = count
 
-			// Use GIT_SEQUENCE_EDITOR to squash all commits after first
+			// Use GIT_SEQUENCE_EDITOR to squash all commits after first.
+			// GIT_EDITOR=true prevents git from opening an interactive editor
+			// for the squash commit message (the `true` command exits 0 immediately).
 			env := append(ctx.env,
 				`GIT_SEQUENCE_EDITOR=sed -i.bak '2,$s/^pick/squash/'`,
+				`GIT_EDITOR=true`,
 			)
 			cmdCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()

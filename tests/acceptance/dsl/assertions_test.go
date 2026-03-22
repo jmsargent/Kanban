@@ -8,13 +8,11 @@ import (
 	"github.com/kanban-tasks/kanban/tests/acceptance/dsl"
 )
 
+
 // ─── ExitCodeIs ───────────────────────────────────────────────────────────────
 
 // TestAssertionExitCodeIs_Pass verifies ExitCodeIs(0) passes when lastExit is 0.
 func TestAssertionExitCodeIs_Pass(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -24,9 +22,6 @@ func TestAssertionExitCodeIs_Pass(t *testing.T) {
 
 // TestAssertionExitCodeIs_Fail verifies ExitCodeIs(1) returns an error when lastExit is 0.
 func TestAssertionExitCodeIs_Fail(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -41,9 +36,6 @@ func TestAssertionExitCodeIs_Fail(t *testing.T) {
 
 // TestAssertionOutputContains_Pass verifies OutputContains passes when text is in output.
 func TestAssertionOutputContains_Pass(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -54,9 +46,6 @@ func TestAssertionOutputContains_Pass(t *testing.T) {
 
 // TestAssertionOutputContains_Fail verifies OutputContains returns error when text is absent.
 func TestAssertionOutputContains_Fail(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -71,9 +60,6 @@ func TestAssertionOutputContains_Fail(t *testing.T) {
 
 // TestAssertionStderrContains_Fail verifies StderrContains returns error when text is absent.
 func TestAssertionStderrContains_Fail(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -88,9 +74,6 @@ func TestAssertionStderrContains_Fail(t *testing.T) {
 
 // TestAssertionTaskHasStatus_Pass verifies TaskHasStatus reads the status from the task file.
 func TestAssertionTaskHasStatus_Pass(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -100,9 +83,6 @@ func TestAssertionTaskHasStatus_Pass(t *testing.T) {
 
 // TestAssertionTaskHasStatus_Fail verifies TaskHasStatus returns error on status mismatch.
 func TestAssertionTaskHasStatus_Fail(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -117,9 +97,6 @@ func TestAssertionTaskHasStatus_Fail(t *testing.T) {
 
 // TestAssertionTaskFilePresent verifies TaskFilePresent passes when the file exists.
 func TestAssertionTaskFilePresent(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -129,9 +106,6 @@ func TestAssertionTaskFilePresent(t *testing.T) {
 
 // TestAssertionTaskFileRemoved verifies TaskFileRemoved returns error when file exists.
 func TestAssertionTaskFileRemoved(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -146,9 +120,6 @@ func TestAssertionTaskFileRemoved(t *testing.T) {
 
 // TestAssertionWorkspaceReady verifies that .kanban/tasks/ exists after kanban init.
 func TestAssertionWorkspaceReady(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -159,9 +130,6 @@ func TestAssertionWorkspaceReady(t *testing.T) {
 
 // TestAssertionNoANSIEscapeCodes_Pass verifies that plain board output has no ANSI codes.
 func TestAssertionNoANSIEscapeCodes_Pass(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -185,9 +153,6 @@ func TestAssertionNoANSIEscapeCodes_Fail(t *testing.T) {
 
 // TestAssertionNoTempFilesRemain verifies that no .tmp files remain in tasks dir.
 func TestAssertionNoTempFilesRemain(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -197,9 +162,6 @@ func TestAssertionNoTempFilesRemain(t *testing.T) {
 
 // TestAssertionNoTempFilesRemain_Fail verifies an error is returned when .tmp files exist.
 func TestAssertionNoTempFilesRemain_Fail(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -222,9 +184,6 @@ func TestAssertionNoTempFilesRemain_Fail(t *testing.T) {
 
 // TestAssertionConfigFileHasDefaults verifies the .kanban/config has expected defaults.
 func TestAssertionConfigFileHasDefaults(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

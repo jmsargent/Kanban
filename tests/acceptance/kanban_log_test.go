@@ -10,7 +10,6 @@ package acceptance
 // No internal packages are imported.
 
 import (
-	"os"
 	"testing"
 
 	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
@@ -23,9 +22,6 @@ import (
 // Walking skeleton: this is the first scenario that must pass for the
 // kanban log command to deliver observable user value.
 func TestKanbanLog_ShowsHeader_WhenTaskHasHistory(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -43,9 +39,6 @@ func TestKanbanLog_ShowsHeader_WhenTaskHasHistory(t *testing.T) {
 // each log entry shows timestamp, from→to states, author email, and trigger
 // so the developer can understand exactly when and why a task changed state.
 func TestKanbanLog_ShowsTransitionFields_InEachEntry(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -70,9 +63,6 @@ func TestKanbanLog_ShowsTransitionFields_InEachEntry(t *testing.T) {
 // entries are shown oldest-first so the developer reads the task's
 // lifecycle in chronological order, matching a natural narrative flow.
 func TestKanbanLog_SortsEntries_OldestFirst(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -95,9 +85,6 @@ func TestKanbanLog_SortsEntries_OldestFirst(t *testing.T) {
 //
 // Walking skeleton: one of the five passing scenarios.
 func TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -115,9 +102,6 @@ func TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits(t *testing.T) {
 //
 // Walking skeleton: one of the five passing scenarios.
 func TestKanbanLog_ExitsOne_WhenTaskNotFound(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -134,9 +118,6 @@ func TestKanbanLog_ExitsOne_WhenTaskNotFound(t *testing.T) {
 //
 // Walking skeleton: one of the five passing scenarios.
 func TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -153,9 +134,6 @@ func TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound(t *testing.T) {
 //
 // Walking skeleton: one of the five passing scenarios.
 func TestKanbanLog_ExitsOne_WhenNotInitialised(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.NoKanbanSetup())
@@ -170,9 +148,6 @@ func TestKanbanLog_ExitsOne_WhenNotInitialised(t *testing.T) {
 // the log output uses domain terms ("todo", "in-progress", "done") rather
 // than raw git commit messages, providing a task-centric view of history.
 func TestKanbanLog_UsesDomainLanguage_NotRawGitMessages(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -193,9 +168,6 @@ func TestKanbanLog_UsesDomainLanguage_NotRawGitMessages(t *testing.T) {
 // when a transition was triggered by a commit the SHA appears in the output
 // as supplementary context — visible but not the headline data.
 func TestKanbanLog_ShowsCommitSHA_AsSupplementaryContext(t *testing.T) {
-	if os.Getenv("KANBAN_BIN") == "" {
-		t.Skip("KANBAN_BIN not set — run via make acceptance")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

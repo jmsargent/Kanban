@@ -55,6 +55,11 @@ EXPECTED_ARCHLINT="$(param go-arch-lint-version)"
 ACTUAL_ARCHLINT="$(go-arch-lint version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
 check "go-arch-lint" "$EXPECTED_ARCHLINT" "${ACTUAL_ARCHLINT:-not installed}"
 
+# gotestsum
+EXPECTED_GOTESTSUM="$(param gotestsum-version)"
+ACTUAL_GOTESTSUM="$(gotestsum --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+check "gotestsum" "$EXPECTED_GOTESTSUM" "${ACTUAL_GOTESTSUM:-not installed}"
+
 # go-semver-release (CI-only — used in tag job; skip check if not installed locally)
 if command -v go-semver-release >/dev/null 2>&1; then
   EXPECTED_SEMVER="$(param go-semver-release-version)"

@@ -1,32 +1,13 @@
 package dsl_test
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/kanban-tasks/kanban/tests/acceptance/dsl"
 )
 
-// binaryAvailable returns true when the kanban binary is built and accessible.
-func binaryAvailable() bool {
-	bin := os.Getenv("KANBAN_BIN")
-	if bin == "" {
-		abs, err := filepath.Abs("../../bin/kanban")
-		if err != nil {
-			return false
-		}
-		bin = abs
-	}
-	_, err := os.Stat(bin)
-	return err == nil
-}
-
 // TestActionIRunKanban verifies that IRunKanban("board") exits 0 after init.
 func TestActionIRunKanban(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -36,9 +17,6 @@ func TestActionIRunKanban(t *testing.T) {
 
 // TestActionIRunKanbanNew verifies that IRunKanbanNew creates a task and sets lastTaskID.
 func TestActionIRunKanbanNew(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -51,9 +29,6 @@ func TestActionIRunKanbanNew(t *testing.T) {
 
 // TestActionIRunKanbanNewWithOptions verifies that optional flags are accepted.
 func TestActionIRunKanbanNewWithOptions(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -63,9 +38,6 @@ func TestActionIRunKanbanNewWithOptions(t *testing.T) {
 
 // TestActionIRunKanbanBoard verifies that IRunKanbanBoard exits 0.
 func TestActionIRunKanbanBoard(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -75,9 +47,6 @@ func TestActionIRunKanbanBoard(t *testing.T) {
 
 // TestActionIRunKanbanBoardJSON verifies that IRunKanbanBoardJSON produces valid JSON.
 func TestActionIRunKanbanBoardJSON(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -88,9 +57,6 @@ func TestActionIRunKanbanBoardJSON(t *testing.T) {
 
 // TestActionIRunKanbanStart verifies that IRunKanbanStart transitions a task.
 func TestActionIRunKanbanStart(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -102,9 +68,6 @@ func TestActionIRunKanbanStart(t *testing.T) {
 // TestActionIRunKanbanStartOnThatTask verifies that IRunKanbanStartOnThatTask
 // resolves the task ID at run time from ctx.lastTaskID.
 func TestActionIRunKanbanStartOnThatTask(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -115,9 +78,6 @@ func TestActionIRunKanbanStartOnThatTask(t *testing.T) {
 
 // TestActionIRunKanbanDeleteForce verifies that IRunKanbanDeleteForce removes the task.
 func TestActionIRunKanbanDeleteForce(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -129,9 +89,6 @@ func TestActionIRunKanbanDeleteForce(t *testing.T) {
 
 // TestActionIRunKanbanDelete verifies that IRunKanbanDelete pipes confirm input.
 func TestActionIRunKanbanDelete(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -143,9 +100,6 @@ func TestActionIRunKanbanDelete(t *testing.T) {
 
 // TestActionICommitWithMessage verifies that ICommitWithMessage records exit code.
 func TestActionICommitWithMessage(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -155,9 +109,6 @@ func TestActionICommitWithMessage(t *testing.T) {
 
 // TestActionICommitWithTaskID verifies that ICommitWithTaskID resolves task ID at run time.
 func TestActionICommitWithTaskID(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -168,9 +119,6 @@ func TestActionICommitWithTaskID(t *testing.T) {
 
 // TestActionCIStepRunsPass verifies that CIStepRunsPass runs kanban ci-done.
 func TestActionCIStepRunsPass(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -182,9 +130,6 @@ func TestActionCIStepRunsPass(t *testing.T) {
 
 // TestActionCIStepRunsFail verifies that CIStepRunsFail runs ci-done with failure env.
 func TestActionCIStepRunsFail(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
@@ -198,9 +143,6 @@ func TestActionCIStepRunsFail(t *testing.T) {
 // TestActionIRunKanbanEditTitle verifies that IRunKanbanEditTitle runs kanban edit
 // with a mock EDITOR and updates the task title.
 func TestActionIRunKanbanEditTitle(t *testing.T) {
-	if !binaryAvailable() {
-		t.Skip("kanban binary not built")
-	}
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

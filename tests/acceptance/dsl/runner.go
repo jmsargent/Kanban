@@ -3,6 +3,7 @@ package dsl
 import (
 	"bytes"
 	"context"
+	"os"
 	"os/exec"
 	"regexp"
 	"time"
@@ -34,6 +35,9 @@ func captureResult(ctx *Context, err error, stdout, stderr *bytes.Buffer) {
 func run(ctx *Context, args ...string) {
 	if ctx.t != nil {
 		ctx.t.Helper()
+	}
+	if _, err := os.Stat(ctx.binPath); err != nil {
+		ctx.t.Fatalf("kanban binary not found at %q; set KANBAN_BIN or build with: go build -o kanban ./cmd/kanban", ctx.binPath)
 	}
 	cmdCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

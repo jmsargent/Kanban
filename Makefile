@@ -19,7 +19,7 @@ acceptance:
 	@echo "Building kanban binary..."
 	@go build -o kanban ./cmd/kanban
 	@echo "Running acceptance tests..."
-	@KANBAN_BIN="$(CURDIR)/kanban" go test ./tests/acceptance/...
+	@KANBAN_BIN="$(CURDIR)/kanban" gotestsum --format testname -- ./tests/acceptance/...
 
 ## ci: run validate then acceptance (mirrors CI pipeline locally)
 ci:
