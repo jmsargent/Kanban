@@ -34,11 +34,7 @@ func InAGitRepo() Step {
 	return Step{
 		Description: "a git repository in a temp dir",
 		Run: func(ctx *Context) error {
-			dir, err := os.MkdirTemp("", "kanban-test-*")
-			if err != nil {
-				return fmt.Errorf("create temp dir: %w", err)
-			}
-			ctx.t.Cleanup(func() { _ = os.RemoveAll(dir) })
+			dir := ctx.t.TempDir()
 			ctx.repoDir = dir
 
 			if _, err := gitCmd(ctx, "init"); err != nil {
@@ -100,12 +96,7 @@ func NotAGitRepo() Step {
 	return Step{
 		Description: "current directory is not a git repository",
 		Run: func(ctx *Context) error {
-			dir, err := os.MkdirTemp("", "kanban-nogit-*")
-			if err != nil {
-				return fmt.Errorf("create temp dir: %w", err)
-			}
-			ctx.t.Cleanup(func() { _ = os.RemoveAll(dir) })
-			ctx.repoDir = dir
+			ctx.repoDir = ctx.t.TempDir()
 			return nil
 		},
 	}

@@ -1,21 +1,17 @@
 .PHONY: validate acceptance ci release-snapshot release tag-dry help
 
-## validate: run all quality gates locally (mirrors CI validate-and-build job)
+## validate: run static quality gates locally (mirrors CI validate-and-build job)
 validate:
-	@echo "[0/5] check-versions"
+	@echo "[0/4] check-versions"
 	@cicd/check-versions.sh
-	@echo "[1/5] go test ./internal/..."
+	@echo "[1/4] go test ./internal/..."
 	@go test ./internal/...
-	@echo "[2/5] golangci-lint run"
+	@echo "[2/4] golangci-lint run"
 	@golangci-lint run
-	@echo "[3/5] go-arch-lint check"
+	@echo "[3/4] go-arch-lint check"
 	@go-arch-lint check
-	@echo "[4/5] go build ./..."
+	@echo "[4/4] go build ./..."
 	@go build ./...
-	@if [ -z "$$KANBAN_VALIDATE_DEPTH" ]; then \
-		echo "[5/5] acceptance tests"; \
-		KANBAN_VALIDATE_DEPTH=1 $(MAKE) acceptance; \
-	fi
 	@echo "PASS"
 
 ## acceptance: build kanban binary and run acceptance tests

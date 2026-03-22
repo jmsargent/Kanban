@@ -35,7 +35,6 @@ package acceptance
 //   14. TestPipeline_GoreleaserCache_CIOnlyDocumented                 (Tier 3, skip)
 
 import (
-	"os"
 	"testing"
 
 	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
@@ -51,20 +50,16 @@ import (
 //
 // This is the first test to enable. All others begin as t.Skip.
 func TestPipeline_ValidateTarget_PassesWhenAllChecksGreen(t *testing.T) {
-	if os.Getenv("KANBAN_VALIDATE_DEPTH") != "" {
-		t.Skip("skipping: running at recursion depth > 0 inside make validate")
-	}
 	pc := dsl.NewPipelineContext(t)
 	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
 	dsl.PipelineGiven(pc, dsl.AllToolVersionsMatchPipeline())
 	dsl.PipelineWhen(pc, dsl.DeveloperRunsMakeTarget("validate"))
 	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[0/5] check-versions"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[1/5]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[2/5]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[3/5] go-arch-lint"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[4/5]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[5/5]"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[0/4] check-versions"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[1/4]"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[2/4]"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[3/4] go-arch-lint"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[4/4]"))
 	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("PASS"))
 }
 
@@ -114,12 +109,11 @@ func TestPipeline_ValidateTarget_ReportsEachStepLabel(t *testing.T) {
 	dsl.PipelineWhen(pc, dsl.DeveloperRunsMakeTarget("validate"))
 	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
 	// Step labels must appear — their presence proves commands ran in declared order
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[0/5] check-versions"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[1/5]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[2/5]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[3/5] go-arch-lint"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[4/5]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[5/5]"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[0/4] check-versions"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[1/4]"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[2/4]"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[3/4] go-arch-lint"))
+	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[4/4]"))
 }
 
 // TestPipeline_ValidateTarget_FailsWhenBinaryCannotBeBuilt asserts that when

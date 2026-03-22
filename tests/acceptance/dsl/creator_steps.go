@@ -1,8 +1,10 @@
 package dsl
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -50,7 +52,15 @@ func InAGitRepoWithoutGitIdentity() Step {
 			if _, err := gitCmd(ctx, "init"); err != nil {
 				return fmt.Errorf("git init: %w", err)
 			}
-			// Do NOT run `git config user.name` — that is the point of this step.
+			// Set local git config so kanban init's git commit can succeed.
+			// GitIdentityUnconfigured() removes these before the kanban binary
+			// is invoked by the test, so GetIdentity() still detects no identity.
+			if _, err := gitCmd(ctx, "config", "user.name", "Test User"); err != nil {
+				return fmt.Errorf("git config user.name: %w", err)
+			}
+			if _, err := gitCmd(ctx, "config", "user.email", "test@example.com"); err != nil {
+				return fmt.Errorf("git config user.email: %w", err)
+			}
 
 			readmePath := filepath.Join(dir, "README.md")
 			if err := os.WriteFile(readmePath, []byte("# test\n"), 0644); err != nil {
@@ -61,6 +71,32 @@ func InAGitRepoWithoutGitIdentity() Step {
 			}
 			if _, err := gitCmd(ctx, "commit", "-m", "Initial commit"); err != nil {
 				return fmt.Errorf("git commit: %w", err)
+			}
+			return nil
+		},
+	}
+}
+
+// GitIdentityUnconfigured removes user.name and user.email from the repo's
+// local git config. Use this after KanbanInitialised() in tests that verify
+// kanban new behaviour when no git identity is configured: kanban init needs
+// local config entries to commit its initial setup, but the "When" step must
+// see no identity so that GetIdentity() returns ErrGitIdentityNotConfigured.
+func GitIdentityUnconfigured() Step {
+	return Step{
+		Description: "git identity removed from local repo config",
+		Run: func(ctx *Context) error {
+			// git config --unset exits 5 when the key is absent — that is
+			// expected here since the field may not have been set. Any other
+			// error (permission denied, malformed config) propagates.
+			for _, key := range []string{"user.name", "user.email"} {
+				if _, err := gitCmd(ctx, "config", "--unset", key); err != nil {
+					var exitErr *exec.ExitError
+					if errors.As(err, &exitErr) && exitErr.ExitCode() == 5 {
+						continue
+					}
+					return fmt.Errorf("git config --unset %s: %w", key, err)
+				}
 			}
 			return nil
 		},

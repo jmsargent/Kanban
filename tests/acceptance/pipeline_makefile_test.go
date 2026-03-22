@@ -35,11 +35,11 @@ func TestMakefile_ValidateTarget_ReferencesRequiredTools(t *testing.T) {
 		label string
 		tool  string
 	}{
-		{"[0/5]", "check-versions"},
-		{"[1/5]", "go test"},
-		{"[2/5]", "golangci-lint"},
-		{"[3/5]", "go-arch-lint"},
-		{"[4/5]", "go build"},
+		{"[0/4]", "check-versions"},
+		{"[1/4]", "go test"},
+		{"[2/4]", "golangci-lint"},
+		{"[3/4]", "go-arch-lint"},
+		{"[4/4]", "go build"},
 	}
 
 	for _, step := range requiredSteps {
