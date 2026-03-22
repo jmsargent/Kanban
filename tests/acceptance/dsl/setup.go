@@ -103,10 +103,8 @@ func NotAGitRepo() Step {
 }
 
 // ATaskWithStatus creates a task via "kanban new" and, if status is not "todo",
-// sets up the precondition by:
-//   - Writing a transitions.log entry (authoritative for TaskHasStatus assertions)
-//   - Injecting a status: field into the task YAML (needed by legacy use cases
-//     such as StartTask that still read status from the task file via FindByID)
+// injects the status directly into the task YAML front matter. Status is the
+// authoritative source of truth (transitions.log has been removed).
 func ATaskWithStatus(title, status string) Step {
 	return Step{
 		Description: fmt.Sprintf("task %q with status %q", title, status),
@@ -120,12 +118,6 @@ func ATaskWithStatus(title, status string) Step {
 				return fmt.Errorf("could not determine task ID from output: %s", ctx.lastOutput)
 			}
 			if status != "todo" {
-				// Write to transitions.log (authoritative for assertions)
-				if err := appendTransitionLogEntry(ctx, taskID, "todo", status); err != nil {
-					return fmt.Errorf("set task status via transitions.log: %w", err)
-				}
-				// Also inject into YAML so legacy use cases (StartTask, etc.) see
-				// the correct status when reading via FindByID.
 				if err := injectStatusIntoYAML(ctx, taskID, status); err != nil {
 					return fmt.Errorf("inject status into task YAML: %w", err)
 				}
@@ -198,45 +190,6 @@ func replaceStatusLine(content, newStatus string) string {
 	return strings.Join(lines, "\n")
 }
 
-// renameTransitionsLogEntries rewrites .kanban/transitions.log replacing all
-// occurrences of oldID with newID in the task-ID field (field 2). Used when
-// ATaskWithStatusAs renames a generated task ID to the desired test ID.
-func renameTransitionsLogEntries(ctx *Context, oldID, newID string) error {
-	logPath := filepath.Join(ctx.repoDir, ".kanban", "transitions.log")
-	data, err := os.ReadFile(logPath)
-	if os.IsNotExist(err) {
-		return nil // no log yet — nothing to rename
-	}
-	if err != nil {
-		return fmt.Errorf("read transitions.log: %w", err)
-	}
-	// Replace " <oldID> " (space-delimited field 2) with " <newID> ".
-	updated := strings.ReplaceAll(string(data), " "+oldID+" ", " "+newID+" ")
-	return os.WriteFile(logPath, []byte(updated), 0o644)
-}
-
-// appendTransitionLogEntry writes a single line to .kanban/transitions.log to
-// record a status transition. Used by test setup helpers to establish
-// preconditions without invoking the kanban binary.
-func appendTransitionLogEntry(ctx *Context, taskID, from, to string) error {
-	logDir := filepath.Join(ctx.repoDir, ".kanban")
-	if err := os.MkdirAll(logDir, 0o755); err != nil {
-		return fmt.Errorf("mkdir .kanban: %w", err)
-	}
-	logPath := filepath.Join(logDir, "transitions.log")
-	line := fmt.Sprintf("%s %s %s->%s test@example.com manual\n",
-		time.Now().UTC().Format(time.RFC3339),
-		taskID, from, to,
-	)
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return fmt.Errorf("open transitions.log: %w", err)
-	}
-	defer func() { _ = f.Close() }()
-	_, err = f.WriteString(line)
-	return err
-}
-
 // ATaskWithStatusAs creates a task with ATaskWithStatus logic, then renames the
 // file and updates the id field if the generated ID differs from taskID.
 func ATaskWithStatusAs(title, status, taskID string) Step {
@@ -260,10 +213,6 @@ func ATaskWithStatusAs(title, status, taskID string) Step {
 				}
 				if err := os.Remove(oldPath); err != nil {
 					return fmt.Errorf("remove old task file: %w", err)
-				}
-				// Update transitions.log entries that reference the old task ID.
-				if err := renameTransitionsLogEntries(ctx, oldID, taskID); err != nil {
-					return fmt.Errorf("rename transitions.log entries: %w", err)
 				}
 				ctx.lastTaskID = taskID
 			}
