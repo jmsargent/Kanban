@@ -175,8 +175,6 @@ func TestNewEditorMode_KanbanNotInitialised_PreflightBlocksEditor(t *testing.T) 
 //
 // This test covers AC-09 (success path).
 func TestNewEditorMode_TempFileCleanedUpOnSuccess(t *testing.T) {
-	t.Skip("pending: new-editor-mode not yet implemented")
-
 	ctx := dsl.NewContext(t)
 
 	editorScript, err := dsl.EditorScriptThatSetsTitle(ctx, "Refactor config loading")
