@@ -150,11 +150,11 @@ This placement satisfies WD-04: all pre-flight checks (git repo, git identity, k
 
 | Component | Location | Change |
 |-----------|----------|--------|
-| `NewCreateCommand` | `internal/adapters/cli/new.go` | Add zero-arg branch in `RunE`: pre-flight → `WriteTempNew` → `OpenEditor` → `ReadTemp` → title validation → `AddTask.Execute`. Receives `EditFilePort` as new constructor parameter. |
+| `NewCreateCommand` | `internal/adapters/cli/new.go` | Add zero-arg branch in `RunE`: pre-flight -> `WriteTempNew` -> `OpenEditor` -> `ReadTemp` -> title validation -> `AddTask.Execute`. Receives `EditFilePort` as new constructor parameter. |
 | `EditFilePort` | `internal/ports/repositories.go` | Add `WriteTempNew() (string, error)` method to the interface. |
 | `TaskRepository` (filesystem) | `internal/adapters/filesystem/task_repository.go` | Implement `WriteTempNew()`: produces blank YAML with comment guidance, omits `due` field. |
 | `usecases/editor.go` | `internal/usecases/editor.go` | NEW FILE: exports `OpenEditor(filePath string) error`. |
-| `usecases/edit_task.go` | `internal/usecases/edit_task.go` | One-line change: `openEditor(tmpFile)` → `OpenEditor(tmpFile)`. Remove the now-unused unexported function. |
+| `usecases/edit_task.go` | `internal/usecases/edit_task.go` | One-line change: `openEditor(tmpFile)` -> `OpenEditor(tmpFile)`. Remove the now-unused unexported function. |
 
 ### What Does NOT Change
 
@@ -184,17 +184,17 @@ kanban new (no args)
   └─ cli/new.go RunE (zero-arg branch)
        ├─ git.RepoRoot()                         [pre-flight]
        ├─ git.GetIdentity()                      [pre-flight]
-       ├─ config.Read(repoRoot)                  [pre-flight — ErrNotInitialised → exit 1]
+       ├─ config.Read(repoRoot)                  [pre-flight — ErrNotInitialised -> exit 1]
        ├─ editor.WriteTempNew()                  [produce blank template with comments]
        ├─ defer os.Remove(tmpFile)
        ├─ usecases.OpenEditor(tmpFile)           [block until editor exits]
        ├─ editor.ReadTemp(tmpFile)               [parse YAML]
-       ├─ title == "" → exit 2                  [validation — WD-02]
+       ├─ title == "" -> exit 2                  [validation — WD-02]
        └─ usecases.NewAddTask(config, tasks).Execute(repoRoot, input)
             ├─ domain.ValidateNewTask(title, nil)
             ├─ config.Read(repoRoot)            [redundant but harmless — existing path]
             ├─ tasks.NextID(repoRoot)
-            ├─ tasks.Save(repoRoot, task)       [atomic .tmp → rename]
+            ├─ tasks.Save(repoRoot, task)       [atomic .tmp -> rename]
             └─ return domain.Task
        └─ fmt.Printf("Created %s: %s\n", ...)  [identical output to inline path]
 ```
@@ -252,11 +252,11 @@ Contract: produces a temporary YAML file pre-populated with a blank task templat
 ### Testability
 - `WriteTempNew` is on the `EditFilePort` interface — acceptance tests can mock it or use the real filesystem adapter with `t.TempDir()`
 - `OpenEditor` is testable via the existing acceptance-test pattern: compiled binary invoked as subprocess with `EDITOR` set to a script that writes a known file and exits
-- Title validation (empty → exit 2) is testable end-to-end by setting `EDITOR` to a script that writes an empty title and asserting exit code 2
+- Title validation (empty -> exit 2) is testable end-to-end by setting `EDITOR` to a script that writes an empty title and asserting exit code 2
 
 ### Reliability
 - Pre-flight checks (git repo, git identity, kanban init) run before editor opens — no wasted editor session on misconfigured environment (WD-04)
-- Atomic write via `TaskRepository.Save` (.tmp → rename) — unchanged and enforced
+- Atomic write via `TaskRepository.Save` (.tmp -> rename) — unchanged and enforced
 - `defer os.Remove(tmpFile)` ensures temp file cleanup regardless of error path
 
 ### Usability

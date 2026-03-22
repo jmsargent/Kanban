@@ -13,7 +13,7 @@ Make task creation as frictionless as task editing — developers capture a task
 | # | Who | Does What | By How Much | Baseline | Measured By | Type |
 |---|-----|-----------|-------------|----------|-------------|------|
 | 1 | Developers running `kanban new` interactively | Create a task with title AND at least one optional field (priority, assignee, or description) in a single command | 30% of task creation events include at least one optional field | 0% (not currently possible without a second `kanban edit` step) | Count of task files created with non-empty priority, assignee, or description fields / total task files created | Leading |
-| 2 | Developers running `kanban new` interactively | Avoid the "new then immediate edit" pattern (edit within 60s of create) | Reduce same-session new→edit sequences by 50% | Establish in first 14 days post-release | Compare timestamps of task creation vs first edit per task file | Leading |
+| 2 | Developers running `kanban new` interactively | Avoid the "new then immediate edit" pattern (edit within 60s of create) | Reduce same-session new->edit sequences by 50% | Establish in first 14 days post-release | Compare timestamps of task creation vs first edit per task file | Leading |
 
 ---
 
@@ -21,7 +21,7 @@ Make task creation as frictionless as task editing — developers capture a task
 
 - **North Star**: rate of task files created with at least one optional field populated (KPI-1). This is the direct signal that the editor mode is being used for richer task capture, not just as an alternative title-entry method.
 - **Leading Indicators**:
-  - KPI-2: reduction in same-session new→edit sequences (proxy for "had to go back to add details")
+  - KPI-2: reduction in same-session new->edit sequences (proxy for "had to go back to add details")
   - Editor mode invocation rate vs title-arg invocation rate (tracks adoption split)
 - **Guardrail Metrics**:
   - `kanban new <title>` success rate must not degrade (zero regressions on existing path)
@@ -34,7 +34,7 @@ Make task creation as frictionless as task editing — developers capture a task
 | KPI | Data Source | Collection Method | Frequency | Owner |
 |-----|------------|-------------------|-----------|-------|
 | KPI-1: optional field population rate | `.kanban/tasks/*.md` file content | Script: parse YAML front matter, count non-empty optional fields | Weekly | Developer / team |
-| KPI-2: new→edit sequence rate | `.kanban/tasks/*.md` mtime + git log timestamps | Script: compare task creation time to first `kanban edit` time | Weekly | Developer / team |
+| KPI-2: new->edit sequence rate | `.kanban/tasks/*.md` mtime + git log timestamps | Script: compare task creation time to first `kanban edit` time | Weekly | Developer / team |
 | Guardrail: `kanban new <title>` regression | CI acceptance test suite | 100% pass rate | Every commit | CI |
 
 Note: kanban operates as a local CLI tool with no telemetry. All measurement is done by inspecting task files and git history in the repository. No instrumentation changes are required in the binary itself.

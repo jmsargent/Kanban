@@ -31,7 +31,7 @@ A non-technical stakeholder can confirm: yes, that is what developers need.
 
 ## Why This Is the Right Walking Skeleton
 
-The feature's single user story (US-01) has one core journey: no-argument invocation → editor opens → title filled → task created → confirmation. This skeleton traces that complete journey end to end, touching every new component (CLI routing branch, WriteTempNew, EDITOR env var launch, ReadTemp, AddTask, success output) as a consequence of the user journey — not as a design goal.
+The feature's single user story (US-01) has one core journey: no-argument invocation -> editor opens -> title filled -> task created -> confirmation. This skeleton traces that complete journey end to end, touching every new component (CLI routing branch, WriteTempNew, EDITOR env var launch, ReadTemp, AddTask, success output) as a consequence of the user journey — not as a design goal.
 
 It is demo-able: run the test, read the stdout, show the task file. Done.
 

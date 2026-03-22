@@ -23,7 +23,7 @@ Save + quit: Confident — the tool confirms what was created, no ambiguity
 End: Relieved — task is captured, back to coding without friction
 ```
 
-Arc pattern: **Problem Relief** (interrupted → focused → relieved)
+Arc pattern: **Problem Relief** (interrupted -> focused -> relieved)
 
 ---
 

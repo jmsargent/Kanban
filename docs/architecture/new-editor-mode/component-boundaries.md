@@ -23,12 +23,12 @@ This is a brownfield feature. The boundary table below describes every component
 - Route `kanban new` (zero args) to the new editor-mode path:
   1. Call `git.RepoRoot()` — pre-flight
   2. Call `git.GetIdentity()` — pre-flight
-  3. Call `config.Read(repoRoot)` — pre-flight (ErrNotInitialised → exit 1)
+  3. Call `config.Read(repoRoot)` — pre-flight (ErrNotInitialised -> exit 1)
   4. Call `editor.WriteTempNew()` — produce blank template
   5. Defer `os.Remove(tmpFile)`
   6. Call `usecases.OpenEditor(tmpFile)` — block until editor exits
   7. Call `editor.ReadTemp(tmpFile)` — parse YAML
-  8. Validate `title != ""` — empty → `os.Exit(2)`
+  8. Validate `title != ""` — empty -> `os.Exit(2)`
   9. Call `usecases.NewAddTask(config, tasks).Execute(repoRoot, input)` — create task
   10. Print success output (identical to inline path)
 

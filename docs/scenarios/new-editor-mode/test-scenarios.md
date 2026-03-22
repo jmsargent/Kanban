@@ -34,9 +34,9 @@
 | AC-02 | Blank task template presented in editor | Scenario 2 |
 | AC-03 | Task created and confirmed after valid editor session | Scenario 1 (walking skeleton) |
 | AC-04 | Optional fields are persisted when filled | Scenario 3 |
-| AC-05 | Empty title after editor exits → exit code 2 | Scenario 4 |
+| AC-05 | Empty title after editor exits -> exit code 2 | Scenario 4 |
 | AC-06 | Existing kanban new behaviour unchanged | Scenario 5 |
-| AC-07 | Runtime error when $EDITOR unavailable → exit code 1 | Scenario 6 |
+| AC-07 | Runtime error when $EDITOR unavailable -> exit code 1 | Scenario 6 |
 | AC-08 | Pre-flight checks run before editor opens | Scenario 7 |
 | AC-09 | Temp file cleaned up after editor exits | Scenarios 8 and 9 |
 
