@@ -36,7 +36,7 @@ func TestMakefile_ValidateTarget_ReferencesRequiredTools(t *testing.T) {
 		tool  string
 	}{
 		{"[0/4]", "check-versions"},
-		{"[1/4]", "go test"},
+		{"[1/4]", "gotestsum"},
 		{"[2/4]", "golangci-lint"},
 		{"[3/4]", "go-arch-lint"},
 		{"[4/4]", "go build"},

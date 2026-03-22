@@ -4,8 +4,8 @@
 validate:
 	@echo "[0/4] check-versions"
 	@cicd/check-versions.sh
-	@echo "[1/4] go test ./internal/..."
-	@go test ./internal/...
+	@echo "[1/4] gotestsum ./internal/..."
+	@gotestsum --format testname -- ./internal/...
 	@echo "[2/4] golangci-lint run"
 	@golangci-lint run
 	@echo "[3/4] go-arch-lint check"

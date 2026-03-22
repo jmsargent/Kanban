@@ -140,9 +140,10 @@ jobs:
           command: |
             go vet ./...
             golangci-lint run
+      - install-gotestsum
       - run:
           name: Unit Tests
-          command: go test ./internal/...
+          command: gotestsum --format testname -- ./internal/...
       - run:
           name: Build
           command: go build -o kanban ./cmd/kanban

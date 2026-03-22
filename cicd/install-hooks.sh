@@ -28,7 +28,7 @@ echo "Installed: .git/hooks/commit-msg"
 
 echo ""
 echo "Hooks installed:"
-echo "  pre-commit  — go test | golangci-lint | go-arch-lint | go build | acceptance tests"
+echo "  pre-commit  — gotestsum | golangci-lint | go-arch-lint | go build | acceptance tests"
 echo "  commit-msg  — validates conventional commits format (feat|fix|chore|...)"
 echo ""
 echo "NOTE: 'kanban install-hook' installs a separate commit-msg hook in user"

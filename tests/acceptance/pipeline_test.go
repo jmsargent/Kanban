@@ -195,7 +195,7 @@ func TestPipeline_PreCommit_ArchLintStepIsActive(t *testing.T) {
 }
 
 // TestPipeline_PreCommit_CheckVersionsRunsBeforeGoTest asserts that
-// cicd/check-versions.sh is invoked as step 0, before go test, in the pre-commit
+// cicd/check-versions.sh is invoked as step 0, before gotestsum, in the pre-commit
 // hook. This ensures a tool version mismatch blocks the commit before any
 // expensive test steps run.
 func TestPipeline_PreCommit_CheckVersionsRunsBeforeGoTest(t *testing.T) {

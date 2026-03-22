@@ -63,3 +63,78 @@ func TestReadmeExists(t *testing.T) {
 		t.Fatal("README.md is empty")
 	}
 }
+
+// TestNoBarGoTest asserts that no code or script file in the repository
+// invokes bare "go test" — gotestsum must be used everywhere.
+//
+// Files scanned: .go, .sh, .yml, .yaml, Makefile, and extensionless files
+// under cicd/ (shell scripts without a .sh suffix).
+func TestNoBarGoTest(t *testing.T) {
+	root := repoRoot(t)
+
+	codeExts := map[string]bool{
+		".go":   true,
+		".sh":   true,
+		".yml":  true,
+		".yaml": true,
+	}
+
+	skipDirs := map[string]bool{
+		".git":    true,
+		"vendor":  true,
+		".kanban": true,
+	}
+
+	var violations []string
+
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			if skipDirs[info.Name()] {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		rel, _ := filepath.Rel(root, path)
+
+		// Exclude this file — it contains "go test" as a search term.
+		if rel == filepath.Join("tests", "repofiles", "repofiles_test.go") {
+			return nil
+		}
+
+		name := info.Name()
+		ext := strings.ToLower(filepath.Ext(name))
+
+		isCode := codeExts[ext] || name == "Makefile"
+		// Include extensionless files under cicd/ (scripts without .sh suffix).
+		if !isCode && ext == "" && strings.HasPrefix(rel, "cicd"+string(filepath.Separator)) {
+			isCode = true
+		}
+		if !isCode {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		if strings.Contains(string(content), "go test") {
+			violations = append(violations, rel)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		t.Fatalf("walk repo: %v", err)
+	}
+
+	if len(violations) > 0 {
+		t.Errorf("found 'go test' in %d file(s) — use gotestsum instead:\n  %s",
+			len(violations), strings.Join(violations, "\n  "))
+	}
+}
