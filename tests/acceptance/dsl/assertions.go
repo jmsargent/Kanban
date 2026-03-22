@@ -459,61 +459,6 @@ func NoTransitionLines() Step {
 	}
 }
 
-// StagedFilesContain asserts that filename appears in the git staging area
-// (i.e. it would be included in the next developer commit).
-func StagedFilesContain(filename string) Step {
-	return Step{
-		Description: fmt.Sprintf("staged files contain %q", filename),
-		Run: func(ctx *Context) error {
-			out, err := gitCmd(ctx, "diff", "--cached", "--name-only")
-			if err != nil {
-				return fmt.Errorf("git diff --cached: %w", err)
-			}
-			for _, line := range strings.Split(out, "\n") {
-				if strings.TrimSpace(line) == filename {
-					return nil
-				}
-			}
-			return fmt.Errorf("expected %q to be staged; staged files:\n%s", filename, out)
-		},
-	}
-}
-
-// LastCommitChangedOnly asserts the most recent commit modified exactly the
-// given paths and no others.
-func LastCommitChangedOnly(paths ...string) Step {
-	return Step{
-		Description: fmt.Sprintf("last commit changed only %v", paths),
-		Run: func(ctx *Context) error {
-			out, err := gitCmd(ctx, "diff-tree", "--no-commit-id", "-r", "--name-only", "HEAD")
-			if err != nil {
-				return fmt.Errorf("git diff-tree: %w", err)
-			}
-			changed := map[string]bool{}
-			for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
-				if line != "" {
-					changed[line] = true
-				}
-			}
-			expected := map[string]bool{}
-			for _, p := range paths {
-				expected[p] = true
-			}
-			for p := range expected {
-				if !changed[p] {
-					return fmt.Errorf("expected %q in last commit but it was absent; commit changed:\n%s", p, out)
-				}
-			}
-			for p := range changed {
-				if !expected[p] {
-					return fmt.Errorf("last commit unexpectedly changed %q; expected only %v\nAll changed:\n%s", p, paths, out)
-				}
-			}
-			return nil
-		},
-	}
-}
-
 // ansiPattern matches ANSI CSI colour escape sequences.
 var ansiPattern = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
