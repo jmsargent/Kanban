@@ -138,8 +138,6 @@ func TestNewEditorMode_TitleArgument_NoEditorOpened(t *testing.T) {
 //
 // This test covers AC-07.
 func TestNewEditorMode_EditorUnavailable_ExitsWithRuntimeError(t *testing.T) {
-	t.Skip("pending: new-editor-mode not yet implemented")
-
 	ctx := dsl.NewContext(t)
 
 	dsl.Given(ctx, dsl.InAGitRepo())

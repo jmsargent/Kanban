@@ -35,7 +35,9 @@ func IRunKanbanNewInteractive(editorScript string) Step {
 }
 
 // IRunKanbanNewInteractiveNoEditor runs "kanban new" with no positional
-// arguments with EDITOR unset and a PATH that does not contain vi.
+// arguments with EDITOR unset and a PATH that does not contain vi or any
+// other editor. Git must remain available so the binary can locate the repo
+// root and read the git identity before attempting to open the editor.
 // Used to verify the "editor unavailable" error path.
 func IRunKanbanNewInteractiveNoEditor() Step {
 	return Step{
@@ -44,12 +46,29 @@ func IRunKanbanNewInteractiveNoEditor() Step {
 			cmdCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			// Build an env with EDITOR="" and a minimal PATH containing only
-			// the directory holding the kanban binary (so kanban itself runs,
-			// but vi is not found).
+			// Locate the real git binary so we can make it available on PATH
+			// without also making vi or other editors available.
+			gitPath, err := exec.LookPath("git")
+			if err != nil {
+				ctx.t.Fatalf("setup: could not locate git binary: %v", err)
+			}
+
+			// Create a temp directory containing only a symlink to git.
+			// This lets the kanban binary call git (required for RepoRoot and
+			// GetIdentity) while no editor binary is on the PATH.
+			gitOnlyDir, err := os.MkdirTemp("", "kanban-git-only-*")
+			if err != nil {
+				ctx.t.Fatalf("setup: create git-only dir: %v", err)
+			}
+			ctx.t.Cleanup(func() { _ = os.RemoveAll(gitOnlyDir) })
+
+			if err := os.Symlink(gitPath, filepath.Join(gitOnlyDir, "git")); err != nil {
+				ctx.t.Fatalf("setup: symlink git: %v", err)
+			}
+
 			binDir := filepath.Dir(ctx.binPath)
 			env := filterEnv(ctx.env, "EDITOR", "PATH")
-			env = append(env, "EDITOR=", "PATH="+binDir)
+			env = append(env, "EDITOR=", "PATH="+binDir+string(os.PathListSeparator)+gitOnlyDir)
 
 			cmd := exec.CommandContext(cmdCtx, ctx.binPath, "new")
 			cmd.Dir = ctx.repoDir
