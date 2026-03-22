@@ -67,7 +67,6 @@ func TestNewEditorMode_BlankTemplate_StructureCorrect(t *testing.T) {
 //
 // This test covers AC-04.
 func TestNewEditorMode_OptionalFields_Persisted(t *testing.T) {
-	t.Skip("pending: new-editor-mode not yet implemented")
 
 	ctx := dsl.NewContext(t)
 
