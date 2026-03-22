@@ -1,0 +1,13 @@
+# Tool versions — single source of truth for CI and local development.
+# Update versions here, then run 'make install-tools' to apply locally.
+# CI uses {{ checksum "cicd/.tool-versions" }} as its cache key, so any
+# change here automatically invalidates the CI tool cache.
+#
+# Note: 'golang' must also be updated in cicd/config.yml (go-image-version
+# parameter) as CircleCI reads the Docker image tag at pipeline parse time.
+golang 1.26.1
+golangci-lint 2.11.3
+go-arch-lint 1.14.0
+go-semver-release 6.1.0
+goreleaser 2.14.3
+gotestsum 1.13.0

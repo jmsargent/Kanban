@@ -1,5 +1,6 @@
 .kanban/hook.log
 private-notes
 kanban
+bin/
 tests/acceptance/kanban-tasks/bin/
 .on-local-machine

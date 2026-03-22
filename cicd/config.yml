@@ -6,41 +6,27 @@
 #
 # Pipeline design:
 # Single workflow "ci-cd" — all jobs run sequentially on push to main.
-# The release job (goreleaser) is the final step; it runs only when all
+# The tag-and-release job is the final step; it runs only when all
 # preceding gates pass. This implements "every CI pass → release" without
 # the complexity of the CircleCI continuation orb.
 #
 # release-context — must contain:
 # GITHUB_TOKEN (scoped to: Contents read+write on kanban repo)
 # HOMEBREW_TAP_GITHUB_TOKEN (scoped to: homebrew-kanban repo contents only)
+#
+# Tool versions: defined in .tool-versions at the project root.
+# Update .tool-versions to change tool versions — CI caches tools by
+# checksum of that file, so any change automatically invalidates the cache.
+# Exception: go-image-version below must be updated alongside 'golang' in
+# .tool-versions, as CircleCI reads the Docker image tag at parse time.
 
 version: 2.1
 
-# ---------------------------------------------------------------------------
-# Tool versions — update here to change versions across the entire pipeline.
-# Run cicd/check-versions.sh to verify your local tools match these values.
-# Note: the circleci/go orb version (below) cannot use parameters — update
-# it manually alongside go-image-version if upgrading Go.
-# ---------------------------------------------------------------------------
 parameters:
   go-image-version:
     type: string
     default: "1.26.1"
-  golangci-lint-version:
-    type: string
-    default: "v2.11.3"
-  go-arch-lint-version:
-    type: string
-    default: "v1.14.0"
-  go-semver-release-version:
-    type: string
-    default: "v6.1.0"
-  goreleaser-version:
-    type: string
-    default: "v2.14.3"
-  gotestsum-version:
-    type: string
-    default: "v1.13.0"
+    # Keep in sync with 'golang' in .tool-versions
 
 orbs:
   go: circleci/go@3.0.2
@@ -52,77 +38,23 @@ executors:
     resource_class: medium
 
 commands:
-  install-golangci-lint:
+  install-tools:
     steps:
       - restore_cache:
           keys:
-            - golangci-lint-<< pipeline.parameters.golangci-lint-version >>
+            - tools-v1-{{ checksum "cicd/tool-versions" }}
       - run:
-          command: |
-            if [ ! -f "$(go env GOPATH)/bin/golangci-lint" ]; then
-              curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-                | sh -s -- -b $(go env GOPATH)/bin << pipeline.parameters.golangci-lint-version >>
-            fi
+          name: Install pipeline tools
+          command: make install-tools
       - save_cache:
-          key: golangci-lint-<< pipeline.parameters.golangci-lint-version >>
+          key: tools-v1-{{ checksum "cicd/tool-versions" }}
           paths:
-            - /home/circleci/go/bin/golangci-lint
-  install-go-arch-lint:
+            - bin/
+  set-path:
     steps:
-      - restore_cache:
-          keys:
-            - go-arch-lint-<< pipeline.parameters.go-arch-lint-version >>
       - run:
-          command: |
-            if [ ! -f "$(go env GOPATH)/bin/go-arch-lint" ]; then
-              go install github.com/fe3dback/go-arch-lint@<< pipeline.parameters.go-arch-lint-version >>
-            fi
-      - save_cache:
-          key: go-arch-lint-<< pipeline.parameters.go-arch-lint-version >>
-          paths:
-            - /home/circleci/go/bin/go-arch-lint
-  install-go-semver-release:
-    steps:
-      - restore_cache:
-          keys:
-            - go-semver-release-<< pipeline.parameters.go-semver-release-version >>
-      - run:
-          command: |
-            if [ ! -f "$(go env GOPATH)/bin/go-semver-release" ]; then
-              go install github.com/s0ders/go-semver-release/v6@<< pipeline.parameters.go-semver-release-version >>
-            fi
-      - save_cache:
-          key: go-semver-release-<< pipeline.parameters.go-semver-release-version >>
-          paths:
-            - /home/circleci/go/bin/go-semver-release
-  install-gotestsum:
-    steps:
-      - restore_cache:
-          keys:
-            - gotestsum-<< pipeline.parameters.gotestsum-version >>
-      - run:
-          command: |
-            if [ ! -f "$(go env GOPATH)/bin/gotestsum" ]; then
-              go install gotest.tools/gotestsum@<< pipeline.parameters.gotestsum-version >>
-            fi
-      - save_cache:
-          key: gotestsum-<< pipeline.parameters.gotestsum-version >>
-          paths:
-            - /home/circleci/go/bin/gotestsum
-  install-goreleaser:
-    steps:
-      - restore_cache:
-          keys:
-            - goreleaser-<< pipeline.parameters.goreleaser-version >>
-      - run:
-          command: |
-            if [ ! -f "$(go env GOPATH)/bin/goreleaser" ]; then
-              go install github.com/goreleaser/goreleaser/v2@<< pipeline.parameters.goreleaser-version >>
-            fi
-      - save_cache:
-          key: goreleaser-<< pipeline.parameters.goreleaser-version >>
-          paths:
-            - /home/circleci/go/bin/goreleaser
+          name: Add bin/ to PATH
+          command: echo "export PATH=$PWD/bin:$PATH" >> $BASH_ENV
 
 jobs:
   validate-and-build:
@@ -130,17 +62,16 @@ jobs:
     steps:
       - checkout
       - go/mod-download
-      - install-go-arch-lint
+      - install-tools
+      - set-path
       - run:
           name: Architecture Check
-          command: go-arch-lint check
-      - install-golangci-lint
+          command: go-arch-lint check --arch-file cicd/go-arch-lint.yml
       - run:
           name: Static Analysis
           command: |
             go vet ./...
             golangci-lint run
-      - install-gotestsum
       - run:
           name: Unit Tests
           command: gotestsum --format testname -- ./internal/...
@@ -161,43 +92,52 @@ jobs:
       - run:
           name: Set Environment
           command: |
-            echo "export PATH=$PWD:$PATH" >> $BASH_ENV
             echo "export KANBAN_BIN=$PWD/kanban" >> $BASH_ENV
       - go/mod-download
-      - install-gotestsum
+      - install-tools
+      - set-path
       - run:
           name: E2E Tests
           command: gotestsum --format testname -- ./tests/acceptance/...
 
-  tag:
-      executor: go-executor
-      steps:
-        - checkout
-        - run:
-            name: Fetch history and tags
-            command: git fetch --unshallow --tags || git fetch --tags
-        - go/mod-download
-        - install-go-semver-release
-        - run:
-            name: Compute and push semver tag
-            command: make ci-tag GITHUB_OWNER=$CIRCLE_PROJECT_USERNAME GITHUB_REPO=$CIRCLE_PROJECT_REPONAME
-
-  release:
+  tag-and-release:
     executor: go-executor
     steps:
       - checkout
       - run:
-          name: Checkout tagged commit
-          command: make ci-checkout-tagged
+          name: Fetch history and tags
+          command: git fetch --unshallow --tags || git fetch --tags
       - go/mod-download
-      - install-goreleaser
+      - install-tools
+      - set-path
       - run:
-          name: Publish release
+          name: Tag and release
           command: |
             # Guard: skip if commit message contains [skip release] (case-insensitive).
             if git log -1 --pretty=%B | grep -qi '\[skip release\]'; then
-              echo "[skip release] detected in commit message — skipping release"
+              echo "[skip release] detected in commit message — skipping"
               exit 0
+            fi
+
+            # Guard: if this commit already has a tag, skip tagging but still release.
+            if git describe --tags --exact-match HEAD >/dev/null 2>&1; then
+              echo "Commit $(git rev-parse --short HEAD) is already tagged. Skipping tag step."
+            else
+              go-semver-release release "https://${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" \
+                --tag-prefix v \
+                --access-token $GITHUB_TOKEN \
+                --branches '[{"name": "main"}]'
+            fi
+
+            # Checkout the exact commit the tag points to before goreleaser runs.
+            # go-semver-release tags the remote HEAD which may differ from CIRCLE_SHA1.
+            git fetch --tags
+            LATEST_TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
+            TAG_SHA=$(git rev-list -n1 "$LATEST_TAG")
+            CURRENT_SHA=$(git rev-parse HEAD)
+            if [ "$TAG_SHA" != "$CURRENT_SHA" ]; then
+              echo "Tag $LATEST_TAG points to $TAG_SHA, not $CURRENT_SHA — checking out tagged commit"
+              git checkout "$TAG_SHA"
             fi
 
             export GITHUB_REPOSITORY_OWNER=$CIRCLE_PROJECT_USERNAME
@@ -216,17 +156,9 @@ workflows:
           filters:
             branches:
               only: main
-      - tag:
+      - tag-and-release:
           requires:
             - acceptance
-          context:
-            - release-context
-          filters:
-            branches:
-              only: main
-      - release:
-          requires:
-            - tag
           context:
             - release-context
           filters:

@@ -362,26 +362,26 @@ func PreCommitHookDoesNotContainCommentedArchLint() PipelineStep {
 	}
 }
 
-// CheckVersionsIsFirstStepInPreCommit asserts check-versions.sh appears before
-// gotestsum in cicd/pre-commit.
+// CheckVersionsIsFirstStepInPreCommit asserts install-tools appears before
+// gotestsum in cicd/pre-commit, ensuring tools are pinned before any test runs.
 func CheckVersionsIsFirstStepInPreCommit() PipelineStep {
 	return PipelineStep{
-		Description: "check-versions.sh runs as step 0 before gotestsum in the pre-commit hook",
+		Description: "install-tools runs as step 0 before gotestsum in the pre-commit hook",
 		Run: func(pc *PipelineContext) error {
 			content, err := os.ReadFile(filepath.Join(pc.projectRoot, "cicd", "pre-commit"))
 			if err != nil {
 				return fmt.Errorf("read cicd/pre-commit: %w", err)
 			}
-			checkIdx := strings.Index(string(content), "check-versions")
+			installIdx := strings.Index(string(content), "install-tools")
 			gotestsumIdx := strings.Index(string(content), "gotestsum")
-			if checkIdx == -1 {
-				return fmt.Errorf("cicd/pre-commit does not invoke check-versions.sh")
+			if installIdx == -1 {
+				return fmt.Errorf("cicd/pre-commit does not invoke install-tools")
 			}
 			if gotestsumIdx == -1 {
 				return fmt.Errorf("cicd/pre-commit does not invoke gotestsum")
 			}
-			if checkIdx > gotestsumIdx {
-				return fmt.Errorf("check-versions.sh appears after gotestsum in cicd/pre-commit (check at byte %d, gotestsum at byte %d)", checkIdx, gotestsumIdx)
+			if installIdx > gotestsumIdx {
+				return fmt.Errorf("install-tools appears after gotestsum in cicd/pre-commit (install at byte %d, gotestsum at byte %d)", installIdx, gotestsumIdx)
 			}
 			return nil
 		},

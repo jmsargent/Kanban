@@ -11,7 +11,7 @@
 # (installed by: kanban install-hook).
 #
 # Steps run in sequence. Any failure blocks the commit (exit 1).
-#   0. check-versions.sh    — prerequisite gate: local tools match CI pipeline
+#   0. install-tools        — ensure pinned tool versions are in bin/ (idempotent)
 #   1. gotestsum ./internal/...  — unit + integration tests
 #   2. golangci-lint run     — composite linter
 #   3. architecture check    — enforce package dependency rules
@@ -20,18 +20,22 @@
 
 set -e
 
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 BINARY_PATH="$(mktemp -t kanban-precommit-XXXXXX)"
 trap 'rm -f "$BINARY_PATH"' EXIT
 
+# Use project-local bin/ so tools match the pinned versions in cicd/tool-versions.
+export PATH="$REPO_ROOT/bin:$PATH"
+
 echo "--- pre-commit: kanban-tasks quality gates ---"
 
-# Step 0: Prerequisite gate — verify local tool versions match the CI pipeline
-echo "[0/5] check-versions.sh"
-if ! "$(git rev-parse --show-toplevel)/cicd/check-versions.sh"; then
-    echo "FAIL [0/5] check-versions — update local tools to match cicd/config.yml"
+# Step 0: Ensure pinned tools are installed (idempotent — fast when already installed)
+echo "[0/5] install-tools"
+if ! make -C "$REPO_ROOT" install-tools; then
+    echo "FAIL [0/5] install-tools — run 'make install-tools' to diagnose"
     exit 1
 fi
-echo "PASS [0/5] check-versions.sh"
+echo "PASS [0/5] install-tools"
 
 # Step 1: Unit and integration tests
 echo "[1/5] gotestsum ./internal/..."
@@ -51,7 +55,7 @@ echo "PASS [2/5] golangci-lint"
 
 # Step 3: Architecture enforcement
 echo "[3/5] go-arch-lint check"
-if ! go-arch-lint check; then
+if ! go-arch-lint check --arch-file cicd/go-arch-lint.yml; then
     echo "FAIL [3/5] go-arch-lint — fix architecture violations before committing"
     exit 1
 fi

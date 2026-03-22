@@ -2,8 +2,6 @@ package acceptance
 
 // pipeline_ciconfig_test.go — structural tests for cicd/config.yml
 //
-// Step 01-04: goreleaser caching and [skip release] shell guard
-//
 // These tests assert the structure of cicd/config.yml directly.
 // They are enabled (not t.Skip) and must pass after GREEN.
 
@@ -31,33 +29,34 @@ func readCIConfig(t *testing.T) string {
 	return string(content)
 }
 
-// TestPipeline_CIConfig_ContainsInstallGoreleaserCommand asserts cicd/config.yml
-// declares a reusable install-goreleaser command — the observable outcome is that
-// goreleaser is installed via go install (not curl) with restore_cache/save_cache.
-func TestPipeline_CIConfig_ContainsInstallGoreleaserCommand(t *testing.T) {
+// TestPipeline_CIConfig_ContainsInstallToolsCommand asserts cicd/config.yml
+// declares a reusable install-tools command that delegates to the Makefile,
+// replacing the previous per-tool install commands.
+func TestPipeline_CIConfig_ContainsInstallToolsCommand(t *testing.T) {
 	config := readCIConfig(t)
 
-	if !strings.Contains(config, "install-goreleaser:") {
-		t.Error("cicd/config.yml does not contain the reusable 'install-goreleaser:' command")
+	if !strings.Contains(config, "install-tools:") {
+		t.Error("cicd/config.yml does not contain the reusable 'install-tools:' command")
 	}
 
-	if !strings.Contains(config, "go install github.com/goreleaser/goreleaser") {
-		t.Error("cicd/config.yml does not install goreleaser via 'go install github.com/goreleaser/goreleaser'")
+	if !strings.Contains(config, "make install-tools") {
+		t.Error("cicd/config.yml install-tools command does not delegate to 'make install-tools'")
 	}
 }
 
-// TestPipeline_CIConfig_GoreleaserCommandUsesCache asserts the install-goreleaser
-// command uses restore_cache and save_cache with a version-keyed cache key.
-func TestPipeline_CIConfig_GoreleaserCommandUsesCache(t *testing.T) {
+// TestPipeline_CIConfig_InstallToolsCommandUsesChecksumCache asserts the
+// install-tools command caches tools using a checksum of .tool-versions,
+// so any version change automatically invalidates the CI cache.
+func TestPipeline_CIConfig_InstallToolsCommandUsesChecksumCache(t *testing.T) {
 	config := readCIConfig(t)
 
-	if !strings.Contains(config, "goreleaser-<< pipeline.parameters.goreleaser-version >>") {
-		t.Error("cicd/config.yml does not contain version-keyed goreleaser cache key")
+	if !strings.Contains(config, `checksum "cicd/tool-versions"`) {
+		t.Error("cicd/config.yml does not use '{{ checksum \"cicd/tool-versions\" }}' as the tools cache key")
 	}
 }
 
 // TestPipeline_CIConfig_TagJobHasSkipReleaseGuard asserts the [skip release]
-// shell guard exists in the Makefile ci-tag target (called by the CI tag job).
+// shell guard exists in the Makefile ci-tag target (called by the CI tag-and-release job).
 // The guard skips tagging when the commit message contains [skip release].
 func TestPipeline_CIConfig_TagJobHasSkipReleaseGuard(t *testing.T) {
 	root := findProjectRoot(t)
@@ -73,16 +72,17 @@ func TestPipeline_CIConfig_TagJobHasSkipReleaseGuard(t *testing.T) {
 	}
 }
 
-// TestPipeline_CIConfig_ReleaseJobUsesInstallGoreleaserCommand asserts the release
-// job invokes the install-goreleaser reusable command instead of the inline curl|bash.
-func TestPipeline_CIConfig_ReleaseJobUsesInstallGoreleaserCommand(t *testing.T) {
+// TestPipeline_CIConfig_JobsUseInstallToolsCommand asserts that CI jobs
+// invoke the reusable install-tools command rather than per-tool install commands.
+func TestPipeline_CIConfig_JobsUseInstallToolsCommand(t *testing.T) {
 	config := readCIConfig(t)
 
-	if strings.Contains(config, "curl -sfL https://goreleaser.com/static/run") {
-		t.Error("cicd/config.yml still uses the inline curl|bash goreleaser install — should use install-goreleaser command")
+	if !strings.Contains(config, "- install-tools") {
+		t.Error("cicd/config.yml jobs do not invoke '- install-tools' command")
 	}
 
-	if !strings.Contains(config, "- install-goreleaser") {
-		t.Error("cicd/config.yml release job does not invoke '- install-goreleaser' command")
+	// Per-tool commands should no longer appear as job steps.
+	if strings.Contains(config, "- install-goreleaser") {
+		t.Error("cicd/config.yml still references '- install-goreleaser' as a job step — should use '- install-tools'")
 	}
 }
