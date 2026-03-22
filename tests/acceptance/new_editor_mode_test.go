@@ -195,8 +195,6 @@ func TestNewEditorMode_TempFileCleanedUpOnSuccess(t *testing.T) {
 //
 // This test covers AC-09 (error path).
 func TestNewEditorMode_TempFileCleanedUpOnEmptyTitle(t *testing.T) {
-	t.Skip("pending: new-editor-mode not yet implemented")
-
 	ctx := dsl.NewContext(t)
 
 	editorScript, err := dsl.EditorScriptThatLeavesBlankTitle(ctx)
