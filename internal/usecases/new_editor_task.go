@@ -17,8 +17,8 @@ type NewEditorTask struct {
 	editor ports.EditFilePort
 }
 
-// NewNewEditorTask constructs a NewEditorTask use case.
-func NewNewEditorTask(config ports.ConfigRepository, tasks ports.TaskRepository, editor ports.EditFilePort) *NewEditorTask {
+// NewEditorTaskUseCase constructs a NewEditorTask use case.
+func NewEditorTaskUseCase(config ports.ConfigRepository, tasks ports.TaskRepository, editor ports.EditFilePort) *NewEditorTask {
 	return &NewEditorTask{config: config, tasks: tasks, editor: editor}
 }
 
@@ -37,8 +37,7 @@ func (u *NewEditorTask) Execute(repoRoot, createdBy string) (domain.Task, error)
 	}
 	defer func() { _ = os.Remove(tmpFile) }()
 
-	editorCmd := resolveEditor()
-	if err := OpenEditor(editorCmd, tmpFile); err != nil {
+	if err := OpenEditor(resolveEditor(), tmpFile); err != nil {
 		return domain.Task{}, fmt.Errorf("open editor: %w", err)
 	}
 
@@ -72,4 +71,3 @@ func (u *NewEditorTask) Execute(repoRoot, createdBy string) (domain.Task, error)
 
 	return task, nil
 }
-

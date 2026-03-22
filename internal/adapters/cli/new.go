@@ -37,36 +37,14 @@ func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks po
 				os.Exit(1)
 			}
 
-			// Zero-arg branch: open editor with blank template.
 			if len(args) == 0 {
-				uc := usecases.NewNewEditorTask(config, tasks, editor)
-				task, err := uc.Execute(repoRoot, identity.Name)
-				if err != nil {
-					if errors.Is(err, ports.ErrInvalidInput) {
-						fmt.Fprintf(os.Stderr, "%s\n", unwrapMessage(err))
-						os.Exit(2)
-					}
-					if errors.Is(err, ports.ErrNotInitialised) {
-						fmt.Fprintln(os.Stderr, "kanban not initialised — run 'kanban init' first")
-						os.Exit(1)
-					}
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
-				}
-				fmt.Printf("Created %s: %s\n", task.ID, task.Title)
-				fmt.Printf("Hint: reference %s in your next commit to start tracking\n", task.ID)
-				return nil
+				return runEditorMode(repoRoot, identity.Name, config, tasks, editor)
 			}
 
-			// Title-arg branch: create immediately.
-			var due *time.Time
-			if dueStr != "" {
-				parsed, parseErr := time.Parse("2006-01-02", dueStr)
-				if parseErr != nil {
-					fmt.Fprintf(os.Stderr, "Invalid due date format (expected YYYY-MM-DD): %s\n", dueStr)
-					os.Exit(2)
-				}
-				due = &parsed
+			due, parseErr := parseDueDate(dueStr)
+			if parseErr != nil {
+				fmt.Fprintln(os.Stderr, parseErr)
+				os.Exit(2)
 			}
 
 			input := usecases.AddTaskInput{
@@ -76,25 +54,7 @@ func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks po
 				Assignee:  assignee,
 				CreatedBy: identity.Name,
 			}
-
-			uc := usecases.NewAddTask(config, tasks)
-			task, err := uc.Execute(repoRoot, input)
-			if err != nil {
-				if errors.Is(err, ports.ErrInvalidInput) {
-					fmt.Fprintf(os.Stderr, "%s\n", unwrapMessage(err))
-					os.Exit(2)
-				}
-				if errors.Is(err, ports.ErrNotInitialised) {
-					fmt.Fprintln(os.Stderr, "kanban not initialised — run 'kanban init' first")
-					os.Exit(1)
-				}
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-
-			fmt.Printf("Created %s: %s\n", task.ID, task.Title)
-			fmt.Printf("Hint: reference %s in your next commit to start tracking\n", task.ID)
-			return nil
+			return runTitleMode(repoRoot, input, config, tasks)
 		},
 	}
 
@@ -103,6 +63,64 @@ func NewCreateCommand(git ports.GitPort, config ports.ConfigRepository, tasks po
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Assigned team member")
 
 	return cmd
+}
+
+// runEditorMode handles "kanban new" with no positional argument:
+// opens $EDITOR with a blank task template and persists the result.
+func runEditorMode(repoRoot, createdBy string, config ports.ConfigRepository, tasks ports.TaskRepository, editor ports.EditFilePort) error {
+	uc := usecases.NewEditorTaskUseCase(config, tasks, editor)
+	task, err := uc.Execute(repoRoot, createdBy)
+	if err != nil {
+		exitOnNewCommandError(err)
+	}
+	printTaskCreated(task.ID, task.Title)
+	return nil
+}
+
+// runTitleMode handles "kanban new <title>" with a positional title argument:
+// creates the task immediately without opening an editor.
+func runTitleMode(repoRoot string, input usecases.AddTaskInput, config ports.ConfigRepository, tasks ports.TaskRepository) error {
+	uc := usecases.NewAddTask(config, tasks)
+	task, err := uc.Execute(repoRoot, input)
+	if err != nil {
+		exitOnNewCommandError(err)
+	}
+	printTaskCreated(task.ID, task.Title)
+	return nil
+}
+
+// parseDueDate parses an optional due date string in YYYY-MM-DD format.
+// Returns nil when dueStr is empty.
+func parseDueDate(dueStr string) (*time.Time, error) {
+	if dueStr == "" {
+		return nil, nil
+	}
+	parsed, err := time.Parse("2006-01-02", dueStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid due date format (expected YYYY-MM-DD): %s", dueStr)
+	}
+	return &parsed, nil
+}
+
+// exitOnNewCommandError maps domain errors to the appropriate stderr message
+// and exit code for the "kanban new" command.
+func exitOnNewCommandError(err error) {
+	if errors.Is(err, ports.ErrInvalidInput) {
+		fmt.Fprintf(os.Stderr, "%s\n", unwrapMessage(err))
+		os.Exit(2)
+	}
+	if errors.Is(err, ports.ErrNotInitialised) {
+		fmt.Fprintln(os.Stderr, "kanban not initialised — run 'kanban init' first")
+		os.Exit(1)
+	}
+	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	os.Exit(1)
+}
+
+// printTaskCreated prints the standard task creation confirmation lines.
+func printTaskCreated(id, title string) {
+	fmt.Printf("Created %s: %s\n", id, title)
+	fmt.Printf("Hint: reference %s in your next commit to start tracking\n", id)
 }
 
 // unwrapMessage extracts the human-readable message from a wrapped error.

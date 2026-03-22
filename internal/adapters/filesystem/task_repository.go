@@ -327,6 +327,15 @@ func atomicOverwrite(finalPath string, content []byte) error {
 	return nil
 }
 
+// blankTaskTemplate is the blank YAML template presented to the developer
+// when "kanban new" is invoked with no title argument. The title field is
+// required; priority and assignee are optional.
+const blankTaskTemplate = `title: ""
+# title is required
+priority: ""
+assignee: ""
+`
+
 // editFields is the YAML shape used for the temp edit file.
 type editFields struct {
 	Title       string `yaml:"title"`
@@ -376,12 +385,7 @@ func (r *TaskRepository) WriteTempNew() (string, error) {
 	}
 	defer func() { _ = f.Close() }()
 
-	template := `title: ""
-# title is required
-priority: ""
-assignee: ""
-`
-	if _, err := f.WriteString(template); err != nil {
+	if _, err := f.WriteString(blankTaskTemplate); err != nil {
 		return "", err
 	}
 	return f.Name(), nil
