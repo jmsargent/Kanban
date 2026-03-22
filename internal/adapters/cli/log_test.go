@@ -50,16 +50,6 @@ func (f *fakeTaskRepoLog) Update(_ string, _ domain.Task) error      { return ni
 func (f *fakeTaskRepoLog) Delete(_, _ string) error                  { return nil }
 func (f *fakeTaskRepoLog) NextID(_ string) (string, error)           { return "", nil }
 
-type fakeTransitionLogLog struct{}
-
-func (f *fakeTransitionLogLog) Append(_ string, _ domain.TransitionEntry) error { return nil }
-func (f *fakeTransitionLogLog) LatestStatus(_, _ string) (domain.TaskStatus, error) {
-	return domain.StatusTodo, nil
-}
-func (f *fakeTransitionLogLog) History(_, _ string) ([]domain.TransitionEntry, error) {
-	return nil, nil
-}
-
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
 func execLog(t *testing.T, git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository, taskID string) (stdout string, exitCode int) {

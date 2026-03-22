@@ -43,19 +43,6 @@ func (f *historyFakeTaskRepo) Update(repoRoot string, task domain.Task) error { 
 func (f *historyFakeTaskRepo) Delete(repoRoot, taskID string) error           { return nil }
 func (f *historyFakeTaskRepo) NextID(repoRoot string) (string, error)         { return "", nil }
 
-// historyFakeLog satisfies ports.TransitionLogRepository for GetTaskHistory tests.
-type historyFakeLog struct {
-	entries []domain.TransitionEntry
-}
-
-func (f *historyFakeLog) Append(_ string, _ domain.TransitionEntry) error { return nil }
-func (f *historyFakeLog) LatestStatus(_, _ string) (domain.TaskStatus, error) {
-	return domain.StatusTodo, nil
-}
-func (f *historyFakeLog) History(_, _ string) ([]domain.TransitionEntry, error) {
-	return f.entries, nil
-}
-
 // historyFakeGitPort satisfies ports.GitPort for GetTaskHistory tests.
 // It records LogFile calls and returns configured entries.
 type historyFakeGitPort struct {
