@@ -196,8 +196,6 @@ columns:
 // "kanban board --mermaid --out BOARD.md" creates the file when it does not
 // exist, writes the Mermaid block to it, and produces no stdout.
 func TestBoardMermaid_OutCreatesFileWhenNotExists(t *testing.T) {
-	t.Skip("pending: AC-09 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

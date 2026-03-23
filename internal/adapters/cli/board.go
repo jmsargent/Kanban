@@ -64,7 +64,16 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 			}
 
 			if mermaidOutput {
-				fmt.Print(renderBoardMermaid(board))
+				output := renderBoardMermaid(board)
+				if outFile != "" {
+					if err := writeMermaidToFile(outFile, output); err != nil {
+						fmt.Fprintf(os.Stderr, "%s: no mermaid kanban block found\n", outFile)
+						osExit(1)
+						return nil
+					}
+					return nil
+				}
+				fmt.Print(output)
 				return nil
 			}
 
