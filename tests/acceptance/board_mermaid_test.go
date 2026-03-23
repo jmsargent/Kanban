@@ -61,8 +61,6 @@ func TestBoardMermaid_AllColumnsAppearAsSections(t *testing.T) {
 // each task appears as a Mermaid node under its column section,
 // and each node includes the task ID and title.
 func TestBoardMermaid_TasksAppearAsNodesUnderTheirColumn(t *testing.T) {
-	t.Skip("pending: AC-03 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
