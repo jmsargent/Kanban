@@ -5,10 +5,19 @@ This README is humanmade.
 ```mermaid
 kanban
   section To Do
-    TASK-001@{ label: "💎 Implement dora tracker 💎" }
+    TASK-001@{ label: "💎 DORA-metrics trackers 💎" }
+    TASK-002@{ label: "✨ CLI board templates ✨" }
+    TASK-003@{ label: "✨ CLI card templates ✨" }
+    TASK-004@{ label: "✨ Customisable card fields ✨" }
+    TASK-005@{ label: "💎 Renovation bot 💎" }
+    TASK-006@{ label: "💎 Dependency vulnerability scan 💎" }
+    TASK-007@{ label: "💎 Pipeline bashscripts entirely in makefile 💎" }
+    TASK-008@{ label: "💎 Acceptance-test code rules 💎" }
+    TASK-009@{ label: "💎 Update kanban-board as pre-commit hook 💎" }
   section In Progress
   section Done
 ```
+
 
 
 

@@ -1,6 +1,6 @@
 ---
 id: TASK-001
-title: "\U0001F48E Implement dora tracker \U0001F48E"
+title: "\U0001F48E DORA-metrics trackers \U0001F48E"
 status: todo
 priority: ""
 due: ""
