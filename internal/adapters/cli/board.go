@@ -14,7 +14,8 @@ import (
 )
 
 // NewBoardCommand builds the "kanban board" cobra command.
-// It retrieves all tasks, groups them by status, and prints a columnar display.
+// It retrieves all tasks, groups them by status, and renders the board in the
+// requested format: columnar (default), JSON (--json), or Mermaid (--mermaid).
 func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	var jsonOutput bool
 	var meFilter bool

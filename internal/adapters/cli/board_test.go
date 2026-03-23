@@ -21,7 +21,6 @@ type fakeTaskRepoBoardCLI struct {
 	tasks []domain.Task
 }
 
-
 func (f *fakeTaskRepoBoardCLI) ListAll(_ string) ([]domain.Task, error) { return f.tasks, nil }
 func (f *fakeTaskRepoBoardCLI) FindByID(_, _ string) (domain.Task, error) {
 	return domain.Task{}, ports.ErrTaskNotFound

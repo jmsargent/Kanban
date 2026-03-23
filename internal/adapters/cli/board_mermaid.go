@@ -16,7 +16,7 @@ var ErrNoKanbanBlock = errors.New("no mermaid kanban block found")
 // If filename does not exist, the file is created with the given content.
 // If filename exists, it is scanned for a fenced Mermaid kanban block:
 //   - No block found → ErrNoKanbanBlock is returned; the file is not modified.
-//   - Block found    → nil is returned (in-place replacement implemented in 03-04).
+//   - Block found    → the block is replaced in-place and nil is returned.
 func writeMermaidToFile(filename, content string) error {
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -47,16 +47,15 @@ func writeMermaidToFile(filename, content string) error {
 			continue
 		}
 		if inFence && trimmed == "```" && hasKanban {
-			fenceEnd := i
 			// Reconstruct: lines before fence + new content + lines after closing fence.
-			before := strings.Join(lines[:fenceStart], "\n")
-			after := strings.Join(lines[fenceEnd+1:], "\n")
-			var reconstructed string
-			if before != "" {
-				reconstructed = before + "\n" + content + "\n" + after
-			} else {
-				reconstructed = content + "\n" + after
+			var parts []string
+			if before := strings.Join(lines[:fenceStart], "\n"); before != "" {
+				parts = append(parts, before)
 			}
+			parts = append(parts, content)
+			after := strings.Join(lines[i+1:], "\n")
+			parts = append(parts, after)
+			reconstructed := strings.Join(parts, "\n")
 			// Ensure a single trailing newline (after is "" when file ends with \n).
 			if !strings.HasSuffix(reconstructed, "\n") {
 				reconstructed += "\n"
@@ -80,8 +79,7 @@ var mermaidTitleReplacer = strings.NewReplacer(
 	"\r", " ",
 )
 
-// sanitiseMermaidTitle replaces Mermaid-unsafe characters in a task title with
-// safe substitutes. It is a pure function: no I/O, no side effects.
+// sanitiseMermaidTitle replaces Mermaid-unsafe characters in a task title with safe substitutes.
 func sanitiseMermaidTitle(s string) string {
 	return mermaidTitleReplacer.Replace(s)
 }
@@ -96,14 +94,12 @@ var mermaidLabelReplacer = strings.NewReplacer(
 	"\r", " ",
 )
 
-// sanitiseMermaidLabel replaces Mermaid-unsafe characters in a column label with
-// safe substitutes. It is a pure function: no I/O, no side effects.
+// sanitiseMermaidLabel replaces Mermaid-unsafe characters in a column label with safe substitutes.
 func sanitiseMermaidLabel(s string) string {
 	return mermaidLabelReplacer.Replace(s)
 }
 
 // renderBoardMermaid returns a fenced Mermaid kanban block representing the board.
-// It is a pure function: no I/O, no side effects.
 func renderBoardMermaid(board domain.Board) string {
 	var sb strings.Builder
 	sb.WriteString("```mermaid\n")
