@@ -2,6 +2,15 @@
 
 This README is humanmade.
 
+```mermaid
+kanban
+  section To Do
+    TASK-001@{ label: "U+1F48E Implement dora tracker U+1F48E" }
+  section In Progress
+  section Done
+```
+
+
 ## Look ma, no hands!
 
 This project spawned out of being an experiment on getting AI to generate high quality code. There is currently a high influx of poorly designed ai generated 'wibe-code' on the internet. According to [DORA](https://dora.dev/research/) teams that their research group already characterised as "High performing" are able to greatly benefit from gen-AI whereas other teams have not. This project attempts to take available information regarding routines, markers, habbits of high performing teams, and incorporate them and asks the question:
