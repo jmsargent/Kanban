@@ -62,7 +62,7 @@ func TestBoard_ReadsStatusFromYAMLWithNoTransitionsLog(t *testing.T) {
 	dsl.Given(ctx, dsl.TransitionsLogAbsent())
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoard())
 	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-001", "IN PROGRESS"))
+	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-001", "In Progress"))
 }
 
 // AC-03-1: tasks with different YAML statuses appear in correct columns.
@@ -75,9 +75,9 @@ func TestBoard_GroupsTasksByYAMLStatus(t *testing.T) {
 	dsl.Given(ctx, dsl.ATaskWithStatusAs("Deploy service", "done", "TASK-003"))
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoard())
 	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-001", "TODO"))
-	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-002", "IN PROGRESS"))
-	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-003", "DONE"))
+	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-001", "To Do"))
+	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-002", "In Progress"))
+	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-003", "Done"))
 }
 
 // AC-03-4: legacy task with no status: field is treated as todo.

@@ -15,7 +15,7 @@ func TestWalkingSkeleton_EditAndDelete(t *testing.T) {
 	dsl.Given(ctx, dsl.ATaskWithStatus("Migrate database schema", "todo"))
 	dsl.When(ctx, dsl.IRunKanbanEditTitle(ctx.LastTaskID(), "Migrate user table schema"))
 	dsl.Then(ctx, dsl.OutputContains("title"))
-	dsl.Then(ctx, dsl.BoardShowsTaskUnder("Migrate user table schema", "TODO"))
+	dsl.Then(ctx, dsl.BoardShowsTaskUnder("Migrate user table schema", "To Do"))
 	dsl.When(ctx, dsl.IRunKanbanDelete(ctx.LastTaskID(), "y"))
 	dsl.Then(ctx, dsl.OutputContains("git commit"))
 	dsl.Then(ctx, dsl.ExitCodeIs(0))

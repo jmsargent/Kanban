@@ -449,7 +449,7 @@ func TaskFileMtimeUnchangedAfter(taskID string, action func(*Context) error) Ste
 }
 
 // BoardShowsTaskInColumn runs "kanban board" and asserts that taskID appears
-// under the named column heading. heading should be one of: "TODO", "IN PROGRESS", "DONE".
+// under the named column heading. heading should be one of: "To Do", "In Progress", "Done".
 func BoardShowsTaskInColumn(taskID, heading string) Step {
 	return Step{
 		Description: fmt.Sprintf("board shows %s under %s", taskID, heading),

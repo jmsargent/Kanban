@@ -284,7 +284,7 @@ func BoardShowsTaskUnder(title, heading string) Step {
 				// Stop searching when the next heading is reached.
 				if i > headingLine+1 {
 					upper := strings.ToUpper(lines[i])
-					if strings.Contains(upper, "TODO") ||
+					if strings.Contains(upper, "TO DO") ||
 						strings.Contains(upper, "IN PROGRESS") ||
 						strings.Contains(upper, "DONE") {
 						break

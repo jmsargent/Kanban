@@ -51,9 +51,9 @@ func (u *InitRepo) Execute() error {
 
 	defaultConfig := ports.Config{
 		Columns: []domain.Column{
-			{Name: "todo", Label: "TODO"},
-			{Name: "in-progress", Label: "IN PROGRESS"},
-			{Name: "done", Label: "DONE"},
+			{Name: "todo", Label: "To Do"},
+			{Name: "in-progress", Label: "In Progress"},
+			{Name: "done", Label: "Done"},
 		},
 		CITaskPattern: `TASK-[0-9]+`,
 	}
