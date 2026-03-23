@@ -268,8 +268,6 @@ func TestBoardMermaid_OutReplacesExistingKanbanBlockInPlace(t *testing.T) {
 // "kanban board --out README.md" (without --mermaid) exits 2 and writes
 // "--out requires --mermaid" to stderr.
 func TestBoardMermaid_OutWithoutMermaidIsUsageError(t *testing.T) {
-	t.Skip("pending: AC-12 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

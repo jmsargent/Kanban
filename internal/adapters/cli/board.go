@@ -19,12 +19,18 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 	var jsonOutput bool
 	var meFilter bool
 	var mermaidOutput bool
+	var outFile string
 
 	cmd := &cobra.Command{
 		Use:   "board",
 		Short: "Display the kanban board",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if outFile != "" && !mermaidOutput {
+				fmt.Fprintln(os.Stderr, "--out requires --mermaid")
+				osExit(2)
+				return nil
+			}
 			if mermaidOutput && jsonOutput {
 				fmt.Fprintln(os.Stderr, "--mermaid and --json are mutually exclusive")
 				osExit(2)
@@ -80,6 +86,7 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Emit tasks as a JSON array")
 	cmd.Flags().BoolVar(&meFilter, "me", false, "Show only tasks assigned to me (current git user.email)")
 	cmd.Flags().BoolVar(&mermaidOutput, "mermaid", false, "Emit board as a fenced Mermaid kanban block")
+	cmd.Flags().StringVar(&outFile, "out", "", "Write mermaid output to FILE instead of stdout")
 
 	return cmd
 }

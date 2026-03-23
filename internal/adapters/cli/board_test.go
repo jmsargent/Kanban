@@ -265,6 +265,33 @@ func TestBoardCommand_MermaidAndJSON_AreExclusive(t *testing.T) {
 	}
 }
 
+// Behavior 7: --out without --mermaid exits 2 with "--out requires --mermaid" in stderr.
+func TestBoardCommand_OutWithoutMermaid_IsUsageError(t *testing.T) {
+	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
+	config := &fakeConfigRepoCLI{}
+	repo := &fakeTaskRepoBoardCLI{}
+
+	capturedCode := 0
+	cli.SetOsExit(func(code int) { capturedCode = code })
+	t.Cleanup(func() { cli.SetOsExit(nil) })
+
+	cmd := cli.NewBoardCommand(git, config, repo)
+	root := &cobra.Command{Use: "kanban", SilenceUsage: true}
+	root.AddCommand(cmd)
+	root.SetArgs([]string{"board", "--out", "README.md"})
+
+	stderr := captureStderr(t, func() {
+		_ = root.Execute()
+	})
+
+	if capturedCode != 2 {
+		t.Errorf("expected exit code 2, got %d", capturedCode)
+	}
+	if !strings.Contains(stderr, "--out requires --mermaid") {
+		t.Errorf("expected stderr to contain '--out requires --mermaid', got: %q", stderr)
+	}
+}
+
 // keys returns the sorted keys of a map for diagnostic messages.
 func keys(m map[string]interface{}) []string {
 	out := make([]string, 0, len(m))
