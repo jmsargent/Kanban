@@ -106,8 +106,6 @@ func TestBoardMermaid_EmptyBoardProducesValidMermaidBlock(t *testing.T) {
 // "kanban board --mermaid --me" shows only tasks assigned to the current
 // git user and excludes tasks assigned to others.
 func TestBoardMermaid_MeFilterApplies(t *testing.T) {
-	t.Skip("pending: AC-05 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
