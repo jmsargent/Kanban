@@ -18,6 +18,7 @@ import (
 func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks ports.TaskRepository) *cobra.Command {
 	var jsonOutput bool
 	var meFilter bool
+	var mermaidOutput bool
 
 	cmd := &cobra.Command{
 		Use:   "board",
@@ -47,6 +48,11 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 				os.Exit(1)
 			}
 
+			if mermaidOutput {
+				fmt.Print(renderBoardMermaid(board))
+				return nil
+			}
+
 			if jsonOutput {
 				printBoardJSON(board)
 				return nil
@@ -64,6 +70,7 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Emit tasks as a JSON array")
 	cmd.Flags().BoolVar(&meFilter, "me", false, "Show only tasks assigned to me (current git user.email)")
+	cmd.Flags().BoolVar(&mermaidOutput, "mermaid", false, "Emit board as a fenced Mermaid kanban block")
 
 	return cmd
 }

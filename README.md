@@ -6,3 +6,20 @@ This project spawned out of being an experiment on getting AI to generate high q
 
 
 **Is it possible succesfully create a high quality project with minimal manual coding intervention?**
+
+## Installation
+
+**Install via Homebrew:**
+
+```
+brew tap jmsargent/kanban
+brew install kanban
+```
+
+**Install via go install:**
+
+```
+go install github.com/jmsargent/Kanban/cmd/kanban@0.58.0
+```
+
+Alternatively you can download a binary from the [releases page](https://github.com/jmsargent/Kanban/releases)
