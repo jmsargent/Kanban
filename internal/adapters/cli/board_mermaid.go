@@ -46,6 +46,12 @@ func writeMermaidToFile(filename, content string) error {
 			hasKanban = true
 			continue
 		}
+		if inFence && trimmed == "```" && !hasKanban {
+			// Non-kanban mermaid fence closed — reset and keep scanning.
+			inFence = false
+			fenceStart = -1
+			continue
+		}
 		if inFence && trimmed == "```" && hasKanban {
 			// Reconstruct: lines before fence + new content + lines after closing fence.
 			var parts []string

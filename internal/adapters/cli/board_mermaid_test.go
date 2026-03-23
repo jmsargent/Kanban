@@ -142,6 +142,36 @@ func TestWriteMermaidToFile_ExistingFileWithBlock(t *testing.T) {
 	})
 }
 
+// TestWriteMermaidToFile_NonKanbanFenceBeforeKanbanBlock validates that a file
+// containing a non-kanban mermaid fence before the target kanban block is handled
+// correctly — the state machine resets on the non-kanban fence closure.
+func TestWriteMermaidToFile_NonKanbanFenceBeforeKanbanBlock(t *testing.T) {
+	const fileContent = "# Doc\n\n```mermaid\ngraph TD\n  A --> B\n```\n\n```mermaid\nkanban\n  section To Do\n    TASK-OLD@{ label: \"Old\" }\n```\n"
+	const newBlock = "```mermaid\nkanban\n  section To Do\n    TASK-001@{ label: \"New\" }\n```\n"
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "README.md")
+	if err := os.WriteFile(path, []byte(fileContent), 0o644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	err := writeMermaidToFile(path, newBlock)
+
+	if err != nil {
+		t.Errorf("writeMermaidToFile returned %v, want nil", err)
+	}
+	got, readErr := os.ReadFile(path)
+	if readErr != nil {
+		t.Fatalf("read file: %v", readErr)
+	}
+	if strings.Contains(string(got), "TASK-OLD") {
+		t.Errorf("old task still present after replacement\nGot:\n%s", string(got))
+	}
+	if !strings.Contains(string(got), "TASK-001") {
+		t.Errorf("new task missing after replacement\nGot:\n%s", string(got))
+	}
+}
+
 func boardWithOneTask() domain.Board {
 	return domain.Board{
 		Columns: []domain.Column{
