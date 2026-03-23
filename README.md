@@ -5,10 +5,11 @@ This README is humanmade.
 ```mermaid
 kanban
   section To Do
-    TASK-001@{ label: "U+1F48E Implement dora tracker U+1F48E" }
+    TASK-001@{ label: "💎 Implement dora tracker 💎" }
   section In Progress
   section Done
 ```
+
 
 
 ## Look ma, no hands!
