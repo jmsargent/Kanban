@@ -83,8 +83,6 @@ func TestBoardMermaid_TasksAppearAsNodesUnderTheirColumn(t *testing.T) {
 // when no tasks exist, "kanban board --mermaid" exits 0 and produces a valid
 // Mermaid kanban block with column sections and no task nodes.
 func TestBoardMermaid_EmptyBoardProducesValidMermaidBlock(t *testing.T) {
-	t.Skip("pending: AC-04 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
