@@ -128,8 +128,6 @@ func TestBoardMermaid_MeFilterApplies(t *testing.T) {
 // "kanban board --mermaid --json" exits 2, writes "mutually exclusive" to stderr,
 // and produces no stdout output.
 func TestBoardMermaid_MutuallyExclusiveWithJSON(t *testing.T) {
-	t.Skip("pending: AC-06 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

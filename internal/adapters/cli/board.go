@@ -25,10 +25,17 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 		Short: "Display the kanban board",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if mermaidOutput && jsonOutput {
+				fmt.Fprintln(os.Stderr, "--mermaid and --json are mutually exclusive")
+				osExit(2)
+				return nil
+			}
+
 			repoRoot, err := git.RepoRoot()
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "Not a git repository")
-				os.Exit(1)
+				osExit(1)
+				return nil
 			}
 
 			filterAssignee := ""
@@ -36,7 +43,8 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 				identity, identErr := git.GetIdentity()
 				if identErr != nil {
 					fmt.Fprintln(os.Stderr, "git identity not configured")
-					os.Exit(1)
+					osExit(1)
+					return nil
 				}
 				filterAssignee = identity.Email
 			}
@@ -45,7 +53,8 @@ func NewBoardCommand(git ports.GitPort, config ports.ConfigRepository, tasks por
 			board, err := uc.Execute(repoRoot, filterAssignee)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
+				osExit(1)
+				return nil
 			}
 
 			if mermaidOutput {

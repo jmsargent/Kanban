@@ -14,7 +14,7 @@ import (
 	"github.com/kanban-tasks/kanban/internal/ports"
 )
 
-// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 5)
+// Test Budget: 6 behaviors x 2 = 12 max unit tests (using 6)
 
 // fakeTaskRepoBoardCLI is a task repository fake for board tests that supports ListAll.
 type fakeTaskRepoBoardCLI struct {
@@ -209,6 +209,59 @@ func TestBoardCommand_MeFlag_ShowsNoTasksMessage_WhenNothingAssigned(t *testing.
 
 	if !strings.Contains(output, "no tasks") {
 		t.Errorf("expected board --me with no matching tasks to output a 'no tasks' message\nOutput:\n%s", output)
+	}
+}
+
+// captureStderr redirects os.Stderr to a pipe, executes fn, and returns the captured output.
+func captureStderr(t *testing.T, fn func()) string {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	origStderr := os.Stderr
+	os.Stderr = w
+
+	fn()
+
+	_ = w.Close()
+	os.Stderr = origStderr
+
+	var buf bytes.Buffer
+	_, _ = buf.ReadFrom(r)
+	return buf.String()
+}
+
+// Behavior 6: --mermaid and --json together exit 2 with "mutually exclusive" in stderr and no stdout.
+func TestBoardCommand_MermaidAndJSON_AreExclusive(t *testing.T) {
+	git := &fakeGitPortCLI{repoRoot: t.TempDir()}
+	config := &fakeConfigRepoCLI{}
+	repo := &fakeTaskRepoBoardCLI{}
+
+	capturedCode := 0
+	cli.SetOsExit(func(code int) { capturedCode = code })
+	t.Cleanup(func() { cli.SetOsExit(nil) })
+
+	cmd := cli.NewBoardCommand(git, config, repo)
+	root := &cobra.Command{Use: "kanban", SilenceUsage: true}
+	root.AddCommand(cmd)
+	root.SetArgs([]string{"board", "--mermaid", "--json"})
+
+	var stdout string
+	stderr := captureStderr(t, func() {
+		stdout = captureStdout(t, func() {
+			_ = root.Execute()
+		})
+	})
+
+	if capturedCode != 2 {
+		t.Errorf("expected exit code 2, got %d", capturedCode)
+	}
+	if !strings.Contains(stderr, "mutually exclusive") {
+		t.Errorf("expected stderr to contain 'mutually exclusive', got: %q", stderr)
+	}
+	if stdout != "" {
+		t.Errorf("expected stdout to be empty, got: %q", stdout)
 	}
 }
 
