@@ -145,8 +145,6 @@ func TestBoardMermaid_MutuallyExclusiveWithJSON(t *testing.T) {
 // task titles containing Mermaid-unsafe characters (", [, ]) are sanitised
 // so the output is syntactically valid Mermaid.
 func TestBoardMermaid_TaskTitlesWithUnsafeCharsAreSanitised(t *testing.T) {
-	t.Skip("pending: AC-07 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
