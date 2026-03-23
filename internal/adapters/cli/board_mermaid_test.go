@@ -82,21 +82,62 @@ func TestWriteMermaidToFile_ExistingFileNoBlock(t *testing.T) {
 
 // TestWriteMermaidToFile_ExistingFileWithBlock validates writeMermaidToFile when the
 // target file exists and contains a Mermaid kanban block.
-// Test Budget: 1 behavior (returns nil, block found) x 2 = 2 max.
+// Test Budget: 3 behaviors (returns nil | replaces block content | preserves surrounding content) x 2 = 6 max.
 func TestWriteMermaidToFile_ExistingFileWithBlock(t *testing.T) {
-	const fileWithBlock = "# My Project\n\n```mermaid\nkanban\n  section To Do\n    TASK-OLD@{ label: \"Old task\" }\n```\n\nSome text below.\n"
+	const fileWithBlock = "# My Project\n\nSome text above.\n\n```mermaid\nkanban\n  section To Do\n    TASK-OLD@{ label: \"Old task\" }\n```\n\nSome text below.\n"
+	const newBlock = "```mermaid\nkanban\n  section To Do\n    TASK-001@{ label: \"Fix login bug\" }\n```\n"
 
-	t.Run("returns nil when kanban block found", func(t *testing.T) {
+	setup := func(t *testing.T) string {
+		t.Helper()
 		dir := t.TempDir()
 		path := filepath.Join(dir, "README.md")
 		if err := os.WriteFile(path, []byte(fileWithBlock), 0o644); err != nil {
 			t.Fatalf("setup: write file: %v", err)
 		}
+		return path
+	}
 
-		err := writeMermaidToFile(path, "```mermaid\nkanban\n```\n")
+	t.Run("returns nil when kanban block replaced", func(t *testing.T) {
+		path := setup(t)
+
+		err := writeMermaidToFile(path, newBlock)
 
 		if err != nil {
 			t.Errorf("writeMermaidToFile returned %v, want nil", err)
+		}
+	})
+
+	t.Run("new block content appears in file", func(t *testing.T) {
+		path := setup(t)
+
+		_ = writeMermaidToFile(path, newBlock)
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read file after call: %v", err)
+		}
+		if !strings.Contains(string(got), "TASK-001") {
+			t.Errorf("expected file to contain TASK-001 after replacement\nGot:\n%s", string(got))
+		}
+		if strings.Contains(string(got), "TASK-OLD") {
+			t.Errorf("expected TASK-OLD to be absent after replacement\nGot:\n%s", string(got))
+		}
+	})
+
+	t.Run("surrounding content is preserved", func(t *testing.T) {
+		path := setup(t)
+
+		_ = writeMermaidToFile(path, newBlock)
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read file after call: %v", err)
+		}
+		content := string(got)
+		for _, want := range []string{"# My Project", "Some text above.", "Some text below."} {
+			if !strings.Contains(content, want) {
+				t.Errorf("expected file to contain %q after replacement\nGot:\n%s", want, content)
+			}
 		}
 	})
 }

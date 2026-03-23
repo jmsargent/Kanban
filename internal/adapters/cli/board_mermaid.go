@@ -34,10 +34,12 @@ func writeMermaidToFile(filename, content string) error {
 	lines := strings.Split(string(data), "\n")
 	inFence := false
 	hasKanban := false
-	for _, line := range lines {
+	fenceStart := -1
+	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if !inFence && trimmed == "```mermaid" {
 			inFence = true
+			fenceStart = i
 			continue
 		}
 		if inFence && trimmed == "kanban" {
@@ -45,8 +47,25 @@ func writeMermaidToFile(filename, content string) error {
 			continue
 		}
 		if inFence && trimmed == "```" && hasKanban {
-			// Block found — in-place replacement implemented in 03-04.
-			return nil
+			fenceEnd := i
+			// Reconstruct: lines before fence + new content + lines after closing fence.
+			before := strings.Join(lines[:fenceStart], "\n")
+			after := strings.Join(lines[fenceEnd+1:], "\n")
+			var reconstructed string
+			if before != "" {
+				reconstructed = before + "\n" + content + "\n" + after
+			} else {
+				reconstructed = content + "\n" + after
+			}
+			// Ensure a single trailing newline (after is "" when file ends with \n).
+			if !strings.HasSuffix(reconstructed, "\n") {
+				reconstructed += "\n"
+			}
+			tmp := filename + ".tmp"
+			if writeErr := os.WriteFile(tmp, []byte(reconstructed), 0o644); writeErr != nil {
+				return writeErr
+			}
+			return os.Rename(tmp, filename)
 		}
 	}
 	return ErrNoKanbanBlock

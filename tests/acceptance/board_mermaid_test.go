@@ -236,8 +236,6 @@ func TestBoardMermaid_OutErrorsWhenFileExistsWithNoKanbanBlock(t *testing.T) {
 // "kanban board --mermaid --out README.md" replaces the existing Mermaid kanban
 // block in README.md and preserves all other content in the file.
 func TestBoardMermaid_OutReplacesExistingKanbanBlockInPlace(t *testing.T) {
-	t.Skip("pending: AC-11 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
