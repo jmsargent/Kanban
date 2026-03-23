@@ -216,8 +216,6 @@ func TestBoardMermaid_OutCreatesFileWhenNotExists(t *testing.T) {
 // error to stderr when README.md exists but contains no Mermaid kanban block.
 // The file must not be modified.
 func TestBoardMermaid_OutErrorsWhenFileExistsWithNoKanbanBlock(t *testing.T) {
-	t.Skip("pending: AC-10 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())

@@ -41,6 +41,66 @@ func TestWriteMermaidToFile_NewFile(t *testing.T) {
 	})
 }
 
+// TestWriteMermaidToFile_ExistingFileNoBlock validates writeMermaidToFile when the
+// target file exists but contains no Mermaid kanban block.
+// Test Budget: 2 behaviors (returns ErrNoKanbanBlock | file content unchanged) x 2 = 4 max.
+func TestWriteMermaidToFile_ExistingFileNoBlock(t *testing.T) {
+	const originalContent = "# My Project\n\nSome markdown without a kanban block.\n"
+
+	t.Run("returns ErrNoKanbanBlock", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "README.md")
+		if err := os.WriteFile(path, []byte(originalContent), 0o644); err != nil {
+			t.Fatalf("setup: write file: %v", err)
+		}
+
+		err := writeMermaidToFile(path, "```mermaid\nkanban\n```\n")
+
+		if err != ErrNoKanbanBlock {
+			t.Errorf("writeMermaidToFile returned %v, want ErrNoKanbanBlock", err)
+		}
+	})
+
+	t.Run("file content is unchanged", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "README.md")
+		if err := os.WriteFile(path, []byte(originalContent), 0o644); err != nil {
+			t.Fatalf("setup: write file: %v", err)
+		}
+
+		_ = writeMermaidToFile(path, "```mermaid\nkanban\n```\n")
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read file after call: %v", err)
+		}
+		if string(got) != originalContent {
+			t.Errorf("file content changed\nGot:  %q\nWant: %q", string(got), originalContent)
+		}
+	})
+}
+
+// TestWriteMermaidToFile_ExistingFileWithBlock validates writeMermaidToFile when the
+// target file exists and contains a Mermaid kanban block.
+// Test Budget: 1 behavior (returns nil, block found) x 2 = 2 max.
+func TestWriteMermaidToFile_ExistingFileWithBlock(t *testing.T) {
+	const fileWithBlock = "# My Project\n\n```mermaid\nkanban\n  section To Do\n    TASK-OLD@{ label: \"Old task\" }\n```\n\nSome text below.\n"
+
+	t.Run("returns nil when kanban block found", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "README.md")
+		if err := os.WriteFile(path, []byte(fileWithBlock), 0o644); err != nil {
+			t.Fatalf("setup: write file: %v", err)
+		}
+
+		err := writeMermaidToFile(path, "```mermaid\nkanban\n```\n")
+
+		if err != nil {
+			t.Errorf("writeMermaidToFile returned %v, want nil", err)
+		}
+	})
+}
+
 func boardWithOneTask() domain.Board {
 	return domain.Board{
 		Columns: []domain.Column{
