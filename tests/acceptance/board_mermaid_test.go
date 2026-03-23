@@ -169,8 +169,6 @@ func TestBoardMermaid_TaskTitlesWithUnsafeCharsAreSanitised(t *testing.T) {
 // are safely handled — the command exits 0 and produces valid output.
 // Note: the default config uses plain labels; this test injects a custom config.
 func TestBoardMermaid_ColumnLabelsWithSpecialCharsAreSafe(t *testing.T) {
-	t.Skip("pending: AC-08 not yet implemented")
-
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	// Write a custom config with a column label containing a colon.

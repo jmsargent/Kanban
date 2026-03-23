@@ -21,6 +21,22 @@ func sanitiseMermaidTitle(s string) string {
 	return mermaidTitleReplacer.Replace(s)
 }
 
+// mermaidLabelReplacer replaces characters that are unsafe in Mermaid section labels.
+var mermaidLabelReplacer = strings.NewReplacer(
+	`:`, ` `,
+	`"`, `'`,
+	`[`, `(`,
+	`]`, `)`,
+	"\n", " ",
+	"\r", " ",
+)
+
+// sanitiseMermaidLabel replaces Mermaid-unsafe characters in a column label with
+// safe substitutes. It is a pure function: no I/O, no side effects.
+func sanitiseMermaidLabel(s string) string {
+	return mermaidLabelReplacer.Replace(s)
+}
+
 // renderBoardMermaid returns a fenced Mermaid kanban block representing the board.
 // It is a pure function: no I/O, no side effects.
 func renderBoardMermaid(board domain.Board) string {
@@ -29,7 +45,7 @@ func renderBoardMermaid(board domain.Board) string {
 	sb.WriteString("kanban\n")
 	for _, col := range board.Columns {
 		sb.WriteString("  section ")
-		sb.WriteString(col.Label)
+		sb.WriteString(sanitiseMermaidLabel(col.Label))
 		sb.WriteString("\n")
 		status := domain.TaskStatus(col.Name)
 		for _, task := range board.Tasks[status] {
