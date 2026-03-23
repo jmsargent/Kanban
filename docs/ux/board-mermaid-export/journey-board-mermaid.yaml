@@ -1,0 +1,61 @@
+feature: board-mermaid-export
+journey: generate-mermaid-from-board
+date: 2026-03-23
+driving_port: CLI command — kanban board --mermaid
+
+steps:
+  - id: invoke
+    label: Run kanban board --mermaid
+    actor: developer
+    action: Execute CLI command with --mermaid flag
+    inputs:
+      - git repository with kanban initialised
+      - optional --me flag
+    outputs:
+      - Mermaid kanban block on stdout
+      - exit 0
+    error_paths:
+      - condition: not a git repository
+        output: stderr "Not a git repository"
+        exit: 1
+      - condition: kanban not initialised
+        output: stderr "kanban not initialised — run 'kanban init' first"
+        exit: 1
+      - condition: --mermaid and --json both set
+        output: stderr "flags --mermaid and --json are mutually exclusive"
+        exit: 2
+
+  - id: inspect
+    label: Review Mermaid output
+    actor: developer
+    action: Read stdout output
+    inputs:
+      - stdout from previous step
+    outputs:
+      - Valid Mermaid kanban diagram block
+      - Columns match board config
+      - Tasks appear under correct columns
+
+  - id: use
+    label: Direct output to destination
+    actor: developer
+    action: Redirect or copy stdout to file / clipboard
+    inputs:
+      - Mermaid block from stdout
+    outputs:
+      - README.md or doc file updated with diagram
+      - No file side-effects from kanban command itself
+
+happy_path:
+  - invoke → inspect → use
+
+variants:
+  - name: filtered-by-me
+    description: --me flag restricts nodes to tasks assigned to current git user
+    diverges_at: invoke
+    rejoins_at: use
+
+  - name: empty-board
+    description: No tasks — valid Mermaid block with column headers but no nodes
+    diverges_at: invoke
+    rejoins_at: use
