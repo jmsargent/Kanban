@@ -2,6 +2,9 @@
 
 This README is humanmade.
 
+
+## Planning (Or showcase 😉)
+
 ```mermaid
 kanban
   section To Do
