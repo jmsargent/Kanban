@@ -15,47 +15,77 @@ type TestingT interface {
 }
 
 type PipelineDriver struct {
-	t    TestingT
-	root string
+	t              TestingT
+	root           string
+	ciConfigPath   string
+	ciConfigCached *string
 }
 
-func NewPipelineDriver(t *testing.T) *PipelineDriver {
+func NewPipelineDriver(t *testing.T, ciConfigPath ...string) *PipelineDriver {
 	t.Helper()
 	root, err := dsl.ProjectRoot()
 	if err != nil {
 		t.Fatalf("locate project root: %v", err)
 	}
-	return &PipelineDriver{t: t, root: root}
+	path := filepath.Join(root, "cicd", "config.yml")
+	if len(ciConfigPath) > 0 && ciConfigPath[0] != "" {
+		path = ciConfigPath[0]
+	}
+	return &PipelineDriver{t: t, root: root, ciConfigPath: path}
 }
 
-func (d *PipelineDriver) ReadCIConfig(path string) string {
+func (d *PipelineDriver) ReadCIConfig() string {
 	d.t.Helper()
-	if path == "" {
-		path = filepath.Join(d.root, "cicd", "config.yml")
+	if d.ciConfigCached != nil {
+		return *d.ciConfigCached
 	}
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(d.ciConfigPath)
 	if err != nil {
-		d.t.Fatalf("read CI config %s: %v", path, err)
+		d.t.Fatalf("read CI config %s: %v", d.ciConfigPath, err)
 	}
-	return string(content)
+	s := string(content)
+	d.ciConfigCached = &s
+	return s
 }
 
-func (d *PipelineDriver) ReadCommands(path string) []string {
+type CircleCIConfigCommand = map[string]string
+
+func (d *PipelineDriver) ReadCommands() []CircleCIConfigCommand {
 	d.t.Helper()
-	raw := d.ReadCIConfig(path)
+	raw := d.ReadCIConfig()
 
 	var config struct {
-		Commands map[string]any `yaml:"commands"`
+		Jobs map[string]struct {
+			Steps []any `yaml:"steps"`
+		} `yaml:"jobs"`
 	}
 	if err := yaml.Unmarshal([]byte(raw), &config); err != nil {
 		d.t.Fatalf("parse CI config: %v", err)
 	}
 
-	names := make([]string, 0, len(config.Commands))
-	for name := range config.Commands {
-		names = append(names, name)
+	var commands []CircleCIConfigCommand
+	for _, job := range config.Jobs {
+		for _, step := range job.Steps {
+			m, ok := step.(map[string]any)
+			if !ok {
+				continue
+			}
+			run, ok := m["run"]
+			if !ok {
+				continue
+			}
+			r, ok := run.(map[string]any)
+			if !ok {
+				continue
+			}
+			name, _ := r["name"].(string)
+			command, _ := r["command"].(string)
+			if command != "" {
+				commands = append(commands, CircleCIConfigCommand{name: command})
+			}
+		}
 	}
-	return names
+	return commands
 }
 
 func (d *PipelineDriver) ReadMakefile() string {

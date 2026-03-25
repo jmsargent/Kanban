@@ -15,7 +15,7 @@ import (
 // replacing the previous per-tool install commands.
 func TestPipeline_CIConfig_ContainsInstallToolsCommand(t *testing.T) {
 	driver := NewPipelineDriver(t)
-	config := driver.ReadCIConfig("")
+	config := driver.ReadCIConfig()
 
 	if !strings.Contains(config, "install-tools:") {
 		t.Error("cicd/config.yml does not contain the reusable 'install-tools:' command")
@@ -31,7 +31,7 @@ func TestPipeline_CIConfig_ContainsInstallToolsCommand(t *testing.T) {
 // so any version change automatically invalidates the CI cache.
 func TestPipeline_CIConfig_InstallToolsCommandUsesChecksumCache(t *testing.T) {
 	driver := NewPipelineDriver(t)
-	config := driver.ReadCIConfig("")
+	config := driver.ReadCIConfig()
 
 	if !strings.Contains(config, `checksum "cicd/tool-versions"`) {
 		t.Error("cicd/config.yml does not use '{{ checksum \"cicd/tool-versions\" }}' as the tools cache key")
@@ -59,7 +59,7 @@ func TestPipeline_CIConfig_TagJobHasSkipReleaseGuard(t *testing.T) {
 // invoke the reusable install-tools command rather than per-tool install commands.
 func TestPipeline_CIConfig_JobsUseInstallToolsCommand(t *testing.T) {
 	driver := NewPipelineDriver(t)
-	config := driver.ReadCIConfig("")
+	config := driver.ReadCIConfig()
 
 	if !strings.Contains(config, "- install-tools") {
 		t.Error("cicd/config.yml jobs do not invoke '- install-tools' command")
@@ -72,7 +72,15 @@ func TestPipeline_CIConfig_JobsUseInstallToolsCommand(t *testing.T) {
 }
 
 func TestCIConfigCommandsShouldBeMakeCommands(t *testing.T){
+	t.Skip("not yet implemented")
+
 	driver := NewPipelineDriver(t)
-	_ = driver.ReadCIConfig("")
-	t.Skip("")
+	cmds := driver.ReadCommands()
+	for _, cmd := range cmds {
+		for name, command := range cmd {
+			if !strings.HasPrefix(strings.TrimSpace(command), "make") {
+				t.Errorf("command %q has non-make line: %q", name, command)
+			}
+		}
+	}
 }
