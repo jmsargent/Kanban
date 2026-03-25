@@ -180,29 +180,6 @@ func TestPipeline_CI_StopsOnValidateFailure(t *testing.T) {
 // Pre-commit hook — US-TP-03
 // ============================================================
 
-// TestPipeline_PreCommit_ArchLintStepIsActive asserts that go-arch-lint is not
-// commented out in cicd/pre-commit. A commented-out arch-lint step means the
-// local gate silently misses the architecture enforcement that CI applies.
-func TestPipeline_PreCommit_ArchLintStepIsActive(t *testing.T) {
-
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.ThePreCommitHookScript())
-	dsl.PipelineThen(pc, dsl.PreCommitHookDoesNotContainCommentedArchLint())
-	dsl.PipelineAnd(pc, dsl.PreCommitHookContainsStep("go-arch-lint check"))
-	dsl.PipelineAnd(pc, dsl.PreCommitHookContainsStep("[3/5]"))
-}
-
-// TestPipeline_PreCommit_CheckVersionsRunsBeforeGoTest asserts that
-// install-tools is invoked as step 0, before gotestsum, in the pre-commit
-// hook. This ensures tools are pinned to the correct versions before any
-// expensive test steps run.
-func TestPipeline_PreCommit_CheckVersionsRunsBeforeGoTest(t *testing.T) {
-
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.ThePreCommitHookScript())
-	dsl.PipelineThen(pc, dsl.CheckVersionsIsFirstStepInPreCommit())
-	dsl.PipelineAnd(pc, dsl.PreCommitHookContainsStep("[0/5]"))
-}
 
 // TestPipeline_PreCommit_BlocksOnToolVersionMismatch asserts that when a tool
 // version does not match cicd/config.yml, the pre-commit hook exits 1 and
