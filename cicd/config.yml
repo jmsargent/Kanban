@@ -66,19 +66,16 @@ jobs:
       - set-path
       - run:
           name: Architecture Check
-          command: go-arch-lint check --arch-file cicd/go-arch-lint.yml
+          command: make ci-arch-check
       - run:
           name: Static Analysis
-          command: |
-            go vet ./...
-            golangci-lint run
-            govulncheck ./...
+          command: make ci-static-analysis
       - run:
           name: Unit Tests
-          command: gotestsum --format testname -- ./internal/...
+          command: make ci-unit-tests
       - run:
           name: Build
-          command: go build -o kanban ./cmd/kanban
+          command: make ci-build
       - persist_to_workspace:
           root: .
           paths:
@@ -92,14 +89,13 @@ jobs:
           at: .
       - run:
           name: Set Environment
-          command: |
-            echo "export KANBAN_BIN=$PWD/kanban" >> $BASH_ENV
+          command: make ci-set-env
       - go/mod-download
       - install-tools
       - set-path
       - run:
           name: E2E Tests
-          command: gotestsum --format testname -- ./tests/acceptance/...
+          command: make ci-e2e-tests
 
   tag-and-release:
     executor: go-executor
@@ -107,42 +103,13 @@ jobs:
       - checkout
       - run:
           name: Fetch history and tags
-          command: git fetch --unshallow --tags || git fetch --tags
+          command: make ci-fetch-tags
       - go/mod-download
       - install-tools
       - set-path
       - run:
           name: Tag and release
-          command: |
-            # Guard: skip if commit message contains [skip release] (case-insensitive).
-            if git log -1 --pretty=%B | grep -qi '\[skip release\]'; then
-              echo "[skip release] detected in commit message — skipping"
-              exit 0
-            fi
-
-            # Guard: if this commit already has a tag, skip tagging but still release.
-            if git describe --tags --exact-match HEAD >/dev/null 2>&1; then
-              echo "Commit $(git rev-parse --short HEAD) is already tagged. Skipping tag step."
-            else
-              go-semver-release release "https://${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" \
-                --tag-prefix v \
-                --access-token $GITHUB_TOKEN \
-                --branches '[{"name": "main"}]'
-            fi
-
-            # Checkout the exact commit the tag points to before goreleaser runs.
-            # go-semver-release tags the remote HEAD which may differ from CIRCLE_SHA1.
-            git fetch --tags
-            LATEST_TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
-            TAG_SHA=$(git rev-list -n1 "$LATEST_TAG")
-            CURRENT_SHA=$(git rev-parse HEAD)
-            if [ "$TAG_SHA" != "$CURRENT_SHA" ]; then
-              echo "Tag $LATEST_TAG points to $TAG_SHA, not $CURRENT_SHA — checking out tagged commit"
-              git checkout "$TAG_SHA"
-            fi
-
-            export GITHUB_REPOSITORY_OWNER=$CIRCLE_PROJECT_USERNAME
-            goreleaser release --config cicd/goreleaser.yml --clean
+          command: make ci-tag-and-release
 
 workflows:
   ci-cd:

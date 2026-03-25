@@ -72,15 +72,39 @@ func TestPipeline_CIConfig_JobsUseInstallToolsCommand(t *testing.T) {
 }
 
 func TestCIConfigCommandsShouldBeMakeCommands(t *testing.T){
-	t.Skip("not yet implemented")
-
 	driver := NewPipelineDriver(t)
+	
 	cmds := driver.ReadCommands()
 	for _, cmd := range cmds {
 		for name, command := range cmd {
 			if !strings.HasPrefix(strings.TrimSpace(command), "make") {
 				t.Errorf("command %q has non-make line: %q", name, command)
 			}
+		}
+	}
+}
+
+func TestPreCommitShouldCallSameMakeTargetsAsPipeline(t *testing.T) {
+	driver := NewPipelineDriver(t)
+
+	pipelineTargets := driver.ReadPipelineMakeTargets(
+		[]string{"tag-and-release"},
+		[]string{"ci-set-env"},
+	)
+	preCommitSteps := driver.ReadMakeTargetSteps("pre-commit")
+
+	if len(preCommitSteps) == 0 {
+		t.Fatal("Makefile pre-commit target has no make sub-steps")
+	}
+
+	if len(pipelineTargets) != len(preCommitSteps) {
+		t.Fatalf("pipeline has %d make targets %v but pre-commit has %d steps %v",
+			len(pipelineTargets), pipelineTargets, len(preCommitSteps), preCommitSteps)
+	}
+
+	for i := range pipelineTargets {
+		if pipelineTargets[i] != preCommitSteps[i] {
+			t.Errorf("step %d: pipeline has %q but pre-commit has %q", i, pipelineTargets[i], preCommitSteps[i])
 		}
 	}
 }

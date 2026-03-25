@@ -72,9 +72,7 @@ func TestPipeline_ValidateTarget_PassesWhenAllChecksGreen(t *testing.T) {
 func TestPipeline_Makefile_ContainsRequiredTargets(t *testing.T) {
 	pc := dsl.NewPipelineContext(t)
 	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
-	dsl.PipelineThen(pc, dsl.MakefileContainsTarget("validate"))
-	dsl.PipelineAnd(pc, dsl.MakefileContainsTarget("acceptance"))
-	dsl.PipelineAnd(pc, dsl.MakefileContainsTarget("ci"))
+	dsl.PipelineThen(pc, dsl.MakefileContainsTarget("pre-commit"))
 	dsl.PipelineAnd(pc, dsl.MakefileContainsTarget("release-snapshot"))
 	dsl.PipelineAnd(pc, dsl.MakefileContainsTarget("tag-dry"))
 	dsl.PipelineAnd(pc, dsl.MakefileContainsTarget("help"))

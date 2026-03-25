@@ -20,8 +20,10 @@ GITHUB_REPO  ?= $(shell git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]
 
 .PHONY: install-tools install-golangci-lint install-go-arch-lint install-go-semver-release \
         install-gotestsum install-goreleaser \
-        validate acceptance ci release-snapshot release tag-dry \
-        ci-tag ci-checkout-tagged ci-release help
+        pre-commit release-snapshot release tag-dry \
+        ci-tag ci-checkout-tagged ci-release help \
+        ci-arch-check ci-static-analysis ci-unit-tests ci-build \
+        ci-set-env ci-e2e-tests ci-fetch-tags ci-tag-and-release
 
 # ---------------------------------------------------------------------------
 # Tool installation — idempotent, version-aware, installed to bin/
@@ -81,28 +83,13 @@ install-tools: install-golangci-lint install-go-arch-lint install-go-semver-rele
 # Quality gates
 # ---------------------------------------------------------------------------
 
-## validate: run static quality gates locally (mirrors CI validate-and-build job)
-validate: install-go-arch-lint install-golangci-lint install-gotestsum
-	@echo "[1/4] gotestsum ./internal/..."
-	@gotestsum --format testname -- ./internal/...
-	@echo "[2/4] golangci-lint run"
-	@golangci-lint run
-	@echo "[3/4] go-arch-lint check"
-	@go-arch-lint check --arch-file cicd/go-arch-lint.yml
-	@echo "[4/4] go build ./..."
-	@go build ./...
-	@echo "PASS"
-
-## acceptance: build kanban binary and run acceptance tests
-acceptance: install-gotestsum
-	@echo "Building kanban binary..."
-	@go build -o kanban ./cmd/kanban
-	@echo "Running acceptance tests..."
-	@KANBAN_BIN="$(CURDIR)/kanban" gotestsum --format testname -- ./tests/acceptance/...
-
-## ci: run validate then acceptance (mirrors CI pipeline locally)
-ci:
-	@make validate && make acceptance
+## pre-commit: run the same quality gates as the CI pipeline, in the same order
+pre-commit: install-tools
+	@make ci-arch-check
+	@make ci-static-analysis
+	@make ci-unit-tests
+	@make ci-build
+	@make ci-e2e-tests
 
 # ---------------------------------------------------------------------------
 # Release
@@ -156,6 +143,47 @@ ci-release: install-goreleaser
 	fi
 	@GITHUB_REPOSITORY_OWNER=$(GITHUB_OWNER) goreleaser release --config cicd/goreleaser.yml --clean
 
+# ---------------------------------------------------------------------------
+# CI job steps — thin wrappers invoked by cicd/config.yml run steps.
+# Each CI run step delegates to exactly one make target.
+# ---------------------------------------------------------------------------
+
+## ci-arch-check: run architecture lint (CI step)
+ci-arch-check:
+	@go-arch-lint check --arch-file cicd/go-arch-lint.yml
+
+## ci-static-analysis: run vet, lint, and vulnerability scan (CI step)
+ci-static-analysis:
+	@go vet ./...
+	@golangci-lint run
+	@govulncheck ./...
+
+## ci-unit-tests: run unit tests via gotestsum (CI step)
+ci-unit-tests:
+	@gotestsum --format testname -- ./internal/...
+
+## ci-build: build the kanban binary (CI step)
+ci-build:
+	@go build -o kanban ./cmd/kanban
+
+## ci-set-env: export KANBAN_BIN for acceptance tests (CI step)
+ci-set-env:
+	@echo "export KANBAN_BIN=$$PWD/kanban" >> $$BASH_ENV
+
+## ci-e2e-tests: run acceptance tests via gotestsum (CI step)
+ci-e2e-tests:
+	@gotestsum --format testname -- ./tests/acceptance/...
+
+## ci-fetch-tags: fetch full history and tags for release (CI step)
+ci-fetch-tags:
+	@git fetch --unshallow --tags || git fetch --tags
+
+## ci-tag-and-release: tag, checkout, and release (CI step)
+ci-tag-and-release:
+	@make ci-tag
+	@make ci-checkout-tagged
+	@make ci-release
+
 ## help: list available make targets
 help:
 	@echo "Available targets:"
@@ -169,9 +197,7 @@ help:
 	@echo "  install-goreleaser         goreleaser v$(GORELEASER_VERSION)"
 	@echo ""
 	@echo "  Quality gates:"
-	@echo "  validate                run all quality gates (mirrors CI validate-and-build)"
-	@echo "  acceptance              build binary and run acceptance tests"
-	@echo "  ci                      run validate then acceptance"
+	@echo "  pre-commit              run CI quality gates locally, in pipeline order"
 	@echo ""
 	@echo "  Release:"
 	@echo "  release-snapshot        build cross-compile targets without publishing"
