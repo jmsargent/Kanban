@@ -11,3 +11,4 @@ go-arch-lint 1.14.0
 go-semver-release 6.1.0
 goreleaser 2.14.3
 gotestsum 1.13.0
+govulncheck@v1.1.4
