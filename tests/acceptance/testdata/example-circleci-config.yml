@@ -1,0 +1,51 @@
+version: 2.1
+
+parameters:
+  go-image-version:
+    type: string
+    default: "1.22.0"
+
+orbs:
+  go: circleci/go@3.0.2
+
+executors:
+  go-executor:
+    docker:
+      - image: cimg/go:<< pipeline.parameters.go-image-version >>
+    resource_class: medium
+
+commands:
+  install-tools:
+    steps:
+      - restore_cache:
+          keys:
+            - tools-v1-{{ checksum "cicd/tool-versions" }}
+      - run:
+          name: Install pipeline tools
+          command: make install-tools
+      - save_cache:
+          key: tools-v1-{{ checksum "cicd/tool-versions" }}
+          paths:
+            - bin/
+
+jobs:
+  validate-and-build:
+    executor: go-executor
+    steps:
+      - checkout
+      - go/mod-download
+      - install-tools
+      - run:
+          name: Unit Tests
+          command: make test
+      - run:
+          name: Build
+          command: make build
+
+workflows:
+  ci-cd:
+    jobs:
+      - validate-and-build:
+          filters:
+            branches:
+              only: main

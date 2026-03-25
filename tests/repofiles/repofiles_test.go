@@ -138,3 +138,4 @@ func TestNoBarGoTest(t *testing.T) {
 			len(violations), strings.Join(violations, "\n  "))
 	}
 }
+
