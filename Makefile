@@ -196,7 +196,7 @@ LATEST_TAG ?= $(shell git tag --sort=-version:refname | grep '^v' | head -1)
 ci-smoke-test-binary:
 	@echo "Smoke test: binary download ($(LATEST_TAG))"
 	@mkdir -p /tmp/kanban-smoke
-	@curl -sSfL "https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/$(LATEST_TAG)/kanban_$${LATEST_TAG#v}_linux_amd64.tar.gz" \
+	@curl -sSfL "https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/$(LATEST_TAG)/kanban_$(subst v,,$(LATEST_TAG))_linux_amd64.tar.gz" \
 	  | tar -xz -C /tmp/kanban-smoke
 	@/tmp/kanban-smoke/kanban --help
 	@rm -rf /tmp/kanban-smoke
@@ -205,7 +205,7 @@ ci-smoke-test-binary:
 ## ci-smoke-test-go-install: install via go install and verify it runs
 ci-smoke-test-go-install:
 	@echo "Smoke test: go install ($(LATEST_TAG))"
-	@GOBIN=/tmp/kanban-smoke go install github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/cmd/kanban@$(LATEST_TAG)
+	@GOBIN=/tmp/kanban-smoke go install github.com/kanban-tasks/kanban/cmd/kanban@$(LATEST_TAG)
 	@/tmp/kanban-smoke/kanban --help
 	@rm -rf /tmp/kanban-smoke
 	@echo "PASS: go install smoke test"
