@@ -13,14 +13,14 @@ kanban
     TASK-003@{ label: "✨ CLI card templates ✨" }
     TASK-004@{ label: "✨ Customisable card fields ✨" }
     TASK-005@{ label: "💎 Renovation bot 💎" }
-    TASK-006@{ label: "💎 Dependency vulnerability scan 💎" }
-    TASK-007@{ label: "💎 Pipeline bashscripts entirely in makefile 💎" }
     TASK-008@{ label: "💎 Acceptance-test code rules 💎" }
     TASK-009@{ label: "💎 Update kanban-board as pre-commit hook 💎" }
-    TASK-010@{ label: "Update kanban status in ci" }
   section In Progress
   section Done
+    TASK-006@{ label: "💎 Dependency vulnerability scan 💎" }
+    TASK-007@{ label: "💎 Pipeline bashscripts entirely in makefile 💎" }
 ```
+
 
 
 
