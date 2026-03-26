@@ -172,7 +172,7 @@ ci-set-env:
 
 ## ci-e2e-tests: run acceptance tests via gotestsum (CI step)
 ci-e2e-tests:
-	@gotestsum --format testname -- ./tests/acceptance/...
+	@KANBAN_BIN="$(CURDIR)/kanban" gotestsum --format testname -- ./tests/acceptance/...
 
 ## ci-fetch-tags: fetch full history and tags for release (CI step)
 ci-fetch-tags:

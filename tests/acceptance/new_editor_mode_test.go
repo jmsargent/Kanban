@@ -57,6 +57,7 @@ func TestNewEditorMode_BlankTemplate_StructureCorrect(t *testing.T) {
 	dsl.Then(ctx, dsl.TemplateHasBlankTitleField(capturePath))
 	dsl.Then(ctx, dsl.TemplateHasBlankPriorityField(capturePath))
 	dsl.Then(ctx, dsl.TemplateHasBlankAssigneeField(capturePath))
+	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField(capturePath))
 	dsl.Then(ctx, dsl.TemplateHasTitleRequiredComment(capturePath))
 	dsl.And(ctx, dsl.TemplateHasNoDueField(capturePath))
 }

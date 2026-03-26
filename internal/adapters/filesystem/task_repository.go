@@ -334,6 +334,7 @@ const blankTaskTemplate = `title: ""
 # title is required
 priority: ""
 assignee: ""
+description: ""
 `
 
 // editFields is the YAML shape used for the temp edit file.

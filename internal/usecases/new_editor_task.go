@@ -57,12 +57,13 @@ func (u *NewEditorTask) Execute(repoRoot, createdBy string) (domain.Task, error)
 	}
 
 	task := domain.Task{
-		ID:        id,
-		Title:     title,
-		Status:    domain.StatusTodo,
-		Priority:  snapshot.Priority,
-		Assignee:  snapshot.Assignee,
-		CreatedBy: createdBy,
+		ID:          id,
+		Title:       title,
+		Status:      domain.StatusTodo,
+		Priority:    snapshot.Priority,
+		Assignee:    snapshot.Assignee,
+		Description: snapshot.Description,
+		CreatedBy:   createdBy,
 	}
 
 	if err := u.tasks.Save(repoRoot, task); err != nil {
