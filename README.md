@@ -16,11 +16,13 @@ kanban
     TASK-009@{ label: "💎 Update kanban-board as pre-commit hook 💎" }
   section In Progress
     TASK-010@{ label: "go releases not downloading" }
+    TASK-011@{ label: "✨ Remove add command, since new command exists" }
   section Done
     TASK-005@{ label: "💎 Renovation bot 💎" }
     TASK-006@{ label: "💎 Dependency vulnerability scan 💎" }
     TASK-007@{ label: "💎 Pipeline bashscripts entirely in makefile 💎" }
 ```
+
 
 
 

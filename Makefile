@@ -182,6 +182,13 @@ ci-fetch-tags:
 ## ci-tag-and-release: tag, checkout, and release (CI step)
 ci-tag-and-release:
 	@make ci-tag
+	@LATEST_TAG=$$(git tag --sort=-version:refname | grep '^v' | head -1); \
+	TAG_SHA=$$(git rev-list -n1 "$$LATEST_TAG"); \
+	CURRENT_SHA=$$(git rev-parse HEAD); \
+	if [ "$$TAG_SHA" != "$$CURRENT_SHA" ]; then \
+	  echo "No new tag on HEAD (latest $$LATEST_TAG points to $$TAG_SHA) — skipping release"; \
+	  exit 0; \
+	fi
 	@make ci-checkout-tagged
 	@make ci-release
 
