@@ -58,18 +58,18 @@ func HookInstalled() Step {
 	}
 }
 
-// TaskCreatedViaAdd runs "kanban add -t <title>", captures the resulting TASK-NNN
+// TaskCreatedViaAdd runs "kanban new <title>", captures the resulting TASK-NNN
 // into ctx.lastTaskID, and fails if the command exits non-zero.
 func TaskCreatedViaAdd(title string) Step {
 	return Step{
 		Description: fmt.Sprintf("task created with title %q", title),
 		Run: func(ctx *Context) error {
-			run(ctx, "add", "-t", title)
+			run(ctx, "new", title)
 			if ctx.lastExit != 0 {
-				return fmt.Errorf("kanban add failed (exit %d): %s", ctx.lastExit, ctx.lastOutput)
+				return fmt.Errorf("kanban new failed (exit %d): %s", ctx.lastExit, ctx.lastOutput)
 			}
 			if ctx.lastTaskID == "" {
-				return fmt.Errorf("kanban add did not produce a TASK-NNN in output: %s", ctx.lastOutput)
+				return fmt.Errorf("kanban new did not produce a TASK-NNN in output: %s", ctx.lastOutput)
 			}
 			return nil
 		},
@@ -108,16 +108,16 @@ func GitCommitReferencingTask(taskID string) Step {
 	}
 }
 
-// MultipleTasksExist creates n tasks via "kanban add -t <title>", accumulating
+// MultipleTasksExist creates n tasks via "kanban new <title>", accumulating
 // them under distinct titles. It stores only the last task ID in ctx.lastTaskID.
 func MultipleTasksExist(titles ...string) Step {
 	return Step{
 		Description: fmt.Sprintf("tasks exist: %s", strings.Join(titles, ", ")),
 		Run: func(ctx *Context) error {
 			for _, title := range titles {
-				run(ctx, "add", "-t", title)
+				run(ctx, "new", title)
 				if ctx.lastExit != 0 {
-					return fmt.Errorf("kanban add %q failed (exit %d): %s", title, ctx.lastExit, ctx.lastOutput)
+					return fmt.Errorf("kanban new %q failed (exit %d): %s", title, ctx.lastExit, ctx.lastOutput)
 				}
 			}
 			return nil
@@ -125,15 +125,15 @@ func MultipleTasksExist(titles ...string) Step {
 	}
 }
 
-// TaskAssignedTo runs "kanban add -t <title> --assignee <email>" and stores
+// TaskAssignedTo runs "kanban new <title> --assignee <email>" and stores
 // the new task ID in ctx.lastTaskID. Used in US-BSG-03 board --me scenarios.
 func TaskAssignedTo(title, assignee string) Step {
 	return Step{
 		Description: fmt.Sprintf("task %q assigned to %s", title, assignee),
 		Run: func(ctx *Context) error {
-			run(ctx, "add", "-t", title, "--assignee", assignee)
+			run(ctx, "new", title, "--assignee", assignee)
 			if ctx.lastExit != 0 {
-				return fmt.Errorf("kanban add --assignee failed (exit %d): %s", ctx.lastExit, ctx.lastOutput)
+				return fmt.Errorf("kanban new --assignee failed (exit %d): %s", ctx.lastExit, ctx.lastOutput)
 			}
 			return nil
 		},

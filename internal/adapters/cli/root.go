@@ -18,7 +18,6 @@ func NewRootCommand(git ports.GitPort, config ports.ConfigRepository, tasks port
 
 	root.AddCommand(NewInitCommand(git, config))
 	root.AddCommand(NewCreateCommand(git, config, tasks, editor))
-	root.AddCommand(NewAddCommand(git, config, tasks))
 	root.AddCommand(NewBoardCommand(git, config, tasks))
 	root.AddCommand(NewHookCommand())
 	root.AddCommand(NewInstallHookCommand())

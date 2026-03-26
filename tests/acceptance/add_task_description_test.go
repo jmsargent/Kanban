@@ -6,7 +6,6 @@ package acceptance
 //   US-01: Add description: "" to blankTaskTemplate — editor template field affordance
 //   US-02: Wire snapshot.Description → task.Description in NewEditorTask.Execute()
 //   US-03: Add --description flag to kanban new for non-interactive use
-//   US-04: Remove kanban add command entirely
 //
 // Driving port: kanban binary invoked as subprocess.
 // No mocks at this level — real filesystem, real git.
@@ -258,60 +257,4 @@ func TestAddTaskDescription_FlagAppearsInHelpOutput(t *testing.T) {
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanban("new --help"))
 	dsl.Then(ctx, dsl.StdoutContains("--description"))
-}
-
-// ---------------------------------------------------------------------------
-// US-04: Remove kanban add
-// ---------------------------------------------------------------------------
-
-// TestAddTaskDescription_KanbanAddRemoved_UnknownCommand validates that
-// attempting to use the removed "kanban add" command produces an unknown command
-// error with a non-zero exit code.
-//
-// Covers: AC-04-1
-func TestAddTaskDescription_KanbanAddRemoved_UnknownCommand(t *testing.T) {
-	t.Skip("TODO: implement")
-
-	ctx := dsl.NewContext(t)
-
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanban(`add -t "Buy groceries"`))
-	dsl.Then(ctx, dsl.ExitCodeIs(1))
-	dsl.And(ctx, dsl.StderrContains("unknown command"))
-}
-
-// TestAddTaskDescription_KanbanAddRemovedFromHelp validates that the top-level
-// help output no longer lists "add" as an available command, while "new" remains
-// present.
-//
-// Covers: AC-04-2
-func TestAddTaskDescription_KanbanAddRemovedFromHelp(t *testing.T) {
-	t.Skip("TODO: implement")
-
-	ctx := dsl.NewContext(t)
-
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanban("--help"))
-	dsl.Then(ctx, dsl.StdoutContains("  new"))
-	// "  add" with leading spaces matches the indented command listing format.
-	dsl.And(ctx, dsl.OutputDoesNotContain("  add"))
-}
-
-// TestAddTaskDescription_KanbanNewStillWorksAfterAddRemoval is a regression
-// check confirming that removing "kanban add" did not break "kanban new".
-//
-// Covers: AC-04-3
-func TestAddTaskDescription_KanbanNewStillWorksAfterAddRemoval(t *testing.T) {
-	t.Skip("TODO: implement")
-
-	ctx := dsl.NewContext(t)
-
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNew("Buy groceries"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.And(ctx, dsl.StdoutContains("Created TASK-"))
-	dsl.And(ctx, dsl.StdoutContains("Buy groceries"))
 }
