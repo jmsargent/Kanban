@@ -12,15 +12,16 @@ kanban
     TASK-002@{ label: "✨ CLI board templates ✨" }
     TASK-003@{ label: "✨ CLI card templates ✨" }
     TASK-004@{ label: "✨ Customisable card fields ✨" }
-    TASK-005@{ label: "💎 Renovation bot 💎" }
     TASK-008@{ label: "💎 Acceptance-test code rules 💎" }
     TASK-009@{ label: "💎 Update kanban-board as pre-commit hook 💎" }
   section In Progress
     TASK-010@{ label: "go releases not downloading" }
   section Done
+    TASK-005@{ label: "💎 Renovation bot 💎" }
     TASK-006@{ label: "💎 Dependency vulnerability scan 💎" }
     TASK-007@{ label: "💎 Pipeline bashscripts entirely in makefile 💎" }
 ```
+
 
 
 ## Look ma, no hands!
