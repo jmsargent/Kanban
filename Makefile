@@ -23,7 +23,8 @@ GITHUB_REPO  ?= $(shell git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]
         pre-commit release-snapshot release tag-dry \
         ci-tag ci-checkout-tagged ci-release help \
         ci-arch-check ci-static-analysis ci-unit-tests ci-build \
-        ci-set-env ci-e2e-tests ci-fetch-tags ci-tag-and-release
+        ci-set-env ci-e2e-tests ci-fetch-tags ci-tag-and-release \
+        ci-smoke-test-binary ci-smoke-test-go-install
 
 # ---------------------------------------------------------------------------
 # Tool installation — idempotent, version-aware, installed to bin/
@@ -183,6 +184,31 @@ ci-tag-and-release:
 	@make ci-tag
 	@make ci-checkout-tagged
 	@make ci-release
+
+# ---------------------------------------------------------------------------
+# Smoke tests — post-release installation verification.
+# Each target installs kanban via a distribution channel and runs kanban --help.
+# ---------------------------------------------------------------------------
+
+LATEST_TAG ?= $(shell git tag --sort=-version:refname | grep '^v' | head -1)
+
+## ci-smoke-test-binary: download release binary from GitHub and verify it runs
+ci-smoke-test-binary:
+	@echo "Smoke test: binary download ($(LATEST_TAG))"
+	@mkdir -p /tmp/kanban-smoke
+	@curl -sSfL "https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/$(LATEST_TAG)/kanban_$${LATEST_TAG#v}_linux_amd64.tar.gz" \
+	  | tar -xz -C /tmp/kanban-smoke
+	@/tmp/kanban-smoke/kanban --help
+	@rm -rf /tmp/kanban-smoke
+	@echo "PASS: binary smoke test"
+
+## ci-smoke-test-go-install: install via go install and verify it runs
+ci-smoke-test-go-install:
+	@echo "Smoke test: go install ($(LATEST_TAG))"
+	@GOBIN=/tmp/kanban-smoke go install github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/cmd/kanban@$(LATEST_TAG)
+	@/tmp/kanban-smoke/kanban --help
+	@rm -rf /tmp/kanban-smoke
+	@echo "PASS: go install smoke test"
 
 ## help: list available make targets
 help:

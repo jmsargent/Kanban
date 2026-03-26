@@ -88,7 +88,7 @@ func TestPreCommitShouldCallSameMakeTargetsAsPipeline(t *testing.T) {
 	driver := NewPipelineDriver(t)
 
 	pipelineTargets := driver.ReadPipelineMakeTargets(
-		[]string{"tag-and-release"},
+		[]string{"tag-and-release", "smoke-test"},
 		[]string{"ci-set-env"},
 	)
 	preCommitSteps := driver.ReadMakeTargetSteps("pre-commit")

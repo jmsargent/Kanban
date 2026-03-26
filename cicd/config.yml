@@ -111,6 +111,18 @@ jobs:
           name: Tag and release
           command: make ci-tag-and-release
 
+  smoke-test:
+    parameters:
+      channel:
+        type: string
+    docker:
+      - image: cimg/go:<< pipeline.parameters.go-image-version >>
+    resource_class: small
+    steps:
+      - run:
+          name: Smoke test (<< parameters.channel >>)
+          command: make ci-smoke-test-<< parameters.channel >>
+
 workflows:
   ci-cd:
     jobs:
@@ -129,6 +141,19 @@ workflows:
             - acceptance
           context:
             - release-context
+          filters:
+            branches:
+              only: main
+      - smoke-test:
+          requires:
+            - tag-and-release
+          context:
+            - release-context
+          matrix:
+            parameters:
+              channel:
+                - binary
+                - go-install
           filters:
             branches:
               only: main

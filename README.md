@@ -16,14 +16,11 @@ kanban
     TASK-008@{ label: "💎 Acceptance-test code rules 💎" }
     TASK-009@{ label: "💎 Update kanban-board as pre-commit hook 💎" }
   section In Progress
+    TASK-010@{ label: "go releases not downloading" }
   section Done
     TASK-006@{ label: "💎 Dependency vulnerability scan 💎" }
     TASK-007@{ label: "💎 Pipeline bashscripts entirely in makefile 💎" }
 ```
-
-
-
-
 
 
 ## Look ma, no hands!
@@ -44,7 +41,7 @@ brew install kanban
 **Install via go install:**
 
 ```
-go install github.com/jmsargent/Kanban/cmd/kanban@0.58.0
+go install github.com/jmsargent/Kanban/cmd/kanban@latest
 ```
 
 Alternatively you can download a binary from the [releases page](https://github.com/jmsargent/Kanban/releases)
