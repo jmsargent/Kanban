@@ -84,6 +84,10 @@ install-tools: install-golangci-lint install-go-arch-lint install-go-semver-rele
 # Quality gates
 # ---------------------------------------------------------------------------
 
+update-board:
+	@kanban board --mermaid --out README.md
+	@git add README.md
+
 ## pre-commit: run the same quality gates as the CI pipeline, in the same order
 pre-commit: install-tools
 	@make ci-arch-check
@@ -91,6 +95,7 @@ pre-commit: install-tools
 	@make ci-unit-tests
 	@make ci-build
 	@make ci-e2e-tests
+	@make update-board
 
 # ---------------------------------------------------------------------------
 # Release

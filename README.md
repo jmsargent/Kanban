@@ -14,14 +14,17 @@ kanban
     TASK-004@{ label: "✨ Customisable card fields ✨" }
     TASK-008@{ label: "💎 Acceptance-test code rules 💎" }
     TASK-009@{ label: "💎 Update kanban-board as pre-commit hook 💎" }
+    TASK-012@{ label: "remove kanban ci-completion" }
   section In Progress
     TASK-010@{ label: "go releases not downloading" }
-    TASK-011@{ label: "✨ Remove add command, since new command exists" }
   section Done
     TASK-005@{ label: "💎 Renovation bot 💎" }
     TASK-006@{ label: "💎 Dependency vulnerability scan 💎" }
     TASK-007@{ label: "💎 Pipeline bashscripts entirely in makefile 💎" }
+    TASK-011@{ label: "✨ Remove add command, since new command exists" }
+    TASK-013@{ label: "Generate kanban mermaid as pre-commit step" }
 ```
+
 
 
 

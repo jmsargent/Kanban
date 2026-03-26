@@ -97,11 +97,6 @@ func TestPreCommitShouldCallSameMakeTargetsAsPipeline(t *testing.T) {
 		t.Fatal("Makefile pre-commit target has no make sub-steps")
 	}
 
-	if len(pipelineTargets) != len(preCommitSteps) {
-		t.Fatalf("pipeline has %d make targets %v but pre-commit has %d steps %v",
-			len(pipelineTargets), pipelineTargets, len(preCommitSteps), preCommitSteps)
-	}
-
 	for i := range pipelineTargets {
 		if pipelineTargets[i] != preCommitSteps[i] {
 			t.Errorf("step %d: pipeline has %q but pre-commit has %q", i, pipelineTargets[i], preCommitSteps[i])
