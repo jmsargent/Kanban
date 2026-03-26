@@ -193,9 +193,8 @@ ci-tag-and-release:
 	if [ "$$TAG_SHA" != "$$CURRENT_SHA" ]; then \
 	  echo "No new tag on HEAD (latest $$LATEST_TAG points to $$TAG_SHA) — skipping release"; \
 	  exit 0; \
-	fi
-	@make ci-checkout-tagged
-	@make ci-release
+	fi; \
+	$(MAKE) ci-checkout-tagged && $(MAKE) ci-release
 
 # ---------------------------------------------------------------------------
 # Smoke tests — post-release installation verification.
