@@ -24,3 +24,9 @@
 {"context":"non_des_task","event":"HOOK_PRE_TOOL_USE_ALLOWED","hook_id":"5c1e8424-b47d-4eb7-ae10-0e075e15800f","timestamp":"2026-03-26T19:44:04.189751+00:00"}
 {"decision":"allow","duration_ms":2.369917,"event":"HOOK_COMPLETED","exit_code":0,"handler":"pre_tool_use","hook_id":"21bc4e86-6bbd-4580-b657-848a082b2c27","timestamp":"2026-03-26T19:44:04.189916+00:00"}
 {"decision":"allow","duration_ms":2.9615,"event":"HOOK_COMPLETED","exit_code":0,"handler":"pre_tool_use","hook_id":"5c1e8424-b47d-4eb7-ae10-0e075e15800f","timestamp":"2026-03-26T19:44:04.190013+00:00"}
+{"event":"HOOK_INVOKED","handler":"pre_tool_use","hook_id":"da829eff-b51c-429e-a57f-31d238e12c03","input_summary":{"subagent_type":"nw:nw-researcher"},"timestamp":"2026-03-26T21:26:58.758145+00:00"}
+{"context":"non_des_task","event":"HOOK_PRE_TOOL_USE_ALLOWED","hook_id":"da829eff-b51c-429e-a57f-31d238e12c03","timestamp":"2026-03-26T21:26:58.759858+00:00"}
+{"event":"HOOK_INVOKED","handler":"pre_tool_use","hook_id":"be07a26b-774d-4e2c-8b9c-5bc198f5dd06","input_summary":{"subagent_type":"nw:nw-researcher"},"timestamp":"2026-03-26T21:26:58.759913+00:00"}
+{"decision":"allow","duration_ms":3.099417,"event":"HOOK_COMPLETED","exit_code":0,"handler":"pre_tool_use","hook_id":"da829eff-b51c-429e-a57f-31d238e12c03","timestamp":"2026-03-26T21:26:58.760121+00:00"}
+{"context":"non_des_task","event":"HOOK_PRE_TOOL_USE_ALLOWED","hook_id":"be07a26b-774d-4e2c-8b9c-5bc198f5dd06","timestamp":"2026-03-26T21:26:58.761388+00:00"}
+{"decision":"allow","duration_ms":2.300625,"event":"HOOK_COMPLETED","exit_code":0,"handler":"pre_tool_use","hook_id":"be07a26b-774d-4e2c-8b9c-5bc198f5dd06","timestamp":"2026-03-26T21:26:58.761694+00:00"}
