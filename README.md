@@ -17,9 +17,11 @@ kanban
     TASK-007@{ label: "💎 Pipeline bashscripts entirely in makefile 💎" }
     TASK-008@{ label: "💎 Acceptance-test code rules 💎" }
     TASK-009@{ label: "💎 Update kanban-board as pre-commit hook 💎" }
+    TASK-010@{ label: "Update kanban status in ci" }
   section In Progress
   section Done
 ```
+
 
 
 
