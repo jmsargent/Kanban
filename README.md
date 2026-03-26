@@ -13,7 +13,6 @@ kanban
     TASK-003@{ label: "✨ CLI card templates ✨" }
     TASK-004@{ label: "✨ Customisable card fields ✨" }
     TASK-008@{ label: "💎 Acceptance-test code rules 💎" }
-    TASK-009@{ label: "💎 Update kanban-board as pre-commit hook 💎" }
     TASK-012@{ label: "remove kanban ci-completion" }
   section In Progress
     TASK-010@{ label: "go releases not downloading" }
@@ -24,6 +23,7 @@ kanban
     TASK-011@{ label: "✨ Remove add command, since new command exists" }
     TASK-013@{ label: "Generate kanban mermaid as pre-commit step" }
 ```
+
 
 
 
