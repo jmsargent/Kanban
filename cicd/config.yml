@@ -119,6 +119,7 @@ jobs:
       - image: cimg/go:<< pipeline.parameters.go-image-version >>
     resource_class: small
     steps:
+      - checkout
       - run:
           name: Smoke test (<< parameters.channel >>)
           command: make ci-smoke-test-<< parameters.channel >>
