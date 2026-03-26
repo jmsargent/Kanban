@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kanban-tasks/kanban/internal/ports"
-	"github.com/kanban-tasks/kanban/internal/usecases"
+	"github.com/jmsargent/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/usecases"
 )
 
 // transitionPattern matches commit messages of the form "TASK-NNN: from->to [trigger:label]".

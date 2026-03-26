@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kanban-tasks/kanban/internal/domain"
-	"github.com/kanban-tasks/kanban/internal/ports"
-	"github.com/kanban-tasks/kanban/internal/usecases"
+	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/usecases"
 )
 
 // Test Budget: 3 behaviors x 2 = 6 max unit tests (using 4)

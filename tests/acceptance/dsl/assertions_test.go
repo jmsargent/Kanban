@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kanban-tasks/kanban/tests/acceptance/dsl"
+	"github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 

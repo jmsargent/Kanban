@@ -5,8 +5,8 @@ import (
 	"io"
 	"regexp"
 
-	"github.com/kanban-tasks/kanban/internal/domain"
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // TransitionToDone advances in-progress tasks to done when they are referenced

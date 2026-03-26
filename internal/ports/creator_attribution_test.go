@@ -8,8 +8,8 @@ package ports_test
 // Runtime tests are not added — the compiler is the test runner for structural contracts.
 
 import (
-	"github.com/kanban-tasks/kanban/internal/domain"
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // Verify domain.Task exposes a CreatedBy field by assigning to it.

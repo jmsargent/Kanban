@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	gitadapter "github.com/kanban-tasks/kanban/internal/adapters/git"
-	"github.com/kanban-tasks/kanban/internal/ports"
+	gitadapter "github.com/jmsargent/kanban/internal/adapters/git"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // initRepo initialises a bare git repository in dir and configures user identity.

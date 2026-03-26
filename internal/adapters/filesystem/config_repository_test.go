@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
-	"github.com/kanban-tasks/kanban/internal/domain"
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/adapters/filesystem"
+	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 func readDir(root string) ([]string, error) {

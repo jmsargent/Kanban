@@ -136,7 +136,7 @@ Rule to add to `.go-arch-lint.yml`:
 acceptance-dsl:
   package: tests/acceptance/dsl
   forbidden_imports:
-    - github.com/kanban-tasks/kanban/internal/**
+    - github.com/jmsargent/kanban/internal/**
 ```
 
 This guarantees acceptance tests exercise the system exclusively through the compiled binary (the CLI driving port), never by calling internal use cases or domain types directly.

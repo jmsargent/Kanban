@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // Test budget: 1 distinct behavior (sentinel errors are defined and distinct) x 2 = 2 unit tests.

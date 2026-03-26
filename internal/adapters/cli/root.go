@@ -3,7 +3,7 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // NewRootCommand builds the root "kanban" cobra command and registers all

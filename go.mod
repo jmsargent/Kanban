@@ -1,4 +1,4 @@
-module github.com/kanban-tasks/kanban
+module github.com/jmsargent/kanban
 
 go 1.26.1
 

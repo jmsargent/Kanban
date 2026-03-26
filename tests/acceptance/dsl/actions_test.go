@@ -3,7 +3,7 @@ package dsl_test
 import (
 	"testing"
 
-	"github.com/kanban-tasks/kanban/tests/acceptance/dsl"
+	"github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 // TestActionIRunKanban verifies that IRunKanban("board") exits 0 after init.

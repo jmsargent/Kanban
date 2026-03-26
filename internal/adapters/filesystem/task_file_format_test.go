@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
-	"github.com/kanban-tasks/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/adapters/filesystem"
+	"github.com/jmsargent/kanban/internal/domain"
 )
 
 func TestSave_CreatesFileWithValidYAMLFrontMatter(t *testing.T) {

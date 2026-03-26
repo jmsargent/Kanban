@@ -217,7 +217,7 @@ ci-smoke-test-binary:
 ## ci-smoke-test-go-install: install via go install and verify it runs
 ci-smoke-test-go-install:
 	@echo "Smoke test: go install ($(LATEST_TAG))"
-	@GOBIN=/tmp/kanban-smoke go install github.com/kanban-tasks/kanban/cmd/kanban@$(LATEST_TAG)
+	@GOBIN=/tmp/kanban-smoke go install github.com/jmsargent/kanban/cmd/kanban@$(LATEST_TAG)
 	@/tmp/kanban-smoke/kanban --help
 	@rm -rf /tmp/kanban-smoke
 	@echo "PASS: go install smoke test"

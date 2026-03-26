@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/cli"
+	"github.com/jmsargent/kanban/internal/adapters/cli"
 )
 
 func TestHookCommand_CommitMsg_IsNoOp(t *testing.T) {

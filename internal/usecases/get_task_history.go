@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // TaskHistoryResult is the output of GetTaskHistory.Execute.

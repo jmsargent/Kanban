@@ -3,7 +3,7 @@ package dsl_test
 import (
 	"testing"
 
-	"github.com/kanban-tasks/kanban/tests/acceptance/dsl"
+	"github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 // TestSetupInAGitRepo verifies that InAGitRepo creates a temp dir, sets repoDir,

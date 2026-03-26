@@ -3,9 +3,9 @@ package usecases_test
 import (
 	"testing"
 
-	"github.com/kanban-tasks/kanban/internal/domain"
-	"github.com/kanban-tasks/kanban/internal/ports"
-	"github.com/kanban-tasks/kanban/internal/usecases"
+	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/usecases"
 )
 
 // ─── Tests ───────────────────────────────────────────────────────────────────

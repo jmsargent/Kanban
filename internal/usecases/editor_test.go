@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kanban-tasks/kanban/internal/usecases"
+	"github.com/jmsargent/kanban/internal/usecases"
 )
 
 // Test Budget: 2 behaviors x 2 = 4 max unit tests (using 2)

@@ -1,6 +1,6 @@
 package ports
 
-import "github.com/kanban-tasks/kanban/internal/domain"
+import "github.com/jmsargent/kanban/internal/domain"
 
 // TaskRepository is the driven port for persisting and retrieving Task aggregates.
 // All implementations must be wired at the composition root; no concrete types

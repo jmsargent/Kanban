@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kanban-tasks/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/domain"
 )
 
 // TestWriteMermaidToFile_NewFile validates writeMermaidToFile when the target

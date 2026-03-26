@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // DeleteTask implements the delete-task use case.

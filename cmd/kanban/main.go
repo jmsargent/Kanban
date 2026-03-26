@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/cli"
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
-	gitadapter "github.com/kanban-tasks/kanban/internal/adapters/git"
+	"github.com/jmsargent/kanban/internal/adapters/cli"
+	"github.com/jmsargent/kanban/internal/adapters/filesystem"
+	gitadapter "github.com/jmsargent/kanban/internal/adapters/git"
 )
 
 func main() {

@@ -3,7 +3,7 @@ package acceptance
 import (
 	"testing"
 
-	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
+	dsl "github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 // TestWalkingSkeleton_EditAndDelete ports the non-@skip scenario:

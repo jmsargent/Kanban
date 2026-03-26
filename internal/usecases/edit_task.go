@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kanban-tasks/kanban/internal/domain"
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // TaskDiff holds the before and after snapshots of a task edit plus the list

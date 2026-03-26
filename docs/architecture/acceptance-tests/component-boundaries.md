@@ -91,7 +91,7 @@ Step factories are grouped by category into separate files within the `dsl` pack
 `tests/acceptance/dsl/` imports:
 
 - Standard library only: `os`, `os/exec`, `path/filepath`, `strings`, `regexp`, `bytes`, `context`, `time`, `testing`, `encoding/json`, `fmt`.
-- Zero imports from `github.com/kanban-tasks/kanban/internal/`.
+- Zero imports from `github.com/jmsargent/kanban/internal/`.
 - Zero imports from any third-party package (testify is available but not needed in the DSL itself; it may be used optionally in assertion step implementations where its error messages add clarity).
 
 ---
@@ -138,7 +138,7 @@ Test files import:
 ```go
 import (
     "testing"
-    "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
+    "github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 ```
 

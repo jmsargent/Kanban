@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kanban-tasks/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/domain"
 )
 
 // ErrNoKanbanBlock is returned by writeMermaidToFile when the target file exists

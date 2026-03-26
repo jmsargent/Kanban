@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
+	dsl "github.com/jmsargent/kanban/tests/acceptance/dsl"
 	"gopkg.in/yaml.v3"
 )
 

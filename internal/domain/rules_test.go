@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kanban-tasks/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/domain"
 )
 
 // CanTransitionTo has a stable public interface and is a standalone transition

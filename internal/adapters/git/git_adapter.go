@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // GitAdapter implements ports.GitPort via real git CLI invocations and

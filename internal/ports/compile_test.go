@@ -4,8 +4,8 @@
 package ports_test
 
 import (
-	"github.com/kanban-tasks/kanban/internal/domain"
-	"github.com/kanban-tasks/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/ports"
 )
 
 // fakeTaskRepo is an in-memory fake that must satisfy TaskRepository.

@@ -10,7 +10,7 @@ package acceptance
 import (
 	"testing"
 
-	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
+	dsl "github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 // TestBoardMe_ShowsOnlyCurrentDeveloperTasks validates AC-03-1 and AC-03-2:

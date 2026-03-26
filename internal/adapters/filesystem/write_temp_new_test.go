@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kanban-tasks/kanban/internal/adapters/filesystem"
+	"github.com/jmsargent/kanban/internal/adapters/filesystem"
 )
 
 // Test Budget: 1 behavior x 2 = 2 max integration tests (using 2)

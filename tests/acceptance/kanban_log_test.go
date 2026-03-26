@@ -12,7 +12,7 @@ package acceptance
 import (
 	"testing"
 
-	dsl "github.com/kanban-tasks/kanban/tests/acceptance/dsl"
+	dsl "github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 // TestKanbanLog_ShowsHeader_WhenTaskHasHistory validates AC-01-1:
