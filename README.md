@@ -1,8 +1,6 @@
 # KANBAN 
 kanban is a lightweight CLI app for creating and managing a kanban board. 
 
-![demonstration_gif](docs/gifs/demo.gif)
-
 ```(zsh)
 ➜  kanban git:(main) ✗ kanban
 Kanban task manager for git repositories
@@ -29,6 +27,8 @@ Flags:
 Use "kanban [command] --help" for more information about a command.
 ```
 
+![demonstration_gif](docs/gifs/demo.gif)
+
 The board can also be displayed in .md-files:
 First manually paste the mermaid representation of your board into an .md file
 Obtaining the mermaid representation can be done through the following command:
@@ -44,22 +44,6 @@ Whenever you subsequently want to update the board you can use:
 ```
 
 This updates the board in place in the file. Updating the mermaid representation of the board can easily be done in a pre-commit hook.
-
-## Installation
-
-
-```
-brew tap jmsargent/kanban
-brew install kanban
-```
-
-**Install via go install:**
-
-```
-go install github.com/jmsargent/Kanban/cmd/kanban@latest
-```
-
-Alternatively you can download a binary from the [releases page](https://github.com/jmsargent/Kanban/releases)
 
 ## Planning (Or showcase 😉)
 
@@ -83,14 +67,23 @@ kanban
     TASK-013@{ label: "Generate kanban mermaid as pre-commit step" }
 ```
 
+## Installation
 
 
+```
+brew tap jmsargent/kanban
+brew install kanban
+```
+
+**Install via go install:**
+
+```
+go install github.com/jmsargent/Kanban/cmd/kanban@latest
+```
+
+Alternatively you can download a binary from the [releases page](https://github.com/jmsargent/Kanban/releases)
 
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 ## Look ma, no hands!
 
 This project spawned out of being an experiment on getting AI to generate high quality code. There is currently a high influx of poorly designed ai generated 'wibe-code' on the internet. According to [DORA](https://dora.dev/research/) teams that their research group already characterised as "High performing" are able to greatly benefit from gen-AI whereas other teams have not. This project attempts to take available information regarding routines, markers, habbits of high performing teams, and incorporate them and asks the question:
@@ -100,6 +93,3 @@ This project spawned out of being an experiment on getting AI to generate high q
 **How does one best leverage AI to get work done, with high quality and delivery speed?**
 
 **Except for **Planning** This readme is human-made.**
-
-
-
