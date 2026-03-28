@@ -1,8 +1,7 @@
 # KANBAN 
-
-**Except for **Planning** This readme is human-made.**
-
 kanban is a lightweight CLI app for creating and managing a kanban board. 
+
+![demonstration_gif](docs/gifs/demo.gif)
 
 ```(zsh)
 ➜  kanban git:(main) ✗ kanban
@@ -29,6 +28,22 @@ Flags:
 
 Use "kanban [command] --help" for more information about a command.
 ```
+
+The board can also be displayed in .md-files:
+First manually paste the mermaid representation of your board into an .md file
+Obtaining the mermaid representation can be done through the following command:
+
+```(zsh)
+➜  kanban git:(main) ✗ kanban board --mermaid
+```
+
+Whenever you subsequently want to update the board you can use:
+
+```(zsh)
+➜  kanban git:(main) ✗ kanban board --mermaid --out my_file.md
+```
+
+This updates the board in place in the file. Updating the mermaid representation of the board can easily be done in a pre-commit hook.
 
 ## Installation
 
@@ -72,10 +87,10 @@ kanban
 
 
 
+<<<<<<< Updated upstream
 
-
-
-
+=======
+>>>>>>> Stashed changes
 ## Look ma, no hands!
 
 This project spawned out of being an experiment on getting AI to generate high quality code. There is currently a high influx of poorly designed ai generated 'wibe-code' on the internet. According to [DORA](https://dora.dev/research/) teams that their research group already characterised as "High performing" are able to greatly benefit from gen-AI whereas other teams have not. This project attempts to take available information regarding routines, markers, habbits of high performing teams, and incorporate them and asks the question:
@@ -83,5 +98,8 @@ This project spawned out of being an experiment on getting AI to generate high q
 **Is it possible succesfully create a high quality project with minimal manual coding intervention?**
 
 **How does one best leverage AI to get work done, with high quality and delivery speed?**
+
+**Except for **Planning** This readme is human-made.**
+
 
 

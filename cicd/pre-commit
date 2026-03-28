@@ -13,25 +13,18 @@
 # Delegates to `make pre-commit`, which runs the same quality gates
 # as the CI pipeline, in the same order.
 
-
-
-
-#!/bin/sh
 set -e
 
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+make -C "$REPO_ROOT" update-board
 
-###
-# stash any unstaged changes
 git stash push -m "prePush" -q --keep-index
 
-# unstash the unstashed changes (if any) on exit or interrupt
 function unstash {
 	git stash apply stash^{/prePush} -q || true
 }
 
 trap unstash EXIT
-
-REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 echo "--- pre-commit: kanban-tasks quality gates ---"
 

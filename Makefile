@@ -95,7 +95,6 @@ pre-commit: install-tools
 	@make ci-unit-tests
 	@make ci-build
 	@make ci-e2e-tests
-	@make update-board
 
 # ---------------------------------------------------------------------------
 # Release
