@@ -16,6 +16,19 @@ var aRepoWithTasksDSL = simpledsl.NewDslParams(
 	),
 )
 
+// ARepoWithNoTasks sets up an empty temporary repo (no task files) and stores
+// the repo dir on the context so IVisitTheBoard can start the server with --repo.
+func ARepoWithNoTasks(params ...string) Step {
+	return Step{
+		Description: "a repo with no tasks",
+		Run: func(ctx *WebContext) error {
+			rd := driver.NewRepoDriver(ctx.T)
+			ctx.RepoDir = rd.RepoDir()
+			return nil
+		},
+	}
+}
+
 // ARepoWithTasks seeds a temporary repo with the given tasks and stores the
 // repo dir on the context so IVisitTheBoard can start the server with --repo.
 // Each task is introduced by "task: <title>" followed by optional named params.

@@ -9,6 +9,14 @@ import (
 	"github.com/jmsargent/kanban/tests/acceptance/backend/driver"
 )
 
+var boardHasColumnsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("columns").SetAllowMultipleValues(true),
+)
+
+var columnIsEmptyDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("column"),
+)
+
 var columnContainsDSL = simpledsl.NewDslParams(
 	simpledsl.NewRequiredArg("column"),
 	simpledsl.NewOptionalArg("title").SetAllowMultipleValues(true),
@@ -19,6 +27,58 @@ var cardAppearsBeforeDSL = simpledsl.NewDslParams(
 	simpledsl.NewRequiredArg("second"),
 	simpledsl.NewRequiredArg("column"),
 )
+
+// BoardHasColumns asserts that the board response contains all named columns.
+// Required param: "columns: <comma-separated list>" e.g. "columns: Todo, Doing, Done".
+func BoardHasColumns(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("board has columns (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *WebContext) error {
+			vals, err := boardHasColumnsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("BoardHasColumns: %w", err)
+			}
+			if ctx.LastBody == "" {
+				return fmt.Errorf("BoardHasColumns: no board response recorded; call IVisitTheBoard first")
+			}
+			for _, col := range vals.Values("columns") {
+				marker := fmt.Sprintf(`data-column="%s"`, col)
+				if !strings.Contains(ctx.LastBody, marker) {
+					return fmt.Errorf("column %q not found in board HTML", col)
+				}
+			}
+			return nil
+		},
+	}
+}
+
+// ColumnIsEmpty asserts that the named column in the last board response
+// contains no card elements. Required param: "column: <name>".
+func ColumnIsEmpty(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("column is empty (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *WebContext) error {
+			vals, err := columnIsEmptyDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("ColumnIsEmpty: %w", err)
+			}
+			column := vals.Value("column")
+			if ctx.LastBody == "" {
+				return fmt.Errorf("ColumnIsEmpty: no board response recorded; call IVisitTheBoard first")
+			}
+			colMarker := fmt.Sprintf(`data-column="%s"`, column)
+			colIdx := strings.Index(ctx.LastBody, colMarker)
+			if colIdx < 0 {
+				return fmt.Errorf("column %q not found in board HTML", column)
+			}
+			colSection := extractColumnSection(ctx.LastBody, colIdx)
+			if strings.Contains(colSection, `class="card"`) {
+				return fmt.Errorf("expected column %q to be empty but found card elements:\n%s", column, colSection)
+			}
+			return nil
+		},
+	}
+}
 
 // IVisitTheBoard starts the kanban-web server (if not already running) and
 // performs a GET /board request, storing the response in the context.

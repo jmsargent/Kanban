@@ -34,6 +34,18 @@ func TestViewBoard_CardsSortedByDate(t *testing.T) {
 	dsl.Then(ctx, dsl.CardAppearsBeforeInColumn("first: Older Task", "second: Newer Task", "column: Todo"))
 }
 
+// TestViewBoard_EmptyBoard verifies that a board with no tasks still renders
+// three empty columns: Todo, Doing, and Done.
+func TestViewBoard_EmptyBoard(t *testing.T) {
+	ctx := dsl.NewWebContext(t)
+	dsl.Given(ctx, dsl.ARepoWithNoTasks())
+	dsl.When(ctx, dsl.IVisitTheBoard())
+	dsl.Then(ctx, dsl.BoardHasColumns("columns: Todo, Doing, Done"))
+	dsl.Then(ctx, dsl.ColumnIsEmpty("column: Todo"))
+	dsl.Then(ctx, dsl.ColumnIsEmpty("column: Doing"))
+	dsl.Then(ctx, dsl.ColumnIsEmpty("column: Done"))
+}
+
 // TestViewBoard_CardShowsSummary verifies that clicking a card shows its
 // summary information: title, assignee, and status.
 func TestViewBoard_CardShowsSummary(t *testing.T) {
