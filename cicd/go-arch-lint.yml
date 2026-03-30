@@ -23,6 +23,8 @@ components:
     in: "internal/adapters/git"
   cmd:
     in: "cmd/kanban"
+  cmd-web:
+    in: "cmd/kanban-web"
 
 vendors:
   cobra:
@@ -71,5 +73,13 @@ deps:
       - ports
       - usecases
       - adapter-cli
+      - adapter-filesystem
+      - adapter-git
+
+  cmd-web:
+    mayDependOn:
+      - domain
+      - ports
+      - usecases
       - adapter-filesystem
       - adapter-git
