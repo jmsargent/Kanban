@@ -294,6 +294,66 @@ func ICannotAddTasks(params ...string) Step {
 	}
 }
 
+var anAuthenticatedUserDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("token"),
+	simpledsl.NewRequiredArg("display_name"),
+)
+
+// AnAuthenticatedUser performs the full authentication flow and stores the
+// stateful HTTPDriver (with session cookie) on ctx.HTTPDriver so subsequent
+// steps automatically send the session cookie. This step is the setup
+// counterpart to IAuthenticate, named from the user's perspective for Given
+// clauses. Required params: "token: <token>", "display_name: <name>".
+func AnAuthenticatedUser(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("an authenticated user (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *WebContext) error {
+			vals, err := anAuthenticatedUserDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("AnAuthenticatedUser: %w", err)
+			}
+			if err := ensureServerWithGitHubStub(ctx); err != nil {
+				return err
+			}
+			httpDriver := driver.NewHTTPDriver(ctx.ServerURL)
+			ctx.HTTPDriver = httpDriver
+			formData := url.Values{
+				"token":        {vals.Value("token")},
+				"display_name": {vals.Value("display_name")},
+			}
+			resp, err := httpDriver.POST("/auth/token", formData)
+			if err != nil {
+				return fmt.Errorf("AnAuthenticatedUser: POST /auth/token: %w", err)
+			}
+			ctx.LastBody = resp.Body
+			return nil
+		},
+	}
+}
+
+// AddTaskFormIsShown asserts that GET /task/new returns the add-task form
+// (not a redirect to the authentication page), confirming the authenticated
+// session is still active on a subsequent request. It reuses ctx.HTTPDriver
+// so the session cookie is sent automatically.
+func AddTaskFormIsShown(params ...string) Step {
+	return Step{
+		Description: "add task form is shown",
+		Run: func(ctx *WebContext) error {
+			if ctx.HTTPDriver == nil {
+				return fmt.Errorf("AddTaskFormIsShown: no authenticated HTTP driver; call AnAuthenticatedUser first")
+			}
+			resp, err := ctx.HTTPDriver.GET("/task/new")
+			if err != nil {
+				return fmt.Errorf("AddTaskFormIsShown: GET /task/new: %w", err)
+			}
+			if strings.Contains(resp.Body, "token-entry") {
+				return fmt.Errorf("AddTaskFormIsShown: reached auth form instead of add-task form — session not persisted")
+			}
+			return nil
+		},
+	}
+}
+
 // AddTaskOptionIsVisible asserts that the board HTML contains an "Add Task"
 // link or button, confirming the option is visible even to unauthenticated users.
 func AddTaskOptionIsVisible(params ...string) Step {

@@ -42,6 +42,18 @@ func TestAuth_InvalidCredentialsRejected(t *testing.T) {
 	Then(ctx, ICannotAddTasks())
 }
 
+// TestAuth_UserStaysAuthenticated verifies that a previously authenticated user
+// retains session access across subsequent requests without re-authenticating.
+// The session cookie set during authentication is automatically sent by the
+// HTTP driver's cookie jar on the follow-up request to the add-task form.
+func TestAuth_UserStaysAuthenticated(t *testing.T) {
+	ctx := NewWebContext(t)
+	Given(ctx, ARepoWithNoTasks())
+	Given(ctx, WithGitHubStub("token: valid-token-123", "login: alice", "display_name: Alice"))
+	When(ctx, AnAuthenticatedUser("token: valid-token-123", "display_name: Alice"))
+	Then(ctx, AddTaskFormIsShown())
+}
+
 // TestAuth_UnauthenticatedCanViewNotAdd verifies that an unauthenticated user
 // can view the board (read-only access is public) but sees an authentication
 // prompt when attempting to add a task.
