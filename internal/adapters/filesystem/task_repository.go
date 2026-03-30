@@ -45,6 +45,7 @@ type taskFrontMatterRead struct {
 	Due       string `yaml:"due"`
 	Assignee  string `yaml:"assignee"`
 	CreatedBy string `yaml:"created_by"`
+	CreatedAt string `yaml:"created_at"`
 }
 
 const dueDateLayout = "2006-01-02"
@@ -308,6 +309,14 @@ func unmarshalTask(data []byte) (domain.Task, error) {
 			return domain.Task{}, fmt.Errorf("parse due date %q: %w", fm.Due, err)
 		}
 		task.Due = &t
+	}
+
+	if fm.CreatedAt != "" {
+		t, err := time.Parse(time.RFC3339, fm.CreatedAt)
+		if err != nil {
+			return domain.Task{}, fmt.Errorf("parse created_at %q: %w", fm.CreatedAt, err)
+		}
+		task.CreatedAt = t
 	}
 
 	return task, nil

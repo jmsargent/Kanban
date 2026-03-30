@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/jmsargent/kanban/internal/domain"
 	"github.com/jmsargent/kanban/internal/ports"
@@ -54,6 +55,13 @@ func (u *GetBoard) Execute(repoRoot string, filterAssignee string) (domain.Board
 		}
 
 		grouped[status] = append(grouped[status], t)
+	}
+
+	for status, tasks := range grouped {
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
+		})
+		grouped[status] = tasks
 	}
 
 	return domain.Board{

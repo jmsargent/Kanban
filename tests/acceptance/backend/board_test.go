@@ -22,6 +22,18 @@ func TestViewBoard_ThreeColumnsWithTasks(t *testing.T) {
 	dsl.Then(ctx, dsl.ColumnContainsCards("column: Done", "title: Deploy v1"))
 }
 
+// TestViewBoard_CardsSortedByDate verifies that cards within a column are
+// rendered in ascending creation-date order (oldest first).
+func TestViewBoard_CardsSortedByDate(t *testing.T) {
+	ctx := dsl.NewWebContext(t)
+	dsl.Given(ctx, dsl.ARepoWithTasks(
+		"task: Newer Task", "status: todo", "created_at: 2024-06-01T00:00:00Z",
+		"task: Older Task", "status: todo", "created_at: 2024-01-01T00:00:00Z",
+	))
+	dsl.When(ctx, dsl.IVisitTheBoard())
+	dsl.Then(ctx, dsl.CardAppearsBeforeInColumn("first: Older Task", "second: Newer Task", "column: Todo"))
+}
+
 // TestViewBoard_CardShowsSummary verifies that clicking a card shows its
 // summary information: title, assignee, and status.
 func TestViewBoard_CardShowsSummary(t *testing.T) {

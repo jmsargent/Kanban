@@ -14,6 +14,12 @@ var columnContainsDSL = simpledsl.NewDslParams(
 	simpledsl.NewOptionalArg("title").SetAllowMultipleValues(true),
 )
 
+var cardAppearsBeforeDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("first"),
+	simpledsl.NewRequiredArg("second"),
+	simpledsl.NewRequiredArg("column"),
+)
+
 // IVisitTheBoard starts the kanban-web server (if not already running) and
 // performs a GET /board request, storing the response in the context.
 // When ctx.RepoDir is set, the server is started with --repo pointing to it.
@@ -110,6 +116,55 @@ func ColumnContainsCards(params ...string) Step {
 				if !strings.Contains(colSection, cardMarker) {
 					return fmt.Errorf("card %q not found in column %q\nColumn HTML:\n%s", title, column, colSection)
 				}
+			}
+			return nil
+		},
+	}
+}
+
+// CardAppearsBeforeInColumn asserts that the card with title "first" appears
+// before the card with title "second" within the named column section of the
+// last board response. Required params: "first: <title>", "second: <title>",
+// "column: <column label>".
+func CardAppearsBeforeInColumn(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("card appears before in column (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *WebContext) error {
+			vals, err := cardAppearsBeforeDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("CardAppearsBeforeInColumn: %w", err)
+			}
+			first := vals.Value("first")
+			second := vals.Value("second")
+			column := vals.Value("column")
+
+			if ctx.LastBody == "" {
+				return fmt.Errorf("CardAppearsBeforeInColumn: no board response; call IVisitTheBoard first")
+			}
+
+			colMarker := fmt.Sprintf(`data-column="%s"`, column)
+			colIdx := strings.Index(ctx.LastBody, colMarker)
+			if colIdx < 0 {
+				return fmt.Errorf("column %q not found in board HTML", column)
+			}
+
+			colSection := extractColumnSection(ctx.LastBody, colIdx)
+
+			firstMarker := fmt.Sprintf(`data-title="%s"`, first)
+			secondMarker := fmt.Sprintf(`data-title="%s"`, second)
+
+			firstIdx := strings.Index(colSection, firstMarker)
+			if firstIdx < 0 {
+				return fmt.Errorf("card %q not found in column %q", first, column)
+			}
+			secondIdx := strings.Index(colSection, secondMarker)
+			if secondIdx < 0 {
+				return fmt.Errorf("card %q not found in column %q", second, column)
+			}
+
+			if firstIdx >= secondIdx {
+				return fmt.Errorf("expected card %q (pos %d) to appear before %q (pos %d) in column %q",
+					first, firstIdx, second, secondIdx, column)
 			}
 			return nil
 		},

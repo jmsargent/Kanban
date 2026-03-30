@@ -2,6 +2,7 @@ package usecases_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/jmsargent/kanban/internal/domain"
 	"github.com/jmsargent/kanban/internal/ports"
@@ -10,7 +11,7 @@ import (
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-// Test Budget: 4 behaviors x 2 = 8 max unit tests (using 4)
+// Test Budget: 5 behaviors x 2 = 10 max unit tests (using 5)
 
 func TestGetBoard_ReturnsUnassignedCount_WhenFilterActiveAndUnassignedTasksExist(t *testing.T) {
 	// Behavior: when a filterAssignee is set, tasks with no assignee are excluded
@@ -131,5 +132,38 @@ func TestGetBoard_PlacesTaskInTodo_WhenStatusFieldIsEmpty(t *testing.T) {
 	}
 	if len(board.Tasks[domain.StatusTodo]) != 1 {
 		t.Errorf("expected 1 task in TODO column, got: %d", len(board.Tasks[domain.StatusTodo]))
+	}
+}
+
+func TestGetBoard_SortsTasksByCreatedAtAscending_WhenMultipleTasksInSameColumn(t *testing.T) {
+	// Behavior: tasks within a column are ordered oldest-first by CreatedAt.
+	repoRoot := tmpRepo(t)
+	older := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	newer := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
+	cfg := &fakeConfigRepo{readResult: ports.Config{
+		Columns: []domain.Column{
+			{Name: "todo", Label: "TODO"},
+		},
+	}}
+	tasks := &fakeTaskRepo{listAll: []domain.Task{
+		{ID: "TASK-002", Title: "Newer Task", Status: domain.StatusTodo, CreatedAt: newer},
+		{ID: "TASK-001", Title: "Older Task", Status: domain.StatusTodo, CreatedAt: older},
+	}}
+
+	uc := usecases.NewGetBoard(cfg, tasks)
+	board, err := uc.Execute(repoRoot, "")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	todoTasks := board.Tasks[domain.StatusTodo]
+	if len(todoTasks) != 2 {
+		t.Fatalf("expected 2 tasks in TODO, got: %d", len(todoTasks))
+	}
+	if todoTasks[0].ID != "TASK-001" {
+		t.Errorf("expected oldest task first, got: %s", todoTasks[0].ID)
+	}
+	if todoTasks[1].ID != "TASK-002" {
+		t.Errorf("expected newer task second, got: %s", todoTasks[1].ID)
 	}
 }

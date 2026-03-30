@@ -21,6 +21,7 @@ type Task struct {
 	Assignee    string
 	Description string
 	CreatedBy   string
+	CreatedAt   time.Time
 }
 
 // Column represents a vertical lane on the board.

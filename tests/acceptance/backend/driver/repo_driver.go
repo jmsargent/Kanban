@@ -97,6 +97,12 @@ func (d *RepoDriver) SetupBareRemote() {
 
 // SeedTask writes a task file to .kanban/tasks/ and commits it.
 func (d *RepoDriver) SeedTask(id, title, status, assignee string) {
+	d.SeedTaskWithDate(id, title, status, assignee, "")
+}
+
+// SeedTaskWithDate writes a task file with an optional created_at field and commits it.
+// createdAt should be an RFC3339 string (e.g. "2024-01-01T00:00:00Z") or empty to omit.
+func (d *RepoDriver) SeedTaskWithDate(id, title, status, assignee, createdAt string) {
 	d.t.Helper()
 	if status == "" {
 		status = "todo"
@@ -104,6 +110,9 @@ func (d *RepoDriver) SeedTask(id, title, status, assignee string) {
 	body := fmt.Sprintf("id: %s\ntitle: %s\nstatus: %s\n", id, title, status)
 	if assignee != "" {
 		body += fmt.Sprintf("assignee: %s\n", assignee)
+	}
+	if createdAt != "" {
+		body += fmt.Sprintf("created_at: %s\n", createdAt)
 	}
 	content := fmt.Sprintf("---\n%s---\n", body)
 

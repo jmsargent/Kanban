@@ -169,6 +169,34 @@
       "s": "EXECUTED",
       "d": "PASS: TestViewBoard_CardShowsSummary passes; card detail endpoint + template; Task() uses only ...string varargs",
       "t": "2026-03-30T16:16:00Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "PREPARE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-30T20:45:54Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-30T20:48:20Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-30T20:49:25Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-03-30T20:51:04Z"
     }
   ]
 }
