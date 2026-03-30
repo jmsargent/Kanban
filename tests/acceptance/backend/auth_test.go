@@ -18,6 +18,18 @@ func TestAuth_FirstTimeUserPromptedOnAddTask(t *testing.T) {
 	Then(ctx, PromptedToAuthenticate())
 }
 
+// TestAuth_UserAuthenticatesSuccessfully verifies that a user who submits a
+// valid GitHub token and display name receives an encrypted session cookie and
+// is redirected to the board with write access (can reach the add-task form).
+func TestAuth_UserAuthenticatesSuccessfully(t *testing.T) {
+	ctx := NewWebContext(t)
+	Given(ctx, ARepoWithNoTasks())
+	Given(ctx, WithGitHubStub("token: valid-token-123", "login: alice", "display_name: Alice"))
+	When(ctx, IAuthenticate("token: valid-token-123", "display_name: Alice"))
+	Then(ctx, IAmOnTheBoard())
+	Then(ctx, ICanAddTasks())
+}
+
 // TestAuth_UnauthenticatedCanViewNotAdd verifies that an unauthenticated user
 // can view the board (read-only access is public) but sees an authentication
 // prompt when attempting to add a task.

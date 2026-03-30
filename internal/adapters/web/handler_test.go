@@ -130,6 +130,83 @@ func TestCardDetailHandler_NotFound(t *testing.T) {
 	}
 }
 
+// Test Budget: 2 behaviors × 2 = 4 max unit tests. Using 2.
+// Behavior 1: valid token → 303 redirect to /board + kanban_session cookie set.
+// Behavior 2: invalid token → re-renders token-entry form (no redirect, no cookie).
+
+func TestTokenSubmitHandler_ValidToken_RedirectsToBoardWithCookie(t *testing.T) {
+	stub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "Bearer valid-token" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = fmt.Fprintln(w, `{"login":"alice","name":"Alice"}`)
+			return
+		}
+		http.Error(w, `{"message":"Bad credentials"}`, http.StatusUnauthorized)
+	}))
+	defer stub.Close()
+
+	sessionKey := make([]byte, 32)
+	handler := web.NewTokenSubmitHandler(sessionKey, stub.URL)
+
+	form := strings.NewReader("token=valid-token&display_name=Alice")
+	req := httptest.NewRequest(http.MethodPost, "/auth/token", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 See Other, got %d\nbody: %s", rec.Code, rec.Body.String())
+	}
+	if loc := rec.Header().Get("Location"); loc != "/board" {
+		t.Fatalf("expected redirect to /board, got %q", loc)
+	}
+	var sessionCookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "kanban_session" {
+			sessionCookie = c
+			break
+		}
+	}
+	if sessionCookie == nil {
+		t.Fatal("expected kanban_session cookie to be set")
+	}
+	if !sessionCookie.HttpOnly {
+		t.Error("expected kanban_session cookie to be HttpOnly")
+	}
+}
+
+func TestTokenSubmitHandler_InvalidToken_RerendersForm(t *testing.T) {
+	stub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"Bad credentials"}`, http.StatusUnauthorized)
+	}))
+	defer stub.Close()
+
+	sessionKey := make([]byte, 32)
+	handler := web.NewTokenSubmitHandler(sessionKey, stub.URL)
+
+	form := strings.NewReader("token=bad-token&display_name=Bob")
+	req := httptest.NewRequest(http.MethodPost, "/auth/token", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusSeeOther {
+		t.Fatal("expected no redirect on invalid token")
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "token-entry") {
+		t.Errorf("expected token-entry form in response, got:\n%s", body)
+	}
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "kanban_session" {
+			t.Error("expected no session cookie on invalid token")
+		}
+	}
+}
+
 // assertColumnContains checks that the named column in body contains a card
 // with the given title.
 func assertColumnContains(t *testing.T, body, column, title string) {

@@ -16,6 +16,7 @@ func main() {
 	addr := ":8080"
 	repoDir := ""
 	cookieKeyStr := os.Getenv("KANBAN_SESSION_KEY")
+	githubAPIURL := os.Getenv("KANBAN_WEB_GITHUB_API_URL")
 
 	for i := 1; i < len(os.Args); i++ {
 		switch os.Args[i] {
@@ -81,7 +82,7 @@ func main() {
 		return taskRepo.FindByID(repoDir, id)
 	}
 
-	server := web.NewServer(addr, boardProvider, taskProvider, sessionKey)
+	server := web.NewServer(addr, boardProvider, taskProvider, sessionKey, githubAPIURL)
 	fmt.Fprintf(os.Stderr, "kanban-web listening on %s\n", addr)
 	if err := server.ListenAndServe(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

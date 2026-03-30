@@ -2,6 +2,7 @@ package web
 
 import (
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 
@@ -77,12 +78,96 @@ func NewTokenEntryHandler() *TokenEntryHandler {
 
 // ServeHTTP handles GET /auth/token, rendering the token entry form.
 func (h *TokenEntryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	data := struct{ Title string }{Title: "Sign In"}
+	data := struct {
+		Title string
+		Error string
+	}{Title: "Sign In"}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
 		log.Printf("ERROR: render token entry template: %v", err)
 	}
+}
+
+// TokenSubmitHandler handles POST /auth/token — validates the submitted GitHub
+// token, sets an encrypted session cookie, and redirects to /board on success.
+type TokenSubmitHandler struct {
+	sessionKey       []byte
+	githubAPIBaseURL string
+	tmpl             *template.Template
+}
+
+// NewTokenSubmitHandler constructs a TokenSubmitHandler.
+// sessionKey must be 32 bytes. githubAPIBaseURL is the GitHub API base (e.g.
+// "https://api.github.com" in production, or a stub URL in tests).
+func NewTokenSubmitHandler(sessionKey []byte, githubAPIBaseURL string) *TokenSubmitHandler {
+	tmpl := template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/token_entry.html"))
+	return &TokenSubmitHandler{
+		sessionKey:       sessionKey,
+		githubAPIBaseURL: githubAPIBaseURL,
+		tmpl:             tmpl,
+	}
+}
+
+// ServeHTTP handles POST /auth/token. It validates the token against the GitHub
+// API, sets an AES-256-GCM encrypted HttpOnly session cookie on success, and
+// redirects to /board with 303 See Other. On failure it re-renders the form.
+func (h *TokenSubmitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid form data", http.StatusBadRequest)
+		return
+	}
+	token := r.FormValue("token")
+	displayName := r.FormValue("display_name")
+
+	if !h.validateGitHubToken(token) {
+		data := struct {
+			Title string
+			Error string
+		}{Title: "Sign In", Error: "Invalid token. Please check your GitHub personal access token and try again."}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusUnauthorized)
+		if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
+			log.Printf("ERROR: render token entry template: %v", err)
+		}
+		return
+	}
+
+	cookieValue, err := EncryptSession(h.sessionKey, token, displayName)
+	if err != nil {
+		log.Printf("ERROR: encrypt session: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "kanban_session",
+		Value:    cookieValue,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, "/board", http.StatusSeeOther)
+}
+
+// validateGitHubToken calls GET /user on the GitHub API with the provided token.
+// Returns true if the API responds with 200 OK.
+func (h *TokenSubmitHandler) validateGitHubToken(token string) bool {
+	req, err := http.NewRequest(http.MethodGet, h.githubAPIBaseURL+"/user", nil)
+	if err != nil {
+		log.Printf("ERROR: create GitHub validation request: %v", err)
+		return false
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("ERROR: call GitHub API: %v", err)
+		return false
+	}
+	defer func() { _, _ = io.Copy(io.Discard, resp.Body); _ = resp.Body.Close() }()
+
+	return resp.StatusCode == http.StatusOK
 }
 
 // ServeHTTP handles GET /board requests, rendering the board template.
