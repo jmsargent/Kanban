@@ -58,6 +58,18 @@ func TestViewBoard_ReflectsChangesFromAnotherUser(t *testing.T) {
 	Then(ctx, ColumnContainsCards("column: Todo", "title: Remote Task"))
 }
 
+// TestViewBoard_UnauthenticatedUserCanView verifies that a first-time visitor
+// with no authentication can view the public board and see its tasks.
+func TestViewBoard_UnauthenticatedUserCanView(t *testing.T) {
+	ctx := NewWebContext(t)
+	Given(ctx, ARepoWithTasks(
+		"task: Fix login bug", "status: in-progress",
+	))
+	Given(ctx, AFirstTimeVisitor())
+	When(ctx, IVisitTheBoard())
+	Then(ctx, ColumnContainsCards("column: Doing", "title: Fix login bug"))
+}
+
 // TestViewBoard_CardShowsSummary verifies that clicking a card shows its
 // summary information: title, assignee, and status.
 func TestViewBoard_CardShowsSummary(t *testing.T) {

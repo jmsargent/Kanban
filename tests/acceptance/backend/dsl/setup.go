@@ -22,6 +22,21 @@ var aRepoWithTasksDSL = simpledsl.NewDslParams(
 	),
 )
 
+// AFirstTimeVisitor sets up a visitor with no authentication state. This is the
+// default state of WebContext (empty cookie jar, no auth headers), so this step
+// serves as an explicit documentation step confirming the board is publicly readable.
+func AFirstTimeVisitor(params ...string) Step {
+	return Step{
+		Description: "a first-time visitor with no auth state",
+		Run: func(ctx *WebContext) error {
+			// WebContext starts with no cookies and no auth headers by default.
+			// Explicitly clear cookies to document that no auth is present.
+			ctx.Cookies = nil
+			return nil
+		},
+	}
+}
+
 // ARepoWithNoTasks sets up an empty temporary repo (no task files) and stores
 // the repo dir on the context so IVisitTheBoard can start the server with --repo.
 func ARepoWithNoTasks(params ...string) Step {
