@@ -14,12 +14,17 @@ var iViewCardDSL = simpledsl.NewDslParams(
 )
 
 var cardShowsDSL = simpledsl.NewDslParams(
+	simpledsl.NewOptionalArg("id"),
 	simpledsl.NewOptionalArg("title"),
 	simpledsl.NewOptionalArg("assignee"),
 	simpledsl.NewOptionalArg("status"),
 	simpledsl.NewOptionalArg("description"),
 	simpledsl.NewOptionalArg("priority"),
 	simpledsl.NewOptionalArg("created_by"),
+)
+
+var cardDoesNotShowDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("field"),
 )
 
 // IViewCard navigates from the board to the card detail page for the card
@@ -70,7 +75,7 @@ func CardShows(params ...string) Step {
 				return fmt.Errorf("CardShows: no card detail response recorded; call IViewCard first")
 			}
 
-			for _, field := range []string{"title", "assignee", "status", "description", "priority", "created_by"} {
+			for _, field := range []string{"id", "title", "assignee", "status", "description", "priority", "created_by"} {
 				expected := vals.Value(field)
 				if expected == "" {
 					continue
@@ -78,6 +83,29 @@ func CardShows(params ...string) Step {
 				if err := assertFieldValue(ctx.LastBody, field, expected); err != nil {
 					return fmt.Errorf("CardShows: %w", err)
 				}
+			}
+			return nil
+		},
+	}
+}
+
+// CardDoesNotShow asserts that the card detail page does NOT render the given
+// field. Requires a single "field: <name>" param.
+func CardDoesNotShow(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("card does not show (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *WebContext) error {
+			vals, err := cardDoesNotShowDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("CardDoesNotShow: %w", err)
+			}
+			if ctx.LastBody == "" {
+				return fmt.Errorf("CardDoesNotShow: no card detail response recorded; call IViewCard first")
+			}
+			field := vals.Value("field")
+			marker := fmt.Sprintf(`data-field="%s"`, field)
+			if strings.Contains(ctx.LastBody, marker) {
+				return fmt.Errorf("CardDoesNotShow: field %q is present in card detail but should not be", field)
 			}
 			return nil
 		},
