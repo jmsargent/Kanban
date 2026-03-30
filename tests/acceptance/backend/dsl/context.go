@@ -3,6 +3,7 @@ package dsl
 import (
 	"net/http"
 	"testing"
+	"time"
 )
 
 // WebContext holds the mutable state for a single web acceptance test scenario.
@@ -14,6 +15,7 @@ type WebContext struct {
 	Cookies      []*http.Cookie
 	LastResponse *http.Response
 	LastBody     string
+	LastDuration time.Duration
 	RepoDir      string
 }
 

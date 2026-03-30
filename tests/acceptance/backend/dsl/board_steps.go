@@ -3,6 +3,7 @@ package dsl
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jmsargent/kanban/tests/acceptance/backend/driver"
 )
@@ -26,7 +27,9 @@ func IVisitTheBoard() Step {
 			}
 
 			httpDriver := driver.NewHTTPDriver(ctx.ServerURL)
+			start := time.Now()
 			resp, err := httpDriver.GET("/board")
+			ctx.LastDuration = time.Since(start)
 			if err != nil {
 				return fmt.Errorf("GET /board: %w", err)
 			}
