@@ -3,5 +3,8 @@
   <h1 data-field="title">{{.Title}}</h1>
   <p data-field="status">{{.Status}}</p>
   {{if .Assignee}}<p data-field="assignee">{{.Assignee}}</p>{{end}}
+  {{if .Priority}}<p data-field="priority">{{.Priority}}</p>{{end}}
+  {{if .Description}}<p data-field="description">{{.Description}}</p>{{end}}
+  {{if .CreatedBy}}<p data-field="created_by">{{.CreatedBy}}</p>{{end}}
 </div>
 {{end}}

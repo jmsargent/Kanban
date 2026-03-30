@@ -19,6 +19,9 @@ var aRepoWithTasksDSL = simpledsl.NewDslParams(
 		simpledsl.NewOptionalArg("status").SetDefault("todo"),
 		simpledsl.NewOptionalArg("assignee"),
 		simpledsl.NewOptionalArg("created_at"),
+		simpledsl.NewOptionalArg("description"),
+		simpledsl.NewOptionalArg("priority"),
+		simpledsl.NewOptionalArg("created_by"),
 	),
 )
 
@@ -110,7 +113,7 @@ func ARepoWithTasks(params ...string) Step {
 			rd := driver.NewRepoDriver(ctx.T)
 			for i, taskVals := range vals.Group("task") {
 				id := fmt.Sprintf("TASK-%03d", i+1)
-				rd.SeedTaskWithDate(id, taskVals.Value("title"), taskVals.Value("status"), taskVals.Value("assignee"), taskVals.Value("created_at"))
+				rd.SeedFullTask(id, taskVals.Value("title"), taskVals.Value("status"), taskVals.Value("assignee"), taskVals.Value("created_at"), taskVals.Value("description"), taskVals.Value("priority"), taskVals.Value("created_by"))
 			}
 			ctx.RepoDir = rd.RepoDir()
 			return nil

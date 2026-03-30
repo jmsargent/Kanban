@@ -166,6 +166,40 @@ func (d *RepoDriver) SeedTaskWithDate(id, title, status, assignee, createdAt str
 	d.mustGit("commit", "-m", fmt.Sprintf("Add task %s", id))
 }
 
+// SeedFullTask writes a task file with all supported fields and commits it.
+// Empty strings for optional fields are omitted from the front matter.
+func (d *RepoDriver) SeedFullTask(id, title, status, assignee, createdAt, description, priority, createdBy string) {
+	d.t.Helper()
+	if status == "" {
+		status = "todo"
+	}
+	frontMatter := fmt.Sprintf("id: %s\ntitle: %s\nstatus: %s\n", id, title, status)
+	if assignee != "" {
+		frontMatter += fmt.Sprintf("assignee: %s\n", assignee)
+	}
+	if createdAt != "" {
+		frontMatter += fmt.Sprintf("created_at: %s\n", createdAt)
+	}
+	if priority != "" {
+		frontMatter += fmt.Sprintf("priority: %s\n", priority)
+	}
+	if createdBy != "" {
+		frontMatter += fmt.Sprintf("created_by: %s\n", createdBy)
+	}
+	content := fmt.Sprintf("---\n%s---\n", frontMatter)
+	// description is stored as the markdown body after the closing front matter delimiter
+	if description != "" {
+		content += "\n" + description + "\n"
+	}
+
+	taskPath := filepath.Join(d.repoDir, ".kanban", "tasks", id+".md")
+	if err := os.WriteFile(taskPath, []byte(content), 0644); err != nil {
+		d.t.Fatalf("write task file %s: %v", id, err)
+	}
+	d.mustGit("add", taskPath)
+	d.mustGit("commit", "-m", fmt.Sprintf("Add task %s", id))
+}
+
 // TaskFileExists returns true if the task file for the given ID exists.
 func (d *RepoDriver) TaskFileExists(id string) bool {
 	taskPath := filepath.Join(d.repoDir, ".kanban", "tasks", id+".md")

@@ -17,6 +17,9 @@ var cardShowsDSL = simpledsl.NewDslParams(
 	simpledsl.NewOptionalArg("title"),
 	simpledsl.NewOptionalArg("assignee"),
 	simpledsl.NewOptionalArg("status"),
+	simpledsl.NewOptionalArg("description"),
+	simpledsl.NewOptionalArg("priority"),
+	simpledsl.NewOptionalArg("created_by"),
 )
 
 // IViewCard navigates from the board to the card detail page for the card
@@ -67,7 +70,7 @@ func CardShows(params ...string) Step {
 				return fmt.Errorf("CardShows: no card detail response recorded; call IViewCard first")
 			}
 
-			for _, field := range []string{"title", "assignee", "status"} {
+			for _, field := range []string{"title", "assignee", "status", "description", "priority", "created_by"} {
 				expected := vals.Value(field)
 				if expected == "" {
 					continue
