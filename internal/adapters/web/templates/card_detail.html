@@ -1,0 +1,7 @@
+{{define "content"}}
+<div class="card-detail">
+  <h1 data-field="title">{{.Title}}</h1>
+  <p data-field="status">{{.Status}}</p>
+  {{if .Assignee}}<p data-field="assignee">{{.Assignee}}</p>{{end}}
+</div>
+{{end}}
