@@ -8,6 +8,9 @@ import (
 	"github.com/jmsargent/kanban/internal/domain"
 )
 
+// TaskProvider is a function that retrieves a task by ID.
+type TaskProvider func(id string) (domain.Task, error)
+
 // BoardProvider is a function that returns the current board state.
 // It is the driving-side abstraction used by BoardHandler.
 type BoardProvider func() (domain.Board, error)
@@ -28,6 +31,34 @@ type BoardHandler struct {
 func NewBoardHandler(getBoard BoardProvider) *BoardHandler {
 	tmpl := template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/board.html"))
 	return &BoardHandler{getBoard: getBoard, tmpl: tmpl}
+}
+
+// CardDetailHandler serves the card detail page at GET /card/{id}.
+type CardDetailHandler struct {
+	getTask TaskProvider
+	tmpl    *template.Template
+}
+
+// NewCardDetailHandler constructs a CardDetailHandler with the given task provider.
+func NewCardDetailHandler(getTask TaskProvider) *CardDetailHandler {
+	tmpl := template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/card_detail.html"))
+	return &CardDetailHandler{getTask: getTask, tmpl: tmpl}
+}
+
+// ServeHTTP handles GET /card/{id} requests, rendering the card detail template.
+func (h *CardDetailHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	task, err := h.getTask(id)
+	if err != nil {
+		http.Error(w, "card not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if err := h.tmpl.ExecuteTemplate(w, "layout", task); err != nil {
+		log.Printf("ERROR: render card detail template: %v", err)
+	}
 }
 
 // ServeHTTP handles GET /board requests, rendering the board template.

@@ -82,6 +82,54 @@ func TestBoardHandler_RendersEmptyColumns(t *testing.T) {
 	}
 }
 
+// Test budget for CardDetailHandler: 2 behaviors × 2 = 4 max. Using 2.
+// Behavior 1: card found → 200 with title, assignee, status fields.
+// Behavior 2: card not found → 404.
+
+func TestCardDetailHandler_RendersCardFields(t *testing.T) {
+	task := domain.Task{ID: "TASK-001", Title: "Fix login bug", Status: domain.StatusInProgress, Assignee: "alice"}
+	provider := func(id string) (domain.Task, error) {
+		if id == "TASK-001" {
+			return task, nil
+		}
+		return domain.Task{}, fmt.Errorf("not found")
+	}
+
+	handler := web.NewCardDetailHandler(provider)
+	req := httptest.NewRequest(http.MethodGet, "/card/TASK-001", nil)
+	req.SetPathValue("id", "TASK-001")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{`data-field="title"`, `data-field="status"`, `data-field="assignee"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("expected %q in response body", want)
+		}
+	}
+}
+
+func TestCardDetailHandler_NotFound(t *testing.T) {
+	provider := func(id string) (domain.Task, error) {
+		return domain.Task{}, fmt.Errorf("not found")
+	}
+
+	handler := web.NewCardDetailHandler(provider)
+	req := httptest.NewRequest(http.MethodGet, "/card/TASK-999", nil)
+	req.SetPathValue("id", "TASK-999")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
 // assertColumnContains checks that the named column in body contains a card
 // with the given title.
 func assertColumnContains(t *testing.T, body, column, title string) {

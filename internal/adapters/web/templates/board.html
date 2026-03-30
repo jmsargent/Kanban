@@ -4,7 +4,7 @@
   <div class="column" data-column="{{.Column}}">
     <h2>{{.Label}}</h2>
     {{range .Tasks}}
-    <div class="card" data-title="{{.Title}}">{{.Title}}</div>
+    <div class="card" data-title="{{.Title}}"><a href="/card/{{.ID}}">{{.Title}}</a></div>
     {{end}}
   </div>
   {{end}}

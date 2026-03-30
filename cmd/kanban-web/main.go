@@ -59,7 +59,14 @@ func main() {
 		return getBoardUC.Execute(repoDir, "")
 	}
 
-	server := web.NewServer(addr, boardProvider)
+	taskProvider := func(id string) (domain.Task, error) {
+		if repoDir == "" {
+			return domain.Task{}, fmt.Errorf("no repo configured")
+		}
+		return taskRepo.FindByID(repoDir, id)
+	}
+
+	server := web.NewServer(addr, boardProvider, taskProvider)
 	fmt.Fprintf(os.Stderr, "kanban-web listening on %s\n", addr)
 	if err := server.ListenAndServe(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

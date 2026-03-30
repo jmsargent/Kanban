@@ -12,12 +12,24 @@ import (
 func TestViewBoard_ThreeColumnsWithTasks(t *testing.T) {
 	ctx := dsl.NewWebContext(t)
 	dsl.Given(ctx, dsl.ARepoWithTasks(
-		dsl.Task("Fix login bug", "status: in-progress", "assignee: alice@example.com"),
-		dsl.Task("Write docs"),
-		dsl.Task("Deploy v1", "status: done"),
+		"task: Fix login bug", "status: in-progress", "assignee: alice@example.com",
+		"task: Write docs",
+		"task: Deploy v1", "status: done",
 	))
 	dsl.When(ctx, dsl.IVisitTheBoard())
 	dsl.Then(ctx, dsl.ColumnContainsCards("column: Todo", "title: Write docs"))
 	dsl.Then(ctx, dsl.ColumnContainsCards("column: Doing", "title: Fix login bug"))
 	dsl.Then(ctx, dsl.ColumnContainsCards("column: Done", "title: Deploy v1"))
+}
+
+// TestViewBoard_CardShowsSummary verifies that clicking a card shows its
+// summary information: title, assignee, and status.
+func TestViewBoard_CardShowsSummary(t *testing.T) {
+	ctx := dsl.NewWebContext(t)
+	dsl.Given(ctx, dsl.ARepoWithTasks(
+		"task: Fix login bug", "status: in-progress", "assignee: alice",
+	))
+	dsl.When(ctx, dsl.IVisitTheBoard())
+	dsl.When(ctx, dsl.IViewCard("title: Fix login bug"))
+	dsl.Then(ctx, dsl.CardShows("title: Fix login bug", "assignee: alice", "status: in-progress"))
 }

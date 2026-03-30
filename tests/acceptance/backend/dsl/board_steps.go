@@ -5,7 +5,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jmsargent/kanban/pkg/simpledsl"
 	"github.com/jmsargent/kanban/tests/acceptance/backend/driver"
+)
+
+var columnContainsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("column"),
+	simpledsl.NewOptionalArg("title").SetAllowMultipleValues(true),
 )
 
 // IVisitTheBoard starts the kanban-web server (if not already running) and
@@ -76,25 +82,12 @@ func ColumnContainsCards(params ...string) Step {
 	return Step{
 		Description: fmt.Sprintf("column contains cards (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *WebContext) error {
-			column := ""
-			var titles []string
-			for _, p := range params {
-				parts := strings.SplitN(p, ": ", 2)
-				if len(parts) != 2 {
-					continue
-				}
-				key := strings.TrimSpace(parts[0])
-				val := strings.TrimSpace(parts[1])
-				switch key {
-				case "column":
-					column = val
-				case "title":
-					titles = append(titles, val)
-				}
+			vals, err := columnContainsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("ColumnContainsCards: %w", err)
 			}
-			if column == "" {
-				return fmt.Errorf("ColumnContainsCards: 'column' param is required")
-			}
+			column := vals.Value("column")
+			titles := vals.Values("title")
 			if ctx.LastBody == "" {
 				return fmt.Errorf("ColumnContainsCards: no board response recorded; call IVisitTheBoard first")
 			}

@@ -96,17 +96,16 @@ func (d *RepoDriver) SetupBareRemote() {
 }
 
 // SeedTask writes a task file to .kanban/tasks/ and commits it.
-func (d *RepoDriver) SeedTask(id, title, status string) {
+func (d *RepoDriver) SeedTask(id, title, status, assignee string) {
 	d.t.Helper()
 	if status == "" {
 		status = "todo"
 	}
-	content := fmt.Sprintf(`---
-id: %s
-title: %s
-status: %s
----
-`, id, title, status)
+	body := fmt.Sprintf("id: %s\ntitle: %s\nstatus: %s\n", id, title, status)
+	if assignee != "" {
+		body += fmt.Sprintf("assignee: %s\n", assignee)
+	}
+	content := fmt.Sprintf("---\n%s---\n", body)
 
 	taskPath := filepath.Join(d.repoDir, ".kanban", "tasks", id+".md")
 	if err := os.WriteFile(taskPath, []byte(content), 0644); err != nil {

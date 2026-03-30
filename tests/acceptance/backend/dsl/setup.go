@@ -2,48 +2,34 @@ package dsl
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/jmsargent/kanban/pkg/simpledsl"
 	"github.com/jmsargent/kanban/tests/acceptance/backend/driver"
 )
 
-// TaskSpec holds the parameters for a single task to be seeded.
-type TaskSpec struct {
-	Title  string
-	Status string
-}
-
-// Task builds a TaskSpec from a title and optional "key: value" params.
-// Supported params: "status: <value>", "assignee: <value>" (assignee is stored
-// in the task file but not used for column placement).
-func Task(title string, params ...string) TaskSpec {
-	spec := TaskSpec{
-		Title:  title,
-		Status: "todo",
-	}
-	for _, p := range params {
-		parts := strings.SplitN(p, ": ", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		switch strings.TrimSpace(parts[0]) {
-		case "status":
-			spec.Status = strings.TrimSpace(parts[1])
-		}
-	}
-	return spec
-}
+var aRepoWithTasksDSL = simpledsl.NewDslParams(
+	simpledsl.NewRepeatingGroup("task",
+		simpledsl.NewRequiredArg("title"),
+		simpledsl.NewOptionalArg("status").SetDefault("todo"),
+		simpledsl.NewOptionalArg("assignee"),
+	),
+)
 
 // ARepoWithTasks seeds a temporary repo with the given tasks and stores the
 // repo dir on the context so IVisitTheBoard can start the server with --repo.
-func ARepoWithTasks(tasks ...TaskSpec) Step {
+// Each task is introduced by "task: <title>" followed by optional named params.
+func ARepoWithTasks(params ...string) Step {
 	return Step{
 		Description: "a repo with tasks",
 		Run: func(ctx *WebContext) error {
+			vals, err := aRepoWithTasksDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("ARepoWithTasks: %w", err)
+			}
 			rd := driver.NewRepoDriver(ctx.T)
-			for i, task := range tasks {
+			for i, taskVals := range vals.Group("task") {
 				id := fmt.Sprintf("TASK-%03d", i+1)
-				rd.SeedTask(id, task.Title, task.Status)
+				rd.SeedTask(id, taskVals.Value("title"), taskVals.Value("status"), taskVals.Value("assignee"))
 			}
 			ctx.RepoDir = rd.RepoDir()
 			return nil
