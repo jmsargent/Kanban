@@ -17,6 +17,7 @@ type WebContext struct {
 	LastBody     string
 	LastDuration time.Duration
 	RepoDir      string
+	RemoteDir    string // bare remote path; set by ARepoWithRemote
 }
 
 // NewWebContext constructs a WebContext for a test. The server is not started

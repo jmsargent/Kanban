@@ -95,6 +95,48 @@ func (d *RepoDriver) SetupBareRemote() {
 	d.mustGit("push", "-u", "origin", "HEAD")
 }
 
+// NewRepoDriverFromRemote clones a bare remote into a fresh temp directory,
+// configures git identity, and returns a RepoDriver for the clone. The clone's
+// origin points to bareRemoteDir. Used to simulate "another user" in push tests.
+func NewRepoDriverFromRemote(t *testing.T, bareRemoteDir string) *RepoDriver {
+	t.Helper()
+	dir := t.TempDir()
+
+	d := &RepoDriver{t: t, repoDir: dir, bareDir: bareRemoteDir}
+
+	for _, args := range [][]string{
+		{"clone", bareRemoteDir, dir},
+		{"-C", dir, "config", "user.email", "other@example.com"},
+		{"-C", dir, "config", "user.name", "Other User"},
+	} {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		cmd := exec.CommandContext(ctx, "git", args...)
+		var buf bytes.Buffer
+		cmd.Stdout = &buf
+		cmd.Stderr = &buf
+		err := cmd.Run()
+		cancel()
+		if err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, buf.String())
+		}
+	}
+
+	// Ensure .kanban/tasks/ exists — git does not track empty directories,
+	// so it may be absent in a fresh clone even when the origin had the dir.
+	tasksDir := filepath.Join(dir, ".kanban", "tasks")
+	if err := os.MkdirAll(tasksDir, 0755); err != nil {
+		t.Fatalf("create .kanban/tasks/ in clone: %v", err)
+	}
+
+	return d
+}
+
+// PushToOrigin pushes the current branch to origin.
+func (d *RepoDriver) PushToOrigin() {
+	d.t.Helper()
+	d.mustGit("push", "origin", "HEAD")
+}
+
 // SeedTask writes a task file to .kanban/tasks/ and commits it.
 func (d *RepoDriver) SeedTask(id, title, status, assignee string) {
 	d.SeedTaskWithDate(id, title, status, assignee, "")

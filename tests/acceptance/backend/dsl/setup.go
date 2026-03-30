@@ -7,6 +7,12 @@ import (
 	"github.com/jmsargent/kanban/tests/acceptance/backend/driver"
 )
 
+var aUserPushesTaskDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+	simpledsl.NewOptionalArg("status").SetDefault("todo"),
+	simpledsl.NewOptionalArg("assignee"),
+)
+
 var aRepoWithTasksDSL = simpledsl.NewDslParams(
 	simpledsl.NewRepeatingGroup("task",
 		simpledsl.NewRequiredArg("title"),
@@ -24,6 +30,51 @@ func ARepoWithNoTasks(params ...string) Step {
 		Run: func(ctx *WebContext) error {
 			rd := driver.NewRepoDriver(ctx.T)
 			ctx.RepoDir = rd.RepoDir()
+			return nil
+		},
+	}
+}
+
+// ARepoWithRemote sets up a temporary local repo backed by a bare remote
+// (simulating a shared git server). ctx.RepoDir is set to the local clone and
+// ctx.RemoteDir is set to the bare repo path so AUserPushesTask can push to it.
+func ARepoWithRemote(params ...string) Step {
+	return Step{
+		Description: "a repo with a remote",
+		Run: func(ctx *WebContext) error {
+			rd := driver.NewRepoDriver(ctx.T)
+			rd.SetupBareRemote()
+			ctx.RepoDir = rd.RepoDir()
+			ctx.RemoteDir = rd.BareDir()
+			return nil
+		},
+	}
+}
+
+// AUserPushesTask simulates another user pushing a new task to the shared
+// remote. It clones the bare remote into a fresh temp dir, writes a task file,
+// commits, and pushes back. Required param: "task: <title>".
+// Optional params: "status: <status>", "assignee: <assignee>".
+func AUserPushesTask(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("a user pushes a task (%v)", params),
+		Run: func(ctx *WebContext) error {
+			if ctx.RemoteDir == "" {
+				return fmt.Errorf("AUserPushesTask: RemoteDir not set; call ARepoWithRemote first")
+			}
+			vals, err := aUserPushesTaskDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("AUserPushesTask: %w", err)
+			}
+			title := vals.Value("task")
+			status := vals.Value("status")
+			assignee := vals.Value("assignee")
+
+			// Use a fresh RepoDriver as the "other user's" working copy.
+			other := driver.NewRepoDriverFromRemote(ctx.T, ctx.RemoteDir)
+			id := "REMOTE-001"
+			other.SeedTask(id, title, status, assignee)
+			other.PushToOrigin()
 			return nil
 		},
 	}

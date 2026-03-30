@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/jmsargent/kanban/internal/adapters/filesystem"
+	gitadapter "github.com/jmsargent/kanban/internal/adapters/git"
 	"github.com/jmsargent/kanban/internal/adapters/web"
 	"github.com/jmsargent/kanban/internal/domain"
 	"github.com/jmsargent/kanban/internal/usecases"
@@ -42,6 +44,7 @@ func main() {
 	taskRepo := filesystem.NewTaskRepository()
 	configRepo := filesystem.NewConfigRepository()
 	getBoardUC := usecases.NewGetBoard(configRepo, taskRepo)
+	remoteGit := gitadapter.NewGitAdapter()
 
 	// Capture repoDir in the closure; it may be empty for backward-compat
 	// (board will return empty columns in that case).
@@ -55,6 +58,12 @@ func main() {
 				},
 				Tasks: map[domain.TaskStatus][]domain.Task{},
 			}, nil
+		}
+		// Pull latest changes from remote before rendering so the board
+		// reflects commits pushed by other users. Failure is non-fatal:
+		// the board serves stale data rather than returning an error.
+		if err := remoteGit.Pull(repoDir); err != nil {
+			log.Printf("WARN: git pull failed (serving cached state): %v", err)
 		}
 		return getBoardUC.Execute(repoDir, "")
 	}

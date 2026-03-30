@@ -106,6 +106,64 @@ func TestCommitMessagesInRange_ReturnsMessagesInRange(t *testing.T) {
 }
 
 
+func TestPull_FetchesNewCommitsFromRemote(t *testing.T) {
+	// Set up a bare "remote" repo.
+	bareDir := t.TempDir()
+	if out, err := exec.Command("git", "init", "--bare", bareDir).CombinedOutput(); err != nil {
+		t.Fatalf("git init --bare: %s", out)
+	}
+
+	// Clone bare into a local "server" repo (simulates the server's working copy).
+	localDir := t.TempDir()
+	for _, args := range [][]string{
+		{"clone", bareDir, localDir},
+		{"-C", localDir, "config", "user.email", "server@example.com"},
+		{"-C", localDir, "config", "user.name", "Server User"},
+	} {
+		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %s", args, out)
+		}
+	}
+	// Make an initial commit in local, push to bare so bare has a branch to track.
+	writeAndCommit(t, localDir, "init.txt", "init", "initial commit")
+	if out, err := exec.Command("git", "-C", localDir, "push", "-u", "origin", "HEAD").CombinedOutput(); err != nil {
+		t.Fatalf("git push initial: %s", out)
+	}
+
+	// Simulate another user: clone bare into a second temp dir, add a file, push.
+	otherDir := t.TempDir()
+	for _, args := range [][]string{
+		{"clone", bareDir, otherDir},
+		{"-C", otherDir, "config", "user.email", "other@example.com"},
+		{"-C", otherDir, "config", "user.name", "Other User"},
+	} {
+		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %s", args, out)
+		}
+	}
+	writeAndCommit(t, otherDir, "new-task.md", "task content", "add new task")
+	if out, err := exec.Command("git", "-C", otherDir, "push", "origin", "HEAD").CombinedOutput(); err != nil {
+		t.Fatalf("git push from other: %s", out)
+	}
+
+	// Verify the new file is NOT in localDir yet.
+	newTaskPath := filepath.Join(localDir, "new-task.md")
+	if _, err := os.Stat(newTaskPath); err == nil {
+		t.Fatal("new-task.md should not exist in localDir before Pull")
+	}
+
+	// Call Pull on the local repo — should fetch and merge the new commit.
+	adapter := gitadapter.NewGitAdapter()
+	if err := adapter.Pull(localDir); err != nil {
+		t.Fatalf("Pull: %v", err)
+	}
+
+	// Verify the new file is now present.
+	if _, err := os.Stat(newTaskPath); err != nil {
+		t.Errorf("new-task.md should exist in localDir after Pull, got: %v", err)
+	}
+}
+
 func TestGetIdentity_ReturnsConfiguredNameAndEmail(t *testing.T) {
 	dir := t.TempDir()
 	initRepo(t, dir) // configures user.name = "Test User", user.email = "test@example.com"

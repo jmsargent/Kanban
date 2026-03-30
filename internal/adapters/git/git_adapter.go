@@ -147,5 +147,19 @@ func (a *GitAdapter) LogFile(repoRoot, filePath string) ([]ports.CommitEntry, er
 	return entries, nil
 }
 
-// Compile-time interface compliance check.
+// Pull fetches and merges changes from origin into the working repository at
+// repoDir. It runs `git pull` with the repo directory set explicitly so the
+// calling process does not need to be inside the repo.
+func (a *GitAdapter) Pull(repoDir string) error {
+	cmd := exec.Command("git", "pull")
+	cmd.Dir = repoDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("git pull: %w\n%s", err, out)
+	}
+	return nil
+}
+
+// Compile-time interface compliance checks.
 var _ ports.GitPort = (*GitAdapter)(nil)
+var _ ports.RemoteGitPort = (*GitAdapter)(nil)
