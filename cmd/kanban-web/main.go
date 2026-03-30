@@ -2,23 +2,25 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
+
+	"github.com/jmsargent/kanban/internal/adapters/web"
 )
 
 func main() {
-	port := "8080"
-	if len(os.Args) > 2 && os.Args[1] == "--port" {
-		port = os.Args[2]
+	addr := ":8080"
+	for i := 1; i < len(os.Args)-1; i++ {
+		switch os.Args[i] {
+		case "--port":
+			addr = ":" + os.Args[i+1]
+		case "--addr":
+			addr = os.Args[i+1]
+		}
 	}
 
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprintln(w, "ok")
-	})
-
-	fmt.Fprintf(os.Stderr, "kanban-web listening on :%s\n", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	server := web.NewServer(addr)
+	fmt.Fprintf(os.Stderr, "kanban-web listening on %s\n", addr)
+	if err := server.ListenAndServe(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

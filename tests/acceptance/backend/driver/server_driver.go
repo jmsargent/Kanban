@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -50,6 +51,23 @@ func (d *ServerDriver) URL() string {
 	return d.url
 }
 
+// projectRoot walks up from the driver source file to find the directory
+// containing go.mod (the project root).
+func projectRoot() string {
+	_, filename, _, _ := runtime.Caller(0)
+	dir := filepath.Dir(filename)
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return dir
+		}
+		dir = parent
+	}
+}
+
 // Build compiles the kanban-web binary. If KANBAN_WEB_BIN is set, uses that
 // path instead.
 func (d *ServerDriver) Build() error {
@@ -65,6 +83,7 @@ func (d *ServerDriver) Build() error {
 	defer cancel()
 
 	cmd := exec.CommandContext(buildCtx, "go", "build", "-o", d.binPath, "./cmd/kanban-web")
+	cmd.Dir = projectRoot()
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("build kanban-web: %w", err)
