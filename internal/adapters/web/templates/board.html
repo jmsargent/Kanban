@@ -1,4 +1,7 @@
 {{define "content"}}
+<div class="board-actions">
+  <a href="/task/new" class="add-task">Add Task</a>
+</div>
 <div class="board">
   {{range .Columns}}
   <div class="column" data-column="{{.Column}}">

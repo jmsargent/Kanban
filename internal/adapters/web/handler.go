@@ -8,6 +8,9 @@ import (
 	"github.com/jmsargent/kanban/internal/domain"
 )
 
+// SessionKey is the 32-byte AES-256 key used to encrypt/decrypt session cookies.
+type SessionKey []byte
+
 // TaskProvider is a function that retrieves a task by ID.
 type TaskProvider func(id string) (domain.Task, error)
 
@@ -58,6 +61,27 @@ func (h *CardDetailHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := h.tmpl.ExecuteTemplate(w, "layout", task); err != nil {
 		log.Printf("ERROR: render card detail template: %v", err)
+	}
+}
+
+// TokenEntryHandler serves the authentication form at GET /auth/token.
+type TokenEntryHandler struct {
+	tmpl *template.Template
+}
+
+// NewTokenEntryHandler constructs a TokenEntryHandler.
+func NewTokenEntryHandler() *TokenEntryHandler {
+	tmpl := template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/token_entry.html"))
+	return &TokenEntryHandler{tmpl: tmpl}
+}
+
+// ServeHTTP handles GET /auth/token, rendering the token entry form.
+func (h *TokenEntryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	data := struct{ Title string }{Title: "Sign In"}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
+		log.Printf("ERROR: render token entry template: %v", err)
 	}
 }
 
