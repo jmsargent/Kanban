@@ -30,6 +30,18 @@ func TestAuth_UserAuthenticatesSuccessfully(t *testing.T) {
 	Then(ctx, ICanAddTasks())
 }
 
+// TestAuth_InvalidCredentialsRejected verifies that a user who submits an invalid
+// GitHub token is rejected with clear feedback and cannot add tasks.
+func TestAuth_InvalidCredentialsRejected(t *testing.T) {
+	ctx := NewWebContext(t)
+	Given(ctx, ARepoWithNoTasks())
+	Given(ctx, WithGitHubStub("token: valid-token-123", "login: alice", "display_name: Alice"))
+	Given(ctx, AnUnauthorizedUser())
+	When(ctx, IAttemptToAuthenticate("token: bad-token-999", "display_name: Hacker"))
+	Then(ctx, AuthenticationIsRejected())
+	Then(ctx, ICannotAddTasks())
+}
+
 // TestAuth_UnauthenticatedCanViewNotAdd verifies that an unauthenticated user
 // can view the board (read-only access is public) but sees an authentication
 // prompt when attempting to add a task.

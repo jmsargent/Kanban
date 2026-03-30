@@ -1,6 +1,7 @@
 {{define "content"}}
 <div id="token-entry" class="token-entry">
   <p>To add or edit tasks, enter your GitHub personal access token and display name.</p>
+  {{if .Error}}<p id="auth-error" class="error">{{.Error}}</p>{{end}}
   <form method="POST" action="/auth/token">
     <div>
       <label for="token">GitHub Token</label>

@@ -10,6 +10,11 @@ import (
 	"github.com/jmsargent/kanban/tests/acceptance/backend/driver"
 )
 
+var iAttemptToAuthenticateDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("token"),
+	simpledsl.NewRequiredArg("display_name"),
+)
+
 var withGitHubStubDSL = simpledsl.NewDslParams(
 	simpledsl.NewRequiredArg("token"),
 	simpledsl.NewRequiredArg("login"),
@@ -193,6 +198,96 @@ func PromptedToAuthenticate(params ...string) Step {
 			}
 			if !strings.Contains(ctx.LastBody, "token-entry") {
 				return fmt.Errorf("expected token entry form but got:\n%s", ctx.LastBody)
+			}
+			return nil
+		},
+	}
+}
+
+// AnUnauthorizedUser is a context step that documents that the current user
+// holds an invalid GitHub token. No server-side setup is needed because the
+// GitHub stub rejects any token that was not registered via AddValidToken.
+func AnUnauthorizedUser(params ...string) Step {
+	return Step{
+		Description: "an unauthorized user (invalid token)",
+		Run: func(ctx *WebContext) error {
+			// The GitHubStubDriver already rejects unknown tokens with 401.
+			// This step is intentionally a no-op: it exists to make the test
+			// readable and to document the pre-condition explicitly.
+			return nil
+		},
+	}
+}
+
+// IAttemptToAuthenticate POSTs to /auth/token with credentials that are
+// expected to be rejected. It starts the server (with the GitHub stub if
+// configured), stores the HTTP driver on ctx.HTTPDriver, and records the
+// response body in ctx.LastBody.
+// Required params: "token: <token>", "display_name: <name>".
+func IAttemptToAuthenticate(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("I attempt to authenticate (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *WebContext) error {
+			vals, err := iAttemptToAuthenticateDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IAttemptToAuthenticate: %w", err)
+			}
+			if err := ensureServerWithGitHubStub(ctx); err != nil {
+				return err
+			}
+			httpDriver := driver.NewHTTPDriver(ctx.ServerURL)
+			ctx.HTTPDriver = httpDriver
+			formData := url.Values{
+				"token":        {vals.Value("token")},
+				"display_name": {vals.Value("display_name")},
+			}
+			resp, err := httpDriver.POST("/auth/token", formData)
+			if err != nil {
+				return fmt.Errorf("POST /auth/token: %w", err)
+			}
+			ctx.LastBody = resp.Body
+			return nil
+		},
+	}
+}
+
+// AuthenticationIsRejected asserts that the last response is the token entry
+// form (id="token-entry") and contains an error indicator (id="auth-error"),
+// confirming the submitted token was rejected.
+func AuthenticationIsRejected(params ...string) Step {
+	return Step{
+		Description: "authentication is rejected",
+		Run: func(ctx *WebContext) error {
+			if ctx.LastBody == "" {
+				return fmt.Errorf("AuthenticationIsRejected: no response recorded; call IAttemptToAuthenticate first")
+			}
+			if !strings.Contains(ctx.LastBody, "token-entry") {
+				return fmt.Errorf("AuthenticationIsRejected: expected token entry form but got:\n%s", ctx.LastBody)
+			}
+			if !strings.Contains(ctx.LastBody, "auth-error") {
+				return fmt.Errorf("AuthenticationIsRejected: expected error message in form but got:\n%s", ctx.LastBody)
+			}
+			return nil
+		},
+	}
+}
+
+// ICannotAddTasks asserts that GET /task/new redirects back to the auth form,
+// confirming no session cookie was set after a failed authentication attempt.
+// It reuses ctx.HTTPDriver so any cookies from the failed POST are sent.
+func ICannotAddTasks(params ...string) Step {
+	return Step{
+		Description: "I cannot add tasks",
+		Run: func(ctx *WebContext) error {
+			if ctx.HTTPDriver == nil {
+				return fmt.Errorf("ICannotAddTasks: no HTTP driver; call IAttemptToAuthenticate first")
+			}
+			resp, err := ctx.HTTPDriver.GET("/task/new")
+			if err != nil {
+				return fmt.Errorf("ICannotAddTasks: GET /task/new: %w", err)
+			}
+			if !strings.Contains(resp.Body, "token-entry") {
+				return fmt.Errorf("ICannotAddTasks: expected auth form redirect but got:\n%s", resp.Body)
 			}
 			return nil
 		},
