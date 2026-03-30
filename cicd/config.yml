@@ -121,6 +121,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Fetch tags
+          command: make ci-fetch-tags
+      - run:
           name: Smoke test (<< parameters.channel >>)
           command: make ci-smoke-test-<< parameters.channel >>
 
