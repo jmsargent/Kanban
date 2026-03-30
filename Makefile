@@ -187,6 +187,7 @@ ci-fetch-tags:
 ## ci-tag-and-release: tag, checkout, and release (CI step)
 ci-tag-and-release:
 	@make ci-tag
+	@git fetch --tags
 	@LATEST_TAG=$$(git tag --sort=-version:refname | grep '^v' | head -1); \
 	TAG_SHA=$$(git rev-list -n1 "$$LATEST_TAG"); \
 	CURRENT_SHA=$$(git rev-parse HEAD); \
