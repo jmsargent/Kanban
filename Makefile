@@ -208,8 +208,13 @@ LATEST_TAG ?= $(shell git tag --sort=-version:refname | grep '^v' | head -1)
 ci-smoke-test-binary:
 	@echo "Smoke test: binary download ($(LATEST_TAG))"
 	@mkdir -p /tmp/kanban-smoke
-	@curl -sSfL "https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/$(LATEST_TAG)/kanban_$(subst v,,$(LATEST_TAG))_linux_amd64.tar.gz" \
-	  | tar -xz -C /tmp/kanban-smoke
+	@# Added a simple retry loop (5 attempts, 1s sleep) to account for GitHub propagation
+	@for i in 1 2 3 4 5; do \
+	  curl -sSfL "https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/$(LATEST_TAG)/kanban_$(LATEST_TAG)_linux_amd64.tar.gz" \
+	    -o /tmp/kanban-smoke/kanban.tar.gz && break || \
+	  (echo "Attempt $$i failed, retrying in 1s..." && sleep 1); \
+	done
+	@tar -xzf /tmp/kanban-smoke/kanban.tar.gz -C /tmp/kanban-smoke
 	@/tmp/kanban-smoke/kanban --help
 	@rm -rf /tmp/kanban-smoke
 	@echo "PASS: binary smoke test"
