@@ -27,6 +27,8 @@ components:
     in: "cmd/kanban"
   cmd-web:
     in: "cmd/kanban-web"
+  pkg-simpledsl:
+    in: "pkg/simpledsl"
 
 vendors:
   cobra:

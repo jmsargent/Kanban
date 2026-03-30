@@ -166,6 +166,7 @@ ci-static-analysis:
 ## ci-unit-tests: run unit tests via gotestsum (CI step)
 ci-unit-tests:
 	@gotestsum --format testname -- ./internal/...
+	@gotestsum --format testname -- ./pkg/...
 
 ## ci-build: build the kanban binary (CI step)
 ci-build:

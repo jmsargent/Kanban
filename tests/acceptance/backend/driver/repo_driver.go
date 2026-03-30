@@ -43,7 +43,7 @@ func NewRepoDriver(t *testing.T) *RepoDriver {
 	configContent := `ci_task_pattern: "TASK-"
 columns:
   - name: todo
-    label: To Do
+    label: Todo
   - name: in-progress
     label: Doing
   - name: done

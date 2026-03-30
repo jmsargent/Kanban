@@ -1,0 +1,12 @@
+{{define "content"}}
+<div class="board">
+  {{range .Columns}}
+  <div class="column" data-column="{{.Column}}">
+    <h2>{{.Label}}</h2>
+    {{range .Tasks}}
+    <div class="card" data-title="{{.Title}}">{{.Title}}</div>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+{{end}}

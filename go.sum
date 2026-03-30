@@ -40,6 +40,8 @@ github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJy
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
+github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/zimmski/go-mutesting v0.0.0-20210610104036-6d9217011a00 h1:KNiPkpQpqXvq40f8hh/1T7QasLJT/1MuBoOYA2vlxJk=
 github.com/zimmski/go-mutesting v0.0.0-20210610104036-6d9217011a00/go.mod h1:RJt5SMnyha63GbdwCKJiX9djvvEC4KsfXJSZ5oTmSPw=
 github.com/zimmski/go-tool v0.0.0-20150119110811-2dfdc9ac8439 h1:yHqsjUkj0HWbKPw/6ZqC0/eMklaRpqubA199vaRLzzE=

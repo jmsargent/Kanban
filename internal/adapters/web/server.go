@@ -11,17 +11,17 @@ type Server struct {
 	mux  *http.ServeMux
 }
 
-// NewServer constructs a Server listening on addr.
-func NewServer(addr string) *Server {
+// NewServer constructs a Server listening on addr with the given board provider.
+func NewServer(addr string, getBoard BoardProvider) *Server {
 	mux := http.NewServeMux()
 	s := &Server{addr: addr, mux: mux}
-	s.registerRoutes()
+	s.registerRoutes(getBoard)
 	return s
 }
 
 // registerRoutes registers all HTTP routes on the mux.
-func (s *Server) registerRoutes() {
-	s.mux.Handle("/board", NewBoardHandler())
+func (s *Server) registerRoutes(getBoard BoardProvider) {
+	s.mux.Handle("/board", NewBoardHandler(getBoard))
 	s.mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintln(w, "ok")
