@@ -1,6 +1,8 @@
 .kanban/hook.log
 private-notes
 kanban
+kanban-web
 bin/
 tests/acceptance/kanban-tasks/bin/
 .on-local-machine
+.nwave
