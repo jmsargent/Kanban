@@ -302,6 +302,49 @@ func TestAddTaskHandler_Unauthenticated_RedirectsToAuth(t *testing.T) {
 	}
 }
 
+// Test Budget (AddTaskHandler validation): 1 behavior × 2 = 2 max. Using 1.
+// Behavior 3: POST with empty title → re-renders add-task form with "title is required" error, no task saved.
+
+func TestAddTaskHandler_EmptyTitle_RerendersFormWithError(t *testing.T) {
+	sessionKey := []byte("test-cookie-key-must-be-32bytes!")
+	taskRepo := &fakeTaskRepo{}
+	configRepo := &fakeConfigRepo{}
+	addTaskUC := usecases.NewAddTask(configRepo, taskRepo)
+
+	handler := web.NewAddTaskHandler(sessionKey, addTaskUC, "")
+
+	cookieValue, err := web.EncryptSession(sessionKey, "ghp_token", "Alice")
+	if err != nil {
+		t.Fatalf("EncryptSession: %v", err)
+	}
+
+	form := strings.NewReader("title=&description=Some+description")
+	req := httptest.NewRequest(http.MethodPost, "/task", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "kanban_session", Value: cookieValue})
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusSeeOther {
+		t.Fatal("expected no redirect when title is empty")
+	}
+	body := rec.Body.String()
+	// The handler must produce exactly "title is required" — not a use-case error message.
+	if !strings.Contains(body, "title is required") {
+		t.Errorf("expected 'title is required' error in response body, got:\n%s", body)
+	}
+	if strings.Contains(body, "Failed to create task") {
+		t.Errorf("handler must validate before calling use case; got use-case error in body:\n%s", body)
+	}
+	if !strings.Contains(body, "add-task-form") {
+		t.Errorf("expected add-task form to be re-rendered, got:\n%s", body)
+	}
+	if len(taskRepo.saved) != 0 {
+		t.Errorf("expected no task saved when title is empty, got %d", len(taskRepo.saved))
+	}
+}
+
 // assertColumnContains checks that the named column in body contains a card
 // with the given title.
 func assertColumnContains(t *testing.T, body, column, title string) {

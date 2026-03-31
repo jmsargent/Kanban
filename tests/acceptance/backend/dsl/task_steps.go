@@ -10,6 +10,58 @@ import (
 	"github.com/jmsargent/kanban/pkg/simpledsl"
 )
 
+var taskCreationFailsDSL = simpledsl.NewDslParams(
+	simpledsl.NewOptionalArg("error"),
+)
+
+// TaskCreationFails asserts that the last response re-rendered the add-task form
+// (i.e. no redirect occurred) and optionally that the given error message appears.
+// Optional param: "error: <message>".
+func TaskCreationFails(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("task creation fails (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *WebContext) error {
+			vals, err := taskCreationFailsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("TaskCreationFails: %w", err)
+			}
+			if !strings.Contains(ctx.LastBody, "add-task-form") {
+				return fmt.Errorf("TaskCreationFails: expected add-task form in response, got:\n%s", ctx.LastBody)
+			}
+			if errMsg := vals.Value("error"); errMsg != "" {
+				if !strings.Contains(ctx.LastBody, errMsg) {
+					return fmt.Errorf("TaskCreationFails: expected error %q in response, got:\n%s", errMsg, ctx.LastBody)
+				}
+			}
+			return nil
+		},
+	}
+}
+
+// NoNewTaskInRepo asserts that no task files were created in ctx.RepoDir during
+// the test (the tasks directory remains empty).
+func NoNewTaskInRepo(params ...string) Step {
+	return Step{
+		Description: "no new task in repo",
+		Run: func(ctx *WebContext) error {
+			if ctx.RepoDir == "" {
+				return fmt.Errorf("NoNewTaskInRepo: RepoDir not set; call ARepoWithNoTasks first")
+			}
+			tasksDir := filepath.Join(ctx.RepoDir, ".kanban", "tasks")
+			entries, err := os.ReadDir(tasksDir)
+			if err != nil {
+				return fmt.Errorf("NoNewTaskInRepo: read tasks dir: %w", err)
+			}
+			for _, entry := range entries {
+				if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+					return fmt.Errorf("NoNewTaskInRepo: unexpected task file found: %s", entry.Name())
+				}
+			}
+			return nil
+		},
+	}
+}
+
 var iAddTaskDSL = simpledsl.NewDslParams(
 	simpledsl.NewRequiredArg("title"),
 	simpledsl.NewOptionalArg("description"),

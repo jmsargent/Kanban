@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/jmsargent/kanban/internal/domain"
 	"github.com/jmsargent/kanban/internal/usecases"
@@ -201,13 +202,17 @@ func (h *AddTaskHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *AddTaskHandler) renderForm(w http.ResponseWriter, _ *http.Request, errMsg string) {
+func (h *AddTaskHandler) renderForm(w http.ResponseWriter, r *http.Request, errMsg string) {
+	h.renderFormWithStatus(w, r, errMsg, http.StatusOK)
+}
+
+func (h *AddTaskHandler) renderFormWithStatus(w http.ResponseWriter, _ *http.Request, errMsg string, status int) {
 	data := struct {
 		Title string
 		Error string
 	}{Title: "Add Task", Error: errMsg}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(status)
 	if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
 		log.Printf("ERROR: render add_task template: %v", err)
 	}
@@ -228,8 +233,14 @@ func (h *AddTaskHandler) handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	title := r.FormValue("title")
+	if strings.TrimSpace(title) == "" {
+		h.renderFormWithStatus(w, r, "title is required", http.StatusUnprocessableEntity)
+		return
+	}
+
 	input := usecases.AddTaskInput{
-		Title:       r.FormValue("title"),
+		Title:       title,
 		Description: r.FormValue("description"),
 		Priority:    r.FormValue("priority"),
 		Assignee:    r.FormValue("assignee"),
