@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/usecases"
 )
 
 // SessionKey is the 32-byte AES-256 key used to encrypt/decrypt session cookies.
@@ -168,6 +169,80 @@ func (h *TokenSubmitHandler) validateGitHubToken(token string) bool {
 	defer func() { _, _ = io.Copy(io.Discard, resp.Body); _ = resp.Body.Close() }()
 
 	return resp.StatusCode == http.StatusOK
+}
+
+// AddTaskHandler handles GET /task/new (render form) and POST /task (create task).
+// It wraps RequireAuth so both routes require an authenticated session.
+type AddTaskHandler struct {
+	sessionKey []byte
+	addTask    *usecases.AddTask
+	repoDir    string
+	tmpl       *template.Template
+}
+
+// NewAddTaskHandler constructs an AddTaskHandler.
+// sessionKey is the 32-byte AES-256 key used to decrypt the session cookie.
+// addTask is the wired AddTask use case. repoDir is the repository root.
+func NewAddTaskHandler(sessionKey []byte, addTask *usecases.AddTask, repoDir string) http.Handler {
+	tmpl := template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/add_task.html"))
+	h := &AddTaskHandler{sessionKey: sessionKey, addTask: addTask, repoDir: repoDir, tmpl: tmpl}
+	return RequireAuth(sessionKey, h)
+}
+
+// ServeHTTP dispatches GET to the form renderer and POST to the task creator.
+func (h *AddTaskHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		h.renderForm(w, r, "")
+	case http.MethodPost:
+		h.handlePost(w, r)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *AddTaskHandler) renderForm(w http.ResponseWriter, _ *http.Request, errMsg string) {
+	data := struct {
+		Title string
+		Error string
+	}{Title: "Add Task", Error: errMsg}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
+		log.Printf("ERROR: render add_task template: %v", err)
+	}
+}
+
+func (h *AddTaskHandler) handlePost(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	// Extract created_by from the session cookie — RequireAuth already validated it.
+	cookie, _ := r.Cookie("kanban_session")
+	session, err := decryptSession(h.sessionKey, cookie.Value)
+	if err != nil {
+		log.Printf("ERROR: decrypt session in AddTaskHandler: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	input := usecases.AddTaskInput{
+		Title:       r.FormValue("title"),
+		Description: r.FormValue("description"),
+		Priority:    r.FormValue("priority"),
+		Assignee:    r.FormValue("assignee"),
+		CreatedBy:   session.DisplayName,
+	}
+
+	if _, err := h.addTask.Execute(h.repoDir, input); err != nil {
+		log.Printf("ERROR: AddTask.Execute: %v", err)
+		h.renderForm(w, r, "Failed to create task: "+err.Error())
+		return
+	}
+
+	http.Redirect(w, r, "/board", http.StatusSeeOther)
 }
 
 // ServeHTTP handles GET /board requests, rendering the board template.

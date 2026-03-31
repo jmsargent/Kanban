@@ -51,6 +51,7 @@ func main() {
 	taskRepo := filesystem.NewTaskRepository()
 	configRepo := filesystem.NewConfigRepository()
 	getBoardUC := usecases.NewGetBoard(configRepo, taskRepo)
+	addTaskUC := usecases.NewAddTask(configRepo, taskRepo)
 	remoteGit := gitadapter.NewGitAdapter()
 
 	// Capture repoDir in the closure; it may be empty for backward-compat
@@ -82,7 +83,7 @@ func main() {
 		return taskRepo.FindByID(repoDir, id)
 	}
 
-	server := web.NewServer(addr, boardProvider, taskProvider, sessionKey, githubAPIURL)
+	server := web.NewServer(addr, boardProvider, taskProvider, sessionKey, githubAPIURL, addTaskUC, repoDir)
 	fmt.Fprintf(os.Stderr, "kanban-web listening on %s\n", addr)
 	if err := server.ListenAndServe(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

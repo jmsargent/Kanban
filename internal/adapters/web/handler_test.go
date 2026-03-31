@@ -9,6 +9,8 @@ import (
 
 	"github.com/jmsargent/kanban/internal/adapters/web"
 	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/ports"
+	"github.com/jmsargent/kanban/internal/usecases"
 )
 
 // Test Budget: 3 behaviors × 2 = 6 max unit tests. Using 3.
@@ -204,6 +206,99 @@ func TestTokenSubmitHandler_InvalidToken_RerendersForm(t *testing.T) {
 		if c.Name == "kanban_session" {
 			t.Error("expected no session cookie on invalid token")
 		}
+	}
+}
+
+// Test Budget: 2 behaviors × 2 = 4 max unit tests. Using 2.
+// Behavior 1: authenticated POST with valid fields → 303 redirect to /board + task saved.
+// Behavior 2: unauthenticated POST → 302 redirect to /auth/token (RequireAuth middleware).
+
+// fakeTaskRepo is a minimal in-memory TaskRepository for unit tests.
+type fakeTaskRepo struct {
+	saved []domain.Task
+}
+
+func (r *fakeTaskRepo) Save(_ string, task domain.Task) error {
+	r.saved = append(r.saved, task)
+	return nil
+}
+func (r *fakeTaskRepo) FindByID(_ string, _ string) (domain.Task, error) { return domain.Task{}, nil }
+func (r *fakeTaskRepo) ListAll(_ string) ([]domain.Task, error)          { return nil, nil }
+func (r *fakeTaskRepo) Update(_ string, _ domain.Task) error             { return nil }
+func (r *fakeTaskRepo) Delete(_ string, _ string) error                  { return nil }
+func (r *fakeTaskRepo) NextID(_ string) (string, error)                  { return "TASK-001", nil }
+
+// fakeConfigRepo is a minimal in-memory ConfigRepository for unit tests.
+type fakeConfigRepo struct{}
+
+func (r *fakeConfigRepo) Read(_ string) (ports.Config, error) {
+	return ports.Config{
+		Columns: []domain.Column{
+			{Name: "todo", Label: "Todo"},
+		},
+	}, nil
+}
+func (r *fakeConfigRepo) Write(_ string, _ ports.Config) error { return nil }
+
+func TestAddTaskHandler_AuthenticatedPost_RedirectsAndSavesTask(t *testing.T) {
+	sessionKey := []byte("test-cookie-key-must-be-32bytes!")
+	taskRepo := &fakeTaskRepo{}
+	configRepo := &fakeConfigRepo{}
+	addTaskUC := usecases.NewAddTask(configRepo, taskRepo)
+
+	handler := web.NewAddTaskHandler(sessionKey, addTaskUC, "")
+
+	cookieValue, err := web.EncryptSession(sessionKey, "ghp_token", "Alice")
+	if err != nil {
+		t.Fatalf("EncryptSession: %v", err)
+	}
+
+	form := strings.NewReader("title=Fix+the+bug&description=Needs+attention&priority=high&assignee=bob")
+	req := httptest.NewRequest(http.MethodPost, "/task", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "kanban_session", Value: cookieValue})
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 See Other, got %d\nbody: %s", rec.Code, rec.Body.String())
+	}
+	if loc := rec.Header().Get("Location"); loc != "/board" {
+		t.Fatalf("expected redirect to /board, got %q", loc)
+	}
+	if len(taskRepo.saved) != 1 {
+		t.Fatalf("expected 1 saved task, got %d", len(taskRepo.saved))
+	}
+	saved := taskRepo.saved[0]
+	if saved.Title != "Fix the bug" {
+		t.Errorf("expected title %q, got %q", "Fix the bug", saved.Title)
+	}
+	if saved.CreatedBy != "Alice" {
+		t.Errorf("expected created_by %q (from session), got %q", "Alice", saved.CreatedBy)
+	}
+}
+
+func TestAddTaskHandler_Unauthenticated_RedirectsToAuth(t *testing.T) {
+	sessionKey := []byte("test-cookie-key-must-be-32bytes!")
+	taskRepo := &fakeTaskRepo{}
+	configRepo := &fakeConfigRepo{}
+	addTaskUC := usecases.NewAddTask(configRepo, taskRepo)
+
+	handler := web.NewAddTaskHandler(sessionKey, addTaskUC, "")
+
+	form := strings.NewReader("title=Fix+the+bug")
+	req := httptest.NewRequest(http.MethodPost, "/task", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusFound {
+		t.Fatalf("expected 302 Found, got %d", rec.Code)
+	}
+	if loc := rec.Header().Get("Location"); loc != "/auth/token" {
+		t.Fatalf("expected redirect to /auth/token, got %q", loc)
 	}
 }
 

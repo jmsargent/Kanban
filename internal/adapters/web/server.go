@@ -3,6 +3,8 @@ package web
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/jmsargent/kanban/internal/usecases"
 )
 
 // Server wires HTTP routes and manages the server lifecycle.
@@ -18,7 +20,8 @@ type Server struct {
 // zero key is used (suitable for dev/test only; not secure).
 // githubAPIBaseURL is the GitHub API base URL for token validation (e.g.
 // "https://api.github.com"). Pass an empty string to use the default.
-func NewServer(addr string, getBoard BoardProvider, getTask TaskProvider, sessionKey []byte, githubAPIBaseURL string) *Server {
+// addTask may be nil — routes that require it will return 501 Not Implemented.
+func NewServer(addr string, getBoard BoardProvider, getTask TaskProvider, sessionKey []byte, githubAPIBaseURL string, addTask *usecases.AddTask, repoDir string) *Server {
 	if sessionKey == nil {
 		sessionKey = make([]byte, 32) // zero key — insecure dev default
 	}
@@ -27,12 +30,12 @@ func NewServer(addr string, getBoard BoardProvider, getTask TaskProvider, sessio
 	}
 	mux := http.NewServeMux()
 	s := &Server{addr: addr, mux: mux, sessionKey: sessionKey, githubAPIBaseURL: githubAPIBaseURL}
-	s.registerRoutes(getBoard, getTask)
+	s.registerRoutes(getBoard, getTask, addTask, repoDir)
 	return s
 }
 
 // registerRoutes registers all HTTP routes on the mux.
-func (s *Server) registerRoutes(getBoard BoardProvider, getTask TaskProvider) {
+func (s *Server) registerRoutes(getBoard BoardProvider, getTask TaskProvider, addTask *usecases.AddTask, repoDir string) {
 	// Public read routes — no auth required.
 	s.mux.Handle("/board", NewBoardHandler(getBoard))
 	s.mux.Handle("/card/{id}", NewCardDetailHandler(getTask))
@@ -42,10 +45,16 @@ func (s *Server) registerRoutes(getBoard BoardProvider, getTask TaskProvider) {
 	s.mux.Handle("POST /auth/token", NewTokenSubmitHandler(s.sessionKey, s.githubAPIBaseURL))
 
 	// Write routes — auth required.
-	s.mux.Handle("/task/new", RequireAuth(s.sessionKey, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Placeholder: task creation form (implemented in a later step).
-		http.Error(w, "not implemented", http.StatusNotImplemented)
-	})))
+	// GET /task/new renders the add-task form; POST /task creates the task.
+	if addTask != nil {
+		addTaskHandler := NewAddTaskHandler(s.sessionKey, addTask, repoDir)
+		s.mux.Handle("GET /task/new", addTaskHandler)
+		s.mux.Handle("POST /task", addTaskHandler)
+	} else {
+		s.mux.Handle("/task/new", RequireAuth(s.sessionKey, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "not implemented", http.StatusNotImplemented)
+		})))
+	}
 
 	s.mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

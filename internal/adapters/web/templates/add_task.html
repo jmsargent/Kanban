@@ -1,0 +1,24 @@
+{{define "content"}}
+<div id="add-task-form" class="add-task-form">
+  {{if .Error}}<p id="form-error" class="error">{{.Error}}</p>{{end}}
+  <form method="POST" action="/task">
+    <div>
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" required />
+    </div>
+    <div>
+      <label for="description">Description</label>
+      <textarea id="description" name="description"></textarea>
+    </div>
+    <div>
+      <label for="priority">Priority</label>
+      <input type="text" id="priority" name="priority" />
+    </div>
+    <div>
+      <label for="assignee">Assignee</label>
+      <input type="text" id="assignee" name="assignee" />
+    </div>
+    <button type="submit">Add Task</button>
+  </form>
+</div>
+{{end}}
