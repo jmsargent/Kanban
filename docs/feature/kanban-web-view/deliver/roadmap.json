@@ -1,6 +1,212 @@
 {
-  "feature_id": "kanban-web-view",
-  "validation": { "status": "approved" },
+  "roadmap": {
+    "project_id": "kanban-web-view",
+    "created_at": "2026-03-30T00:00:00Z",
+    "total_steps": 21
+  },
+  "validation": {
+    "status": "approved"
+  },
+  "phases": [
+    {
+      "id": "01",
+      "name": "Walking Skeleton",
+      "steps": [
+        {
+          "id": "01-01",
+          "name": "Test infrastructure: drivers and DSL scaffolding",
+          "criteria": [
+            "WebContext compiles with server URL, HTTP client, cookies, last response fields",
+            "ServerDriver compiles and starts kanban-web binary as subprocess",
+            "HTTPDriver provides GET, POST, HTML parsing with cookie jar",
+            "RepoDriver creates temp git repos with .kanban/tasks/ structure",
+            "GitHubStubDriver stubs GET /user for token validation"
+          ]
+        },
+        {
+          "id": "01-02",
+          "name": "Hello World: server starts and responds",
+          "criteria": [
+            "Server starts and board page is reachable",
+            "Board response is visible (not error page)"
+          ]
+        },
+        {
+          "id": "01-03",
+          "name": "Hello World: response time",
+          "criteria": [
+            "Board page loads within 500ms"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "name": "Board View",
+      "steps": [
+        {
+          "id": "02-01",
+          "name": "Board: three columns with tasks",
+          "criteria": [
+            "Board renders three columns: Todo, Doing, Done",
+            "Tasks appear in the column matching their status",
+            "Multiple tasks distributed across columns correctly"
+          ]
+        },
+        {
+          "id": "02-02",
+          "name": "Board: card shows summary info",
+          "criteria": [
+            "Card displays title, assignee, and status"
+          ]
+        },
+        {
+          "id": "02-03",
+          "name": "Board: cards sorted by date",
+          "criteria": [
+            "Cards in same column sorted by created_at ascending"
+          ]
+        },
+        {
+          "id": "02-04",
+          "name": "Board: empty board shows columns",
+          "criteria": [
+            "Empty repo produces board with Todo, Doing, Done columns",
+            "All three columns are empty"
+          ]
+        },
+        {
+          "id": "02-05",
+          "name": "Board: reflects changes from another user",
+          "criteria": [
+            "Task pushed by one user appears on board viewed by another user"
+          ]
+        },
+        {
+          "id": "02-06",
+          "name": "Board: unauthenticated user can view",
+          "criteria": [
+            "Unauthenticated user sees board with tasks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "name": "Card Detail",
+      "steps": [
+        {
+          "id": "03-01",
+          "name": "Card detail: full info display",
+          "criteria": [
+            "Card detail displays all populated fields",
+            "All field values match the task file content"
+          ]
+        },
+        {
+          "id": "03-02",
+          "name": "Card detail: missing optional fields and task ID",
+          "criteria": [
+            "Missing optional fields (assignee, priority) are not rendered",
+            "Task ID is always visible on card detail"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "name": "Authentication",
+      "steps": [
+        {
+          "id": "04-01",
+          "name": "Auth: prompted on add task attempt",
+          "criteria": [
+            "First-time visitor clicking add task sees authentication prompt",
+            "Add task option is visible on the board (even when unauthenticated)"
+          ]
+        },
+        {
+          "id": "04-02",
+          "name": "Auth: successful authentication",
+          "criteria": [
+            "Valid token + display name authenticates user",
+            "Authenticated user lands on the board",
+            "Authenticated user can add tasks"
+          ]
+        },
+        {
+          "id": "04-03",
+          "name": "Auth: invalid credentials rejected",
+          "criteria": [
+            "Invalid token is rejected with clear feedback",
+            "Rejected user cannot add tasks"
+          ]
+        },
+        {
+          "id": "04-04",
+          "name": "Auth: session persistence",
+          "criteria": [
+            "Previously authenticated user can add tasks without re-entering token"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05",
+      "name": "Add Task",
+      "steps": [
+        {
+          "id": "05-01",
+          "name": "Add task: all fields via web form",
+          "criteria": [
+            "Task with all fields appears in Todo column after creation",
+            "Task file in repo contains all submitted fields plus created_by from auth"
+          ]
+        },
+        {
+          "id": "05-02",
+          "name": "Add task: title only with defaults",
+          "criteria": [
+            "Title-only task appears in Todo column",
+            "Task file has status todo and created_by set from authenticated user"
+          ]
+        },
+        {
+          "id": "05-03",
+          "name": "Add task: title required validation",
+          "criteria": [
+            "Empty title produces validation error with 'title is required' message",
+            "No task file created in repo"
+          ]
+        },
+        {
+          "id": "05-04",
+          "name": "Add task: file format and sequential ID",
+          "criteria": [
+            "Task file uses Markdown + YAML front matter format",
+            "Task ID follows sequential pattern (TASK-NNN)"
+          ]
+        },
+        {
+          "id": "05-05",
+          "name": "Add task: committed and pushed to remote",
+          "criteria": [
+            "Task file committed to local repo",
+            "Commit pushed to remote repo",
+            "Task visible in remote repo"
+          ]
+        },
+        {
+          "id": "05-06",
+          "name": "Add task: unauthenticated rejected",
+          "criteria": [
+            "Unauthenticated POST to add task is rejected",
+            "No task file created in repo"
+          ]
+        }
+      ]
+    }
+  ],
   "steps": [
     {
       "step_id": "01-01",
@@ -15,7 +221,10 @@
       ],
       "test_file": "",
       "scenario_name": "",
-      "quality_gates": ["All driver and DSL packages compile", "go test ./tests/acceptance/backend/... compiles (no scenarios yet)"],
+      "quality_gates": [
+        "All driver and DSL packages compile",
+        "go test ./tests/acceptance/backend/... compiles (no scenarios yet)"
+      ],
       "implementation_notes": "Create tests/acceptance/backend/dsl/ and tests/acceptance/backend/driver/ packages. ServerDriver compiles cmd/kanban-web binary. HTTPDriver uses net/http with cookiejar. RepoDriver uses git init + t.TempDir(). GitHubStubDriver uses httptest.NewServer. cmd/kanban-web/main.go can be a minimal stub that compiles.",
       "dependencies": [],
       "estimated_hours": 3,
@@ -42,9 +251,13 @@
       ],
       "test_file": "tests/acceptance/backend/hello_world_test.go",
       "scenario_name": "TestHelloWorld_ServerResponds",
-      "quality_gates": ["TestHelloWorld_ServerResponds passes"],
+      "quality_gates": [
+        "TestHelloWorld_ServerResponds passes"
+      ],
       "implementation_notes": "Implement minimal server.go with /board route returning basic HTML. Wire in cmd/kanban-web/main.go. DSL steps: IVisitTheBoard, BoardIsVisible.",
-      "dependencies": ["01-01"],
+      "dependencies": [
+        "01-01"
+      ],
       "estimated_hours": 2,
       "deliverables": [
         "internal/adapters/web/server.go",
@@ -65,9 +278,13 @@
       ],
       "test_file": "tests/acceptance/backend/hello_world_test.go",
       "scenario_name": "TestHelloWorld_ResponseTime",
-      "quality_gates": ["TestHelloWorld_ResponseTime passes"],
+      "quality_gates": [
+        "TestHelloWorld_ResponseTime passes"
+      ],
       "implementation_notes": "DSL step: BoardLoadsWithin. Likely passes already if server is minimal. If not, profile and optimize.",
-      "dependencies": ["01-02"],
+      "dependencies": [
+        "01-02"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -86,9 +303,13 @@
       ],
       "test_file": "tests/acceptance/backend/board_test.go",
       "scenario_name": "TestViewBoard_ThreeColumnsWithTasks",
-      "quality_gates": ["TestViewBoard_ThreeColumnsWithTasks passes"],
+      "quality_gates": [
+        "TestViewBoard_ThreeColumnsWithTasks passes"
+      ],
       "implementation_notes": "Implement board handler calling GetBoard use case. Create board.html template with three columns. Wire RepoDriver to seed tasks. DSL steps: ARepoWithTasks, ColumnContainsCards.",
-      "dependencies": ["01-03"],
+      "dependencies": [
+        "01-03"
+      ],
       "estimated_hours": 3,
       "deliverables": [
         "internal/adapters/web/templates/layout.html",
@@ -112,9 +333,13 @@
       ],
       "test_file": "tests/acceptance/backend/board_test.go",
       "scenario_name": "TestViewBoard_CardShowsSummary",
-      "quality_gates": ["TestViewBoard_CardShowsSummary passes"],
+      "quality_gates": [
+        "TestViewBoard_CardShowsSummary passes"
+      ],
       "implementation_notes": "DSL steps: IViewCard, CardShows. May need card_detail.html or expand board card rendering. This test uses IViewCard so it touches card detail view.",
-      "dependencies": ["02-01"],
+      "dependencies": [
+        "02-01"
+      ],
       "estimated_hours": 1,
       "deliverables": [
         "internal/adapters/web/templates/card_detail.html",
@@ -134,9 +359,13 @@
       ],
       "test_file": "tests/acceptance/backend/board_test.go",
       "scenario_name": "TestViewBoard_CardsSortedByDate",
-      "quality_gates": ["TestViewBoard_CardsSortedByDate passes"],
+      "quality_gates": [
+        "TestViewBoard_CardsSortedByDate passes"
+      ],
       "implementation_notes": "DSL step: CardAppearsBeforeInColumn. Sorting may already be handled by GetBoard use case or needs template-level ordering.",
-      "dependencies": ["02-01"],
+      "dependencies": [
+        "02-01"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -154,9 +383,13 @@
       ],
       "test_file": "tests/acceptance/backend/board_test.go",
       "scenario_name": "TestViewBoard_EmptyBoard",
-      "quality_gates": ["TestViewBoard_EmptyBoard passes"],
+      "quality_gates": [
+        "TestViewBoard_EmptyBoard passes"
+      ],
       "implementation_notes": "DSL steps: ARepoWithNoTasks, BoardHasColumns, ColumnIsEmpty.",
-      "dependencies": ["02-01"],
+      "dependencies": [
+        "02-01"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -174,9 +407,13 @@
       ],
       "test_file": "tests/acceptance/backend/board_test.go",
       "scenario_name": "TestViewBoard_ReflectsChangesFromAnotherUser",
-      "quality_gates": ["TestViewBoard_ReflectsChangesFromAnotherUser passes"],
+      "quality_gates": [
+        "TestViewBoard_ReflectsChangesFromAnotherUser passes"
+      ],
       "implementation_notes": "DSL steps: Users, User().PushesNewTask, User().VisitsTheBoard. Requires background git pull sync to be implemented. RepoDriver must support pushing tasks externally.",
-      "dependencies": ["02-01"],
+      "dependencies": [
+        "02-01"
+      ],
       "estimated_hours": 2,
       "deliverables": [
         "internal/ports/remote_git.go"
@@ -198,9 +435,13 @@
       ],
       "test_file": "tests/acceptance/backend/board_test.go",
       "scenario_name": "TestViewBoard_UnauthenticatedUserCanView",
-      "quality_gates": ["TestViewBoard_UnauthenticatedUserCanView passes"],
+      "quality_gates": [
+        "TestViewBoard_UnauthenticatedUserCanView passes"
+      ],
       "implementation_notes": "DSL step: AFirstTimeVisitor. Board GET route requires no auth. Should pass if no auth middleware blocks read paths.",
-      "dependencies": ["02-01"],
+      "dependencies": [
+        "02-01"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -218,9 +459,13 @@
       ],
       "test_file": "tests/acceptance/backend/card_detail_test.go",
       "scenario_name": "TestCardDetail_ShowsFullInfo",
-      "quality_gates": ["TestCardDetail_ShowsFullInfo passes"],
+      "quality_gates": [
+        "TestCardDetail_ShowsFullInfo passes"
+      ],
       "implementation_notes": "Expand card_detail.html to render all domain.Task fields. Handler uses TaskRepository.FindByID.",
-      "dependencies": ["02-02"],
+      "dependencies": [
+        "02-02"
+      ],
       "estimated_hours": 1,
       "deliverables": [
         "tests/acceptance/backend/card_detail_test.go"
@@ -241,9 +486,14 @@
       ],
       "test_file": "tests/acceptance/backend/card_detail_test.go",
       "scenario_name": "TestCardDetail_MissingOptionalFields",
-      "quality_gates": ["TestCardDetail_MissingOptionalFields passes", "TestCardDetail_TaskIDVisible passes"],
+      "quality_gates": [
+        "TestCardDetail_MissingOptionalFields passes",
+        "TestCardDetail_TaskIDVisible passes"
+      ],
       "implementation_notes": "Template uses conditional rendering for optional fields. DSL steps: CardDoesNotShow, CardShowsTaskID. Batched: both tests exercise the same template and handler with minimal variation.",
-      "dependencies": ["03-01"],
+      "dependencies": [
+        "03-01"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -262,9 +512,14 @@
       ],
       "test_file": "tests/acceptance/backend/auth_test.go",
       "scenario_name": "TestAuth_FirstTimeUserPromptedOnAddTask",
-      "quality_gates": ["TestAuth_FirstTimeUserPromptedOnAddTask passes", "TestAuth_UnauthenticatedCanViewNotAdd passes"],
+      "quality_gates": [
+        "TestAuth_FirstTimeUserPromptedOnAddTask passes",
+        "TestAuth_UnauthenticatedCanViewNotAdd passes"
+      ],
       "implementation_notes": "Implement auth middleware checking for encrypted cookie. Create token_entry.html. DSL steps: ITryToAddTask, PromptedToAuthenticate, AddTaskOptionIsVisible. Batched with UnauthenticatedCanViewNotAdd since both test unauthenticated add-task behavior.",
-      "dependencies": ["02-06"],
+      "dependencies": [
+        "02-06"
+      ],
       "estimated_hours": 2,
       "deliverables": [
         "internal/adapters/web/middleware.go",
@@ -288,9 +543,13 @@
       ],
       "test_file": "tests/acceptance/backend/auth_test.go",
       "scenario_name": "TestAuth_UserAuthenticatesSuccessfully",
-      "quality_gates": ["TestAuth_UserAuthenticatesSuccessfully passes"],
+      "quality_gates": [
+        "TestAuth_UserAuthenticatesSuccessfully passes"
+      ],
       "implementation_notes": "Implement POST /auth/token handler. Validate token against GitHubStubDriver. Set AES-256-GCM encrypted HttpOnly cookie. DSL steps: IAuthenticate, IAmOnTheBoard, ICanAddTasks.",
-      "dependencies": ["04-01"],
+      "dependencies": [
+        "04-01"
+      ],
       "estimated_hours": 2,
       "deliverables": [],
       "files_to_modify": [
@@ -310,9 +569,13 @@
       ],
       "test_file": "tests/acceptance/backend/auth_test.go",
       "scenario_name": "TestAuth_InvalidCredentialsRejected",
-      "quality_gates": ["TestAuth_InvalidCredentialsRejected passes"],
+      "quality_gates": [
+        "TestAuth_InvalidCredentialsRejected passes"
+      ],
       "implementation_notes": "GitHubStubDriver returns 401 for invalid tokens. Handler returns error to token_entry.html. DSL steps: AnUnauthorizedUser, IAttemptToAuthenticate, AuthenticationIsRejected, ICannotAddTasks.",
-      "dependencies": ["04-02"],
+      "dependencies": [
+        "04-02"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -329,9 +592,13 @@
       ],
       "test_file": "tests/acceptance/backend/auth_test.go",
       "scenario_name": "TestAuth_UserStaysAuthenticated",
-      "quality_gates": ["TestAuth_UserStaysAuthenticated passes"],
+      "quality_gates": [
+        "TestAuth_UserStaysAuthenticated passes"
+      ],
       "implementation_notes": "Cookie persistence across requests. DSL steps: AnAuthenticatedUser, AddTaskFormIsShown. Should pass if cookie handling is correct.",
-      "dependencies": ["04-02"],
+      "dependencies": [
+        "04-02"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -350,9 +617,13 @@
       ],
       "test_file": "tests/acceptance/backend/add_task_test.go",
       "scenario_name": "TestAddTask_AllFields",
-      "quality_gates": ["TestAddTask_AllFields passes"],
+      "quality_gates": [
+        "TestAddTask_AllFields passes"
+      ],
       "implementation_notes": "Create add_task.html form template. Implement POST /task handler calling AddTask use case. DSL steps: IAddTask, TaskExistsInRepo. Wire AddTask use case with TaskRepository in handler.",
-      "dependencies": ["04-02"],
+      "dependencies": [
+        "04-02"
+      ],
       "estimated_hours": 3,
       "deliverables": [
         "internal/adapters/web/templates/add_task.html",
@@ -374,9 +645,13 @@
       ],
       "test_file": "tests/acceptance/backend/add_task_test.go",
       "scenario_name": "TestAddTask_TitleOnly",
-      "quality_gates": ["TestAddTask_TitleOnly passes"],
+      "quality_gates": [
+        "TestAddTask_TitleOnly passes"
+      ],
       "implementation_notes": "Handler applies defaults for missing optional fields. DSL verifies default values in repo.",
-      "dependencies": ["05-01"],
+      "dependencies": [
+        "05-01"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -394,9 +669,13 @@
       ],
       "test_file": "tests/acceptance/backend/add_task_test.go",
       "scenario_name": "TestAddTask_TitleRequired",
-      "quality_gates": ["TestAddTask_TitleRequired passes"],
+      "quality_gates": [
+        "TestAddTask_TitleRequired passes"
+      ],
       "implementation_notes": "Handler validates title before calling use case. Returns form with error message. DSL steps: TaskCreationFails, NoNewTaskInRepo.",
-      "dependencies": ["05-01"],
+      "dependencies": [
+        "05-01"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -415,9 +694,13 @@
       ],
       "test_file": "tests/acceptance/backend/add_task_test.go",
       "scenario_name": "TestAddTask_FileFollowsFormat",
-      "quality_gates": ["TestAddTask_FileFollowsFormat passes"],
+      "quality_gates": [
+        "TestAddTask_FileFollowsFormat passes"
+      ],
       "implementation_notes": "DSL steps: TaskFileIsValidFormat, TaskHasSequentialID. Verify file structure matches ADR-002 format.",
-      "dependencies": ["05-01"],
+      "dependencies": [
+        "05-01"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [
@@ -436,9 +719,14 @@
       ],
       "test_file": "tests/acceptance/backend/add_task_test.go",
       "scenario_name": "TestAddTask_CommittedAndPushed",
-      "quality_gates": ["TestAddTask_CommittedAndPushed passes"],
+      "quality_gates": [
+        "TestAddTask_CommittedAndPushed passes"
+      ],
       "implementation_notes": "Implement AddTaskAndPush use case orchestrating AddTask + RemoteGitPort.Add/Commit/Push. DSL steps: ARepoWithRemote, RemoteRepoContainsTask. RepoDriver verifies bare remote contains the commit.",
-      "dependencies": ["05-01", "02-05"],
+      "dependencies": [
+        "05-01",
+        "02-05"
+      ],
       "estimated_hours": 2,
       "deliverables": [
         "internal/usecases/add_task_and_push.go"
@@ -461,9 +749,14 @@
       ],
       "test_file": "tests/acceptance/backend/add_task_test.go",
       "scenario_name": "TestAddTask_UnauthenticatedRejected",
-      "quality_gates": ["TestAddTask_UnauthenticatedRejected passes"],
+      "quality_gates": [
+        "TestAddTask_UnauthenticatedRejected passes"
+      ],
       "implementation_notes": "Auth middleware rejects POST /task without valid cookie. DSL steps: IAttemptToAddTaskDirectly, TaskCreationIsRejected, NoNewTaskInRepo.",
-      "dependencies": ["05-01", "04-01"],
+      "dependencies": [
+        "05-01",
+        "04-01"
+      ],
       "estimated_hours": 1,
       "deliverables": [],
       "files_to_modify": [

@@ -43,10 +43,12 @@ func main() {
 		}
 	}
 
-	// Derive a 32-byte session key. If the provided key is shorter, pad with
-	// zeros; if longer, truncate. For production use a securely generated key.
-	sessionKey := make([]byte, 32)
-	copy(sessionKey, []byte(cookieKeyStr))
+	// Session key must be exactly 32 bytes for AES-256-GCM.
+	// Use KANBAN_SESSION_KEY or --cookie-key with a securely generated 32-byte value.
+	sessionKey := []byte(cookieKeyStr)
+	if len(sessionKey) != 32 {
+		log.Fatalf("session key must be exactly 32 bytes (got %d); set KANBAN_SESSION_KEY to a 32-byte value", len(sessionKey))
+	}
 
 	taskRepo := filesystem.NewTaskRepository()
 	configRepo := filesystem.NewConfigRepository()

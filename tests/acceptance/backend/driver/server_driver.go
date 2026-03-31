@@ -32,7 +32,7 @@ func NewServerDriver(t *testing.T) *ServerDriver {
 	return &ServerDriver{
 		t:            t,
 		syncInterval: 30 * time.Second,
-		cookieKey:    "test-cookie-key-must-be-32b!", // 32 bytes for AES-256
+		cookieKey:    "test-cookie-key-32bytes-padded!!", // exactly 32 bytes for AES-256
 	}
 }
 

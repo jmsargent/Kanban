@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -93,6 +94,7 @@ func RequireAuth(key []byte, next http.Handler) http.Handler {
 		}
 
 		if _, err := decryptSession(key, cookie.Value); err != nil {
+			log.Printf("auth: rejected tampered or invalid session cookie from %s: %v", r.RemoteAddr, err)
 			http.Redirect(w, r, "/auth/token", http.StatusFound)
 			return
 		}
