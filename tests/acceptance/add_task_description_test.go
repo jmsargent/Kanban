@@ -18,9 +18,10 @@ package acceptance
 // has NO t.Skip — it is the first RED test that drives implementation.
 
 import (
+    . "github.com/jmsargent/kanban/tests/acceptance/dsl"
+
 	"testing"
 
-	dsl "github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 // ---------------------------------------------------------------------------
@@ -40,22 +41,22 @@ import (
 func TestAddTaskDescription_WalkingSkeleton_DescriptionFieldInTemplate(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, capturePath, err := dsl.EditorScriptThatCapturesTemplate(ctx)
+	editorScript, capturePath, err := EditorScriptThatCapturesTemplate(ctx)
 	if err != nil {
 		t.Fatalf("setup capture script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
 	// Editor captures the template then leaves title blank — binary exits 2.
 	// We assert only on template structure, not exit code.
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField("path: "+capturePath))
-	dsl.And(ctx, dsl.TemplateHasBlankTitleField(capturePath))
-	dsl.And(ctx, dsl.TemplateHasBlankPriorityField(capturePath))
-	dsl.And(ctx, dsl.TemplateHasBlankAssigneeField(capturePath))
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, TemplateHasBlankDescriptionField("path: "+capturePath))
+	And(ctx, TemplateHasBlankTitleField(capturePath))
+	And(ctx, TemplateHasBlankPriorityField(capturePath))
+	And(ctx, TemplateHasBlankAssigneeField(capturePath))
 }
 
 // ---------------------------------------------------------------------------
@@ -70,18 +71,18 @@ func TestAddTaskDescription_WalkingSkeleton_DescriptionFieldInTemplate(t *testin
 func TestAddTaskDescription_EmptyDescriptionNoError(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, err := dsl.EditorScriptThatSetsTitle(ctx, "Add pagination to results")
+	editorScript, err := EditorScriptThatSetsTitle(ctx, "Add pagination to results")
 	if err != nil {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
-	dsl.And(ctx, dsl.SuccessMessageMatchesNewWithTitle("Add pagination to results"))
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 0"))
+	And(ctx, SuccessMessageMatchesNewWithTitle("Add pagination to results"))
 }
 
 // TestAddTaskDescription_TemplateFieldAppearsInEditorSession validates that
@@ -93,19 +94,19 @@ func TestAddTaskDescription_EmptyDescriptionNoError(t *testing.T) {
 func TestAddTaskDescription_TemplateFieldAppearsInEditorSession(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, capturePath, err := dsl.EditorScriptThatCapturesTemplate(ctx)
+	editorScript, capturePath, err := EditorScriptThatCapturesTemplate(ctx)
 	if err != nil {
 		t.Fatalf("setup capture script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
 	// The template must contain description before the editor touches it.
-	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField("path: "+capturePath))
-	dsl.And(ctx, dsl.TemplateHasNoDueField(capturePath))
+	Then(ctx, TemplateHasBlankDescriptionField("path: "+capturePath))
+	And(ctx, TemplateHasNoDueField(capturePath))
 }
 
 // ---------------------------------------------------------------------------
@@ -120,9 +121,9 @@ func TestAddTaskDescription_TemplateFieldAppearsInEditorSession(t *testing.T) {
 func TestAddTaskDescription_EditorDescription_SavedToTaskBody(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, err := dsl.EditorScriptThatSetsTitleAndDescription(
+	editorScript, err := EditorScriptThatSetsTitleAndDescription(
 		ctx,
 		"Fix JWT refresh auth bug",
 		"JWT expiry not checked on refresh path",
@@ -131,12 +132,12 @@ func TestAddTaskDescription_EditorDescription_SavedToTaskBody(t *testing.T) {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
-	dsl.And(ctx, dsl.SuccessMessageMatchesNewWithTitle("Fix JWT refresh auth bug"))
-	dsl.And(ctx, dsl.TaskBodyContains("text: JWT expiry not checked on refresh path"))
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 0"))
+	And(ctx, SuccessMessageMatchesNewWithTitle("Fix JWT refresh auth bug"))
+	And(ctx, TaskBodyContains("text: JWT expiry not checked on refresh path"))
 }
 
 // TestAddTaskDescription_EmptyEditorDescription_NoBodyContent validates that
@@ -147,18 +148,18 @@ func TestAddTaskDescription_EditorDescription_SavedToTaskBody(t *testing.T) {
 func TestAddTaskDescription_EmptyEditorDescription_NoBodyContent(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, err := dsl.EditorScriptThatSetsTitle(ctx, "Add pagination")
+	editorScript, err := EditorScriptThatSetsTitle(ctx, "Add pagination")
 	if err != nil {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
-	dsl.And(ctx, dsl.TaskBodyIsEmpty())
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 0"))
+	And(ctx, TaskBodyIsEmpty())
 }
 
 // TestAddTaskDescription_EmptyTitle_DescriptionNotPersisted validates that
@@ -169,20 +170,20 @@ func TestAddTaskDescription_EmptyEditorDescription_NoBodyContent(t *testing.T) {
 func TestAddTaskDescription_EmptyTitle_DescriptionNotPersisted(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
 	// Editor sets description but leaves title blank.
-	editorScript, err := dsl.EditorScriptThatSetsTitleAndDescription(ctx, `""`, "Some context")
+	editorScript, err := EditorScriptThatSetsTitleAndDescription(ctx, `""`, "Some context")
 	if err != nil {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 2"))
-	dsl.And(ctx, dsl.StderrContains("text: title cannot be empty"))
-	dsl.And(ctx, dsl.NoTaskFileCreated())
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 2"))
+	And(ctx, StderrContains("text: title cannot be empty"))
+	And(ctx, NoTaskFileCreated())
 }
 
 // ---------------------------------------------------------------------------
@@ -196,18 +197,18 @@ func TestAddTaskDescription_EmptyTitle_DescriptionNotPersisted(t *testing.T) {
 func TestAddTaskDescription_FlagSavesDescriptionToTaskBody(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewWithDescription(
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewWithDescription(
 		"title: Deploy hotfix to prod",
 		"description: CVE-2025-1234 patch, must ship before 17:00 UTC",
 	))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
-	dsl.And(ctx, dsl.StdoutContains("text: Created TASK-"))
-	dsl.And(ctx, dsl.StdoutContains("text: Deploy hotfix to prod"))
-	dsl.And(ctx, dsl.TaskBodyContains("text: CVE-2025-1234 patch, must ship before 17:00 UTC"))
+	Then(ctx, ExitCodeIs("code: 0"))
+	And(ctx, StdoutContains("text: Created TASK-"))
+	And(ctx, StdoutContains("text: Deploy hotfix to prod"))
+	And(ctx, TaskBodyContains("text: CVE-2025-1234 patch, must ship before 17:00 UTC"))
 }
 
 // TestAddTaskDescription_FlagEmpty_TaskCreatedWithNoBody validates that an
@@ -218,13 +219,13 @@ func TestAddTaskDescription_FlagSavesDescriptionToTaskBody(t *testing.T) {
 func TestAddTaskDescription_FlagEmpty_TaskCreatedWithNoBody(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewWithDescription("Add pagination", ""))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
-	dsl.And(ctx, dsl.TaskBodyIsEmpty())
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewWithDescription("Add pagination", ""))
+	Then(ctx, ExitCodeIs("code: 0"))
+	And(ctx, TaskBodyIsEmpty())
 }
 
 // TestAddTaskDescription_FlagWithEmptyTitle_ExitsWithCode2 validates that the
@@ -235,13 +236,13 @@ func TestAddTaskDescription_FlagEmpty_TaskCreatedWithNoBody(t *testing.T) {
 func TestAddTaskDescription_FlagWithEmptyTitle_ExitsWithCode2(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewWithDescription("", "Some context"))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 2"))
-	dsl.And(ctx, dsl.StderrContains("text: title cannot be empty"))
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewWithDescription("", "Some context"))
+	Then(ctx, ExitCodeIs("code: 2"))
+	And(ctx, StderrContains("text: title cannot be empty"))
 }
 
 // TestAddTaskDescription_FlagAppearsInHelpOutput validates that the new flag
@@ -251,10 +252,10 @@ func TestAddTaskDescription_FlagWithEmptyTitle_ExitsWithCode2(t *testing.T) {
 func TestAddTaskDescription_FlagAppearsInHelpOutput(t *testing.T) {
 	t.Skip("TODO: implement")
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanban("subcommand: new --help"))
-	dsl.Then(ctx, dsl.StdoutContains("text: --description"))
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanban("subcommand: new --help"))
+	Then(ctx, StdoutContains("text: --description"))
 }

@@ -10,9 +10,10 @@ package acceptance
 // No internal packages are imported.
 
 import (
+    . "github.com/jmsargent/kanban/tests/acceptance/dsl"
+
 	"testing"
 
-	dsl "github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 // TestKanbanLog_ShowsHeader_WhenTaskHasHistory validates AC-01-1:
@@ -22,17 +23,17 @@ import (
 // Walking skeleton: this is the first scenario that must pass for the
 // kanban log command to deliver observable user value.
 func TestKanbanLog_ShowsHeader_WhenTaskHasHistory(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.TaskCreatedViaAdd("Fix OAuth login bug"))
-	dsl.Given(ctx, dsl.TaskStarted(ctx.LastTaskID()))
+	ctx := NewContext(t)
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	Given(ctx, TaskCreatedViaAdd("Fix OAuth login bug"))
+	Given(ctx, TaskStarted(ctx.LastTaskID()))
 
-	dsl.When(ctx, dsl.DeveloperRunsKanbanLog(ctx.LastTaskID()))
+	When(ctx, DeveloperRunsKanbanLog(ctx.LastTaskID()))
 
-	dsl.Then(ctx, dsl.ExitsSuccessfully())
-	dsl.And(ctx, dsl.OutputContains("text: "+ctx.LastTaskID()))
-	dsl.And(ctx, dsl.OutputContains("text: Fix OAuth login bug"))
+	Then(ctx, ExitsSuccessfully())
+	And(ctx, OutputContains("text: "+ctx.LastTaskID()))
+	And(ctx, OutputContains("text: Fix OAuth login bug"))
 }
 
 // TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits validates AC-01-4:
@@ -41,15 +42,15 @@ func TestKanbanLog_ShowsHeader_WhenTaskHasHistory(t *testing.T) {
 //
 // Walking skeleton: one of the five passing scenarios.
 func TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.TaskCreatedViaAdd("Write release notes"))
+	ctx := NewContext(t)
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	Given(ctx, TaskCreatedViaAdd("Write release notes"))
 
-	dsl.When(ctx, dsl.DeveloperRunsKanbanLog(ctx.LastTaskID()))
+	When(ctx, DeveloperRunsKanbanLog(ctx.LastTaskID()))
 
-	dsl.Then(ctx, dsl.ExitsSuccessfully())
-	dsl.And(ctx, dsl.OutputContains("text: No transitions recorded yet."))
+	Then(ctx, ExitsSuccessfully())
+	And(ctx, OutputContains("text: No transitions recorded yet."))
 }
 
 // TestKanbanLog_ExitsOne_WhenTaskNotFound validates AC-01-5:
@@ -58,14 +59,14 @@ func TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits(t *testing.T) {
 //
 // Walking skeleton: one of the five passing scenarios.
 func TestKanbanLog_ExitsOne_WhenTaskNotFound(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
+	ctx := NewContext(t)
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
 
-	dsl.When(ctx, dsl.DeveloperRunsKanbanLog("TASK-999"))
+	When(ctx, DeveloperRunsKanbanLog("TASK-999"))
 
-	dsl.Then(ctx, dsl.ExitsWithCode(1))
-	dsl.And(ctx, dsl.OutputContains("text: not found"))
+	Then(ctx, ExitsWithCode(1))
+	And(ctx, OutputContains("text: not found"))
 }
 
 // TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound validates AC-01-6:
@@ -74,14 +75,14 @@ func TestKanbanLog_ExitsOne_WhenTaskNotFound(t *testing.T) {
 //
 // Walking skeleton: one of the five passing scenarios.
 func TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
+	ctx := NewContext(t)
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
 
-	dsl.When(ctx, dsl.DeveloperRunsKanbanLog("TASK-999"))
+	When(ctx, DeveloperRunsKanbanLog("TASK-999"))
 
-	dsl.Then(ctx, dsl.ExitsWithCode(1))
-	dsl.And(ctx, dsl.OutputContains("text: kanban board"))
+	Then(ctx, ExitsWithCode(1))
+	And(ctx, OutputContains("text: kanban board"))
 }
 
 // TestKanbanLog_ExitsOne_WhenNotInitialised validates AC-01-7 and AC-01-8:
@@ -90,35 +91,35 @@ func TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound(t *testing.T) {
 //
 // Walking skeleton: one of the five passing scenarios.
 func TestKanbanLog_ExitsOne_WhenNotInitialised(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.NoKanbanSetup())
+	ctx := NewContext(t)
+	Given(ctx, InAGitRepo())
+	Given(ctx, NoKanbanSetup())
 
-	dsl.When(ctx, dsl.DeveloperRunsKanbanLog("TASK-001"))
+	When(ctx, DeveloperRunsKanbanLog("TASK-001"))
 
-	dsl.Then(ctx, dsl.ExitsWithCode(1))
-	dsl.And(ctx, dsl.OutputContains("text: kanban init"))
+	Then(ctx, ExitsWithCode(1))
+	And(ctx, OutputContains("text: kanban init"))
 }
 
 // TestKanbanLog_ShowsCommitSHA_AsSupplementaryContext validates AC-01-10:
 // when a transition was triggered by a commit the SHA appears in the output
 // as supplementary context — visible but not the headline data.
 func TestKanbanLog_ShowsCommitSHA_AsSupplementaryContext(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.HookInstalled())
-	dsl.Given(ctx, dsl.TaskCreatedViaAdd("Deploy to staging"))
+	ctx := NewContext(t)
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	Given(ctx, HookInstalled())
+	Given(ctx, TaskCreatedViaAdd("Deploy to staging"))
 	taskID := ctx.LastTaskID()
-	dsl.Given(ctx, dsl.GitCommitReferencingTask(taskID))
+	Given(ctx, GitCommitReferencingTask(taskID))
 
-	dsl.When(ctx, dsl.DeveloperRunsKanbanLog(taskID))
+	When(ctx, DeveloperRunsKanbanLog(taskID))
 
-	dsl.Then(ctx, dsl.ExitsSuccessfully())
+	Then(ctx, ExitsSuccessfully())
 	// A 7-character SHA should appear somewhere in the output
 	// The exact SHA is runtime-dependent; we verify the format via regex-like check.
 	// The test only asserts the output is non-empty (SHA presence verified by human review).
-	dsl.And(ctx, dsl.OutputContains("text: commit:"))
+	And(ctx, OutputContains("text: commit:"))
 }
 
 // Note: AC-01-11 (performance: kanban log completes within 2 seconds for

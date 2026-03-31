@@ -35,9 +35,10 @@ package acceptance
 //   14. TestPipeline_GoreleaserCache_CIOnlyDocumented                 (Tier 3, skip)
 
 import (
+    . "github.com/jmsargent/kanban/tests/acceptance/dsl"
+
 	"testing"
 
-	dsl "github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 // ============================================================
@@ -50,17 +51,17 @@ import (
 //
 // This is the first test to enable. All others begin as t.Skip.
 func TestPipeline_ValidateTarget_PassesWhenAllChecksGreen(t *testing.T) {
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
-	dsl.PipelineGiven(pc, dsl.AllToolVersionsMatchPipeline())
-	dsl.PipelineWhen(pc, dsl.DeveloperRunsMakeTarget("validate"))
-	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[0/4] check-versions"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[1/4]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[2/4]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[3/4] go-arch-lint"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[4/4]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("PASS"))
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, TheProjectMakefile())
+	PipelineGiven(pc, AllToolVersionsMatchPipeline())
+	PipelineWhen(pc, DeveloperRunsMakeTarget("validate"))
+	PipelineThen(pc, PipelineExitsSuccessfully())
+	PipelineAnd(pc, PipelineOutputContains("[0/4] check-versions"))
+	PipelineAnd(pc, PipelineOutputContains("[1/4]"))
+	PipelineAnd(pc, PipelineOutputContains("[2/4]"))
+	PipelineAnd(pc, PipelineOutputContains("[3/4] go-arch-lint"))
+	PipelineAnd(pc, PipelineOutputContains("[4/4]"))
+	PipelineAnd(pc, PipelineOutputContains("PASS"))
 }
 
 // ============================================================
@@ -70,12 +71,12 @@ func TestPipeline_ValidateTarget_PassesWhenAllChecksGreen(t *testing.T) {
 // TestPipeline_Makefile_ContainsRequiredTargets asserts the Makefile declares
 // all targets the developer needs to mirror CI jobs locally.
 func TestPipeline_Makefile_ContainsRequiredTargets(t *testing.T) {
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
-	dsl.PipelineThen(pc, dsl.MakefileContainsTarget("pre-commit"))
-	dsl.PipelineAnd(pc, dsl.MakefileContainsTarget("release-snapshot"))
-	dsl.PipelineAnd(pc, dsl.MakefileContainsTarget("tag-dry"))
-	dsl.PipelineAnd(pc, dsl.MakefileContainsTarget("help"))
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, TheProjectMakefile())
+	PipelineThen(pc, MakefileContainsTarget("pre-commit"))
+	PipelineAnd(pc, MakefileContainsTarget("release-snapshot"))
+	PipelineAnd(pc, MakefileContainsTarget("tag-dry"))
+	PipelineAnd(pc, MakefileContainsTarget("help"))
 }
 
 // TestPipeline_ValidateTarget_HelpTargetListsAllTargets asserts `make help`
@@ -83,13 +84,13 @@ func TestPipeline_Makefile_ContainsRequiredTargets(t *testing.T) {
 func TestPipeline_ValidateTarget_HelpTargetListsAllTargets(t *testing.T) {
 	t.Skip("enable after TestPipeline_Makefile_ContainsRequiredTargets passes")
 
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
-	dsl.PipelineWhen(pc, dsl.DeveloperRunsMakeTarget("help"))
-	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("validate"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("acceptance"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("release-snapshot"))
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, TheProjectMakefile())
+	PipelineWhen(pc, DeveloperRunsMakeTarget("help"))
+	PipelineThen(pc, PipelineExitsSuccessfully())
+	PipelineAnd(pc, PipelineOutputContains("validate"))
+	PipelineAnd(pc, PipelineOutputContains("acceptance"))
+	PipelineAnd(pc, PipelineOutputContains("release-snapshot"))
 }
 
 // ============================================================
@@ -101,17 +102,17 @@ func TestPipeline_ValidateTarget_HelpTargetListsAllTargets(t *testing.T) {
 func TestPipeline_ValidateTarget_ReportsEachStepLabel(t *testing.T) {
 	t.Skip("enable after walking skeleton passes")
 
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
-	dsl.PipelineGiven(pc, dsl.AllToolVersionsMatchPipeline())
-	dsl.PipelineWhen(pc, dsl.DeveloperRunsMakeTarget("validate"))
-	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, TheProjectMakefile())
+	PipelineGiven(pc, AllToolVersionsMatchPipeline())
+	PipelineWhen(pc, DeveloperRunsMakeTarget("validate"))
+	PipelineThen(pc, PipelineExitsSuccessfully())
 	// Step labels must appear — their presence proves commands ran in declared order
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[0/4] check-versions"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[1/4]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[2/4]"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[3/4] go-arch-lint"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("[4/4]"))
+	PipelineAnd(pc, PipelineOutputContains("[0/4] check-versions"))
+	PipelineAnd(pc, PipelineOutputContains("[1/4]"))
+	PipelineAnd(pc, PipelineOutputContains("[2/4]"))
+	PipelineAnd(pc, PipelineOutputContains("[3/4] go-arch-lint"))
+	PipelineAnd(pc, PipelineOutputContains("[4/4]"))
 }
 
 // TestPipeline_ValidateTarget_FailsWhenBinaryCannotBeBuilt asserts that when
@@ -123,8 +124,8 @@ func TestPipeline_ValidateTarget_FailsWhenBinaryCannotBeBuilt(t *testing.T) {
 	// This scenario requires injecting a deliberate build error. Implemented by
 	// the software crafter when the make validate step-label mechanism is in place.
 	// The observable behaviour under test: exit non-zero + "FAIL" in output.
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, TheProjectMakefile())
 	// Precondition: a deliberately broken build is outside test scope here.
 	// The software crafter implements this test body using a temp source file mutation.
 	_ = pc
@@ -140,12 +141,12 @@ func TestPipeline_ValidateTarget_FailsWhenBinaryCannotBeBuilt(t *testing.T) {
 func TestPipeline_Acceptance_FailsWhenBinaryNotBuilt(t *testing.T) {
 	t.Skip("enable after TestPipeline_ValidateTarget_PassesWhenAllChecksGreen passes")
 
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
-	dsl.PipelineGiven(pc, dsl.TheKanbanBinaryIsAbsent())
-	dsl.PipelineWhen(pc, dsl.DeveloperRunsMakeTarget("acceptance"))
-	dsl.PipelineThen(pc, dsl.PipelineExitsWithFailure())
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("make validate"))
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, TheProjectMakefile())
+	PipelineGiven(pc, TheKanbanBinaryIsAbsent())
+	PipelineWhen(pc, DeveloperRunsMakeTarget("acceptance"))
+	PipelineThen(pc, PipelineExitsWithFailure())
+	PipelineAnd(pc, PipelineOutputContains("make validate"))
 }
 
 // TestPipeline_Acceptance_PassesWithBuiltBinary asserts that `make acceptance`
@@ -153,11 +154,11 @@ func TestPipeline_Acceptance_FailsWhenBinaryNotBuilt(t *testing.T) {
 func TestPipeline_Acceptance_PassesWithBuiltBinary(t *testing.T) {
 	t.Skip("enable after TestPipeline_Acceptance_FailsWhenBinaryNotBuilt passes")
 
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
-	dsl.PipelineGiven(pc, dsl.TheKanbanBinaryIsBuilt())
-	dsl.PipelineWhen(pc, dsl.DeveloperRunsMakeTarget("acceptance"))
-	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, TheProjectMakefile())
+	PipelineGiven(pc, TheKanbanBinaryIsBuilt())
+	PipelineWhen(pc, DeveloperRunsMakeTarget("acceptance"))
+	PipelineThen(pc, PipelineExitsSuccessfully())
 }
 
 // ============================================================
@@ -172,7 +173,7 @@ func TestPipeline_CI_StopsOnValidateFailure(t *testing.T) {
 
 	// Observable outcome: acceptance step output does not appear when validate fails.
 	// The software crafter implements via source mutation fixture.
-	_ = dsl.NewPipelineContext(t)
+	_ = NewPipelineContext(t)
 	t.Skip("requires source mutation fixture — implement in delivery")
 }
 
@@ -190,7 +191,7 @@ func TestPipeline_PreCommit_BlocksOnToolVersionMismatch(t *testing.T) {
 	// Observable outcome: exit 1 + tool name + expected version in output.
 	// The software crafter implements via a temporary config.yml mutation that
 	// sets an impossible expected version for one tool.
-	_ = dsl.NewPipelineContext(t)
+	_ = NewPipelineContext(t)
 	t.Skip("requires cicd/config.yml mutation fixture — implement in delivery")
 }
 
@@ -202,7 +203,7 @@ func TestPipeline_PreCommit_BlocksOnArchitectureViolation(t *testing.T) {
 
 	// Observable outcome: exit 1 + FAIL [3/5] go-arch-lint in output.
 	// The software crafter implements via a temp source file with a forbidden import.
-	_ = dsl.NewPipelineContext(t)
+	_ = NewPipelineContext(t)
 	t.Skip("requires source mutation fixture — implement in delivery")
 }
 
@@ -211,14 +212,14 @@ func TestPipeline_PreCommit_BlocksOnArchitectureViolation(t *testing.T) {
 func TestPipeline_PreCommit_PassesWhenGatesParity(t *testing.T) {
 	t.Skip("enable after TestPipeline_PreCommit_BlocksOnArchitectureViolation passes")
 
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.ThePreCommitHookScript())
-	dsl.PipelineGiven(pc, dsl.AllToolVersionsMatchPipeline())
-	dsl.PipelineWhen(pc, dsl.DeveloperRunsPreCommitHook())
-	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("PASS [0/5] check-versions"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("PASS [3/5] go-arch-lint"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("all quality gates passed"))
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, ThePreCommitHookScript())
+	PipelineGiven(pc, AllToolVersionsMatchPipeline())
+	PipelineWhen(pc, DeveloperRunsPreCommitHook())
+	PipelineThen(pc, PipelineExitsSuccessfully())
+	PipelineAnd(pc, PipelineOutputContains("PASS [0/5] check-versions"))
+	PipelineAnd(pc, PipelineOutputContains("PASS [3/5] go-arch-lint"))
+	PipelineAnd(pc, PipelineOutputContains("all quality gates passed"))
 }
 
 // ============================================================
@@ -231,15 +232,15 @@ func TestPipeline_PreCommit_PassesWhenGatesParity(t *testing.T) {
 func TestPipeline_CheckVersions_ReportsAllToolsMatch(t *testing.T) {
 	t.Skip("enable after TestPipeline_PreCommit_CheckVersionsRunsBeforeGoTest passes")
 
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.TheCheckVersionsScript())
-	dsl.PipelineWhen(pc, dsl.DeveloperRunsCheckVersions())
-	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("OK  go"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("OK  golangci-lint"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("OK  go-arch-lint"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("All"))
-	dsl.PipelineAnd(pc, dsl.PipelineOutputContains("match"))
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, TheCheckVersionsScript())
+	PipelineWhen(pc, DeveloperRunsCheckVersions())
+	PipelineThen(pc, PipelineExitsSuccessfully())
+	PipelineAnd(pc, PipelineOutputContains("OK  go"))
+	PipelineAnd(pc, PipelineOutputContains("OK  golangci-lint"))
+	PipelineAnd(pc, PipelineOutputContains("OK  go-arch-lint"))
+	PipelineAnd(pc, PipelineOutputContains("All"))
+	PipelineAnd(pc, PipelineOutputContains("match"))
 }
 
 // TestPipeline_CheckVersions_OutputIdentifiesExpectedVersions asserts that when
@@ -250,7 +251,7 @@ func TestPipeline_CheckVersions_OutputIdentifiesExpectedVersions(t *testing.T) {
 
 	// Observable outcome: "FAIL golangci-lint: local=v2.10.0  pipeline=v2.11.3"
 	// The software crafter implements via a temporary config.yml parameter mutation.
-	_ = dsl.NewPipelineContext(t)
+	_ = NewPipelineContext(t)
 	t.Skip("requires cicd/config.yml mutation fixture — implement in delivery")
 }
 
@@ -264,16 +265,16 @@ func TestPipeline_CheckVersions_OutputIdentifiesExpectedVersions(t *testing.T) {
 func TestPipeline_ReleaseSnapshot_BuildsArtifactsWithoutPublishing(t *testing.T) {
 	t.Skip("enable after TestPipeline_ValidateTarget_PassesWhenAllChecksGreen passes — Tier 2: requires goreleaser installed locally")
 
-	pc := dsl.NewPipelineContext(t)
-	dsl.PipelineGiven(pc, dsl.TheProjectMakefile())
-	dsl.PipelineGiven(pc, dsl.MakefileContainsTarget("release-snapshot"))
-	dsl.PipelineWhen(pc, dsl.DeveloperRunsMakeTarget("release-snapshot"))
-	dsl.PipelineThen(pc, dsl.PipelineExitsSuccessfully())
-	dsl.PipelineAnd(pc, dsl.PipelineOutputDoesNotContain("GITHUB_TOKEN"))
+	pc := NewPipelineContext(t)
+	PipelineGiven(pc, TheProjectMakefile())
+	PipelineGiven(pc, MakefileContainsTarget("release-snapshot"))
+	PipelineWhen(pc, DeveloperRunsMakeTarget("release-snapshot"))
+	PipelineThen(pc, PipelineExitsSuccessfully())
+	PipelineAnd(pc, PipelineOutputDoesNotContain("GITHUB_TOKEN"))
 	// Goreleaser snapshot produces binaries in dist/ — presence of dist/ signals success
-	dsl.PipelineAnd(pc, dsl.PipelineStep{
+	PipelineAnd(pc, PipelineStep{
 		Description: "dist/ directory contains build artifacts",
-		Run: func(ppc *dsl.PipelineContext) error {
+		Run: func(ppc *PipelineContext) error {
 			return nil // software crafter implements dist/ content assertion
 		},
 	})
@@ -287,7 +288,7 @@ func TestPipeline_ReleaseSnapshot_FailsOnInvalidGoreleaserConfig(t *testing.T) {
 
 	// Observable outcome: exit non-zero + config validation error in output.
 	// The software crafter implements via a temp goreleaser.yml mutation.
-	_ = dsl.NewPipelineContext(t)
+	_ = NewPipelineContext(t)
 	t.Skip("requires cicd/goreleaser.yml mutation fixture — implement in delivery")
 }
 
@@ -299,7 +300,7 @@ func TestPipeline_ReleaseSnapshot_FailsGracefullyWhenGoreleaserNotInstalled(t *t
 
 	// Observable outcome: exit non-zero + "goreleaser" + install instructions in output.
 	// The software crafter implements via PATH override excluding goreleaser.
-	_ = dsl.NewPipelineContext(t)
+	_ = NewPipelineContext(t)
 	t.Skip("requires PATH mutation fixture — implement in delivery")
 }
 

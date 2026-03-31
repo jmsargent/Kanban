@@ -1,9 +1,10 @@
 package acceptance
 
 import (
+    . "github.com/jmsargent/kanban/tests/acceptance/dsl"
+
 	"testing"
 
-	dsl "github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
 
 // TestNewEditorMode_WalkingSkeleton_TaskCreated is the walking skeleton for the
@@ -18,21 +19,21 @@ import (
 // This is the first RED test. It is NOT skipped — it drives the first
 // implementation step in the DELIVER wave.
 func TestNewEditorMode_WalkingSkeleton_TaskCreated(t *testing.T) {
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, err := dsl.EditorScriptThatSetsTitle(ctx, "Implement user authentication")
+	editorScript, err := EditorScriptThatSetsTitle(ctx, "Implement user authentication")
 	if err != nil {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
-	dsl.Then(ctx, dsl.SuccessMessageMatchesNewWithTitle("Implement user authentication"))
-	dsl.Then(ctx, dsl.HintMessagePresent())
-	dsl.And(ctx, dsl.TaskCreatedWithTitle("Implement user authentication"))
-	dsl.And(ctx, dsl.NoTempFileFromNewEditor())
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 0"))
+	Then(ctx, SuccessMessageMatchesNewWithTitle("Implement user authentication"))
+	Then(ctx, HintMessagePresent())
+	And(ctx, TaskCreatedWithTitle("Implement user authentication"))
+	And(ctx, NoTempFileFromNewEditor())
 }
 
 // TestNewEditorMode_BlankTemplate_StructureCorrect validates that the blank
@@ -42,24 +43,24 @@ func TestNewEditorMode_WalkingSkeleton_TaskCreated(t *testing.T) {
 // This test covers AC-02.
 func TestNewEditorMode_BlankTemplate_StructureCorrect(t *testing.T) {
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, capturePath, err := dsl.EditorScriptThatCapturesTemplate(ctx)
+	editorScript, capturePath, err := EditorScriptThatCapturesTemplate(ctx)
 	if err != nil {
 		t.Fatalf("setup capture script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
 	// Editor captures template then leaves title blank → binary exits 2.
 	// We do not assert the exit code here — the template structure is what matters.
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.TemplateHasBlankTitleField(capturePath))
-	dsl.Then(ctx, dsl.TemplateHasBlankPriorityField(capturePath))
-	dsl.Then(ctx, dsl.TemplateHasBlankAssigneeField(capturePath))
-	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField("path: " + capturePath))
-	dsl.Then(ctx, dsl.TemplateHasTitleRequiredComment(capturePath))
-	dsl.And(ctx, dsl.TemplateHasNoDueField(capturePath))
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, TemplateHasBlankTitleField(capturePath))
+	Then(ctx, TemplateHasBlankPriorityField(capturePath))
+	Then(ctx, TemplateHasBlankAssigneeField(capturePath))
+	Then(ctx, TemplateHasBlankDescriptionField("path: " + capturePath))
+	Then(ctx, TemplateHasTitleRequiredComment(capturePath))
+	And(ctx, TemplateHasNoDueField(capturePath))
 }
 
 // TestNewEditorMode_OptionalFields_Persisted validates that when the developer
@@ -69,9 +70,9 @@ func TestNewEditorMode_BlankTemplate_StructureCorrect(t *testing.T) {
 // This test covers AC-04.
 func TestNewEditorMode_OptionalFields_Persisted(t *testing.T) {
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, err := dsl.EditorScriptThatSetsFields(ctx,
+	editorScript, err := EditorScriptThatSetsFields(ctx,
 		"Add rate limiting to payment endpoint",
 		"high",
 		"dana@example.com",
@@ -80,11 +81,11 @@ func TestNewEditorMode_OptionalFields_Persisted(t *testing.T) {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
-	dsl.Then(ctx, dsl.TaskCreatedWithFields(
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 0"))
+	Then(ctx, TaskCreatedWithFields(
 		"Add rate limiting to payment endpoint",
 		"high",
 		"dana@example.com",
@@ -97,20 +98,20 @@ func TestNewEditorMode_OptionalFields_Persisted(t *testing.T) {
 //
 // This test covers AC-05.
 func TestNewEditorMode_EmptyTitle_RejectedWithExitCode2(t *testing.T) {
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, err := dsl.EditorScriptThatLeavesBlankTitle(ctx)
+	editorScript, err := EditorScriptThatLeavesBlankTitle(ctx)
 	if err != nil {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 2"))
-	dsl.Then(ctx, dsl.StderrContains("text: title cannot be empty"))
-	dsl.And(ctx, dsl.NoTaskFileCreated())
-	dsl.And(ctx, dsl.NoTempFileFromNewEditor())
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 2"))
+	Then(ctx, StderrContains("text: title cannot be empty"))
+	And(ctx, NoTaskFileCreated())
+	And(ctx, NoTempFileFromNewEditor())
 }
 
 // TestNewEditorMode_TitleArgument_NoEditorOpened validates that invoking
@@ -121,14 +122,14 @@ func TestNewEditorMode_EmptyTitle_RejectedWithExitCode2(t *testing.T) {
 // This test covers AC-06.
 func TestNewEditorMode_TitleArgument_NoEditorOpened(t *testing.T) {
 
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNew("title: Fix pagination bug in task list"))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
-	dsl.Then(ctx, dsl.SuccessMessageMatchesNewWithTitle("Fix pagination bug in task list"))
-	dsl.And(ctx, dsl.TaskCreatedWithTitle("Fix pagination bug in task list"))
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNew("title: Fix pagination bug in task list"))
+	Then(ctx, ExitCodeIs("code: 0"))
+	Then(ctx, SuccessMessageMatchesNewWithTitle("Fix pagination bug in task list"))
+	And(ctx, TaskCreatedWithTitle("Fix pagination bug in task list"))
 }
 
 // TestNewEditorMode_EditorUnavailable_ExitsWithRuntimeError validates that when
@@ -137,13 +138,13 @@ func TestNewEditorMode_TitleArgument_NoEditorOpened(t *testing.T) {
 //
 // This test covers AC-07.
 func TestNewEditorMode_EditorUnavailable_ExitsWithRuntimeError(t *testing.T) {
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractiveNoEditor())
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 1"))
-	dsl.Then(ctx, dsl.StderrContains("text: open editor"))
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractiveNoEditor())
+	Then(ctx, ExitCodeIs("code: 1"))
+	Then(ctx, StderrContains("text: open editor"))
 }
 
 // TestNewEditorMode_KanbanNotInitialised_PreflightBlocksEditor validates that
@@ -152,21 +153,21 @@ func TestNewEditorMode_EditorUnavailable_ExitsWithRuntimeError(t *testing.T) {
 //
 // This test covers AC-08.
 func TestNewEditorMode_KanbanNotInitialised_PreflightBlocksEditor(t *testing.T) {
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
 	// A script that fails loudly if called — its presence on disk is enough;
 	// it should never be invoked because the pre-flight check runs first.
-	editorScript, err := dsl.EditorScriptThatSetsTitle(ctx, "should never be created")
+	editorScript, err := EditorScriptThatSetsTitle(ctx, "should never be created")
 	if err != nil {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.NoKanbanSetup())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 1"))
-	dsl.Then(ctx, dsl.StderrContains("text: kanban not initialised"))
-	dsl.And(ctx, dsl.NoTaskFileCreated())
+	Given(ctx, InAGitRepo())
+	Given(ctx, NoKanbanSetup())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 1"))
+	Then(ctx, StderrContains("text: kanban not initialised"))
+	And(ctx, NoTaskFileCreated())
 }
 
 // TestNewEditorMode_TempFileCleanedUpOnSuccess validates that after a
@@ -176,18 +177,18 @@ func TestNewEditorMode_KanbanNotInitialised_PreflightBlocksEditor(t *testing.T) 
 //
 // This test covers AC-09 (success path).
 func TestNewEditorMode_TempFileCleanedUpOnSuccess(t *testing.T) {
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, err := dsl.EditorScriptThatSetsTitle(ctx, "Refactor config loading")
+	editorScript, err := EditorScriptThatSetsTitle(ctx, "Refactor config loading")
 	if err != nil {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
-	dsl.And(ctx, dsl.NoTempFileFromNewEditor())
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 0"))
+	And(ctx, NoTempFileFromNewEditor())
 }
 
 // TestNewEditorMode_TempFileCleanedUpOnEmptyTitle validates that when the
@@ -196,16 +197,16 @@ func TestNewEditorMode_TempFileCleanedUpOnSuccess(t *testing.T) {
 //
 // This test covers AC-09 (error path).
 func TestNewEditorMode_TempFileCleanedUpOnEmptyTitle(t *testing.T) {
-	ctx := dsl.NewContext(t)
+	ctx := NewContext(t)
 
-	editorScript, err := dsl.EditorScriptThatLeavesBlankTitle(ctx)
+	editorScript, err := EditorScriptThatLeavesBlankTitle(ctx)
 	if err != nil {
 		t.Fatalf("setup editor script: %v", err)
 	}
 
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs("code: 2"))
-	dsl.And(ctx, dsl.NoTempFileFromNewEditor())
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	When(ctx, IRunKanbanNewInteractive(editorScript))
+	Then(ctx, ExitCodeIs("code: 2"))
+	And(ctx, NoTempFileFromNewEditor())
 }
