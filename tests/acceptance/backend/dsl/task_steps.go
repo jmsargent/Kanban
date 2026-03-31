@@ -23,6 +23,7 @@ var taskExistsInRepoDSL = simpledsl.NewDslParams(
 	simpledsl.NewOptionalArg("assignee"),
 	simpledsl.NewOptionalArg("created_by"),
 	simpledsl.NewOptionalArg("description"),
+	simpledsl.NewOptionalArg("status"),
 )
 
 // IAddTask submits the add-task form (POST /task) with the provided fields.
@@ -105,6 +106,19 @@ func TaskExistsInRepo(params ...string) Step {
 					if !strings.Contains(text, needle) {
 						return fmt.Errorf("TaskExistsInRepo: field %q: expected %q in task file %s:\n%s",
 							field, expected, entry.Name(), text)
+					}
+				}
+				// Status is tracked in transitions.log; new task files omit the
+				// status field (defaulting to "todo"). Accept the assertion when:
+				//   - expected status is "todo" and no "status:" key is present, OR
+				//   - the literal "status: <expected>" line is present.
+				if expectedStatus := vals.Value("status"); expectedStatus != "" {
+					hasStatusField := strings.Contains(text, "\nstatus: ")
+					literalMatch := strings.Contains(text, "status: "+expectedStatus)
+					defaultTodo := expectedStatus == "todo" && !hasStatusField
+					if !literalMatch && !defaultTodo {
+						return fmt.Errorf("TaskExistsInRepo: field %q: expected %q in task file %s:\n%s",
+							"status", expectedStatus, entry.Name(), text)
 					}
 				}
 				return nil

@@ -6,6 +6,23 @@ import (
 
 import . "github.com/jmsargent/kanban/tests/acceptance/backend/dsl"
 
+// TestAddTask_TitleOnly verifies that a task created with only a title gets sensible
+// defaults: status todo and created_by set from the authenticated user's display_name.
+func TestAddTask_TitleOnly(t *testing.T) {
+	ctx := NewWebContext(t)
+	Given(ctx, ARepoWithNoTasks())
+	Given(ctx, WithGitHubStub("token: valid-token-123", "login: alice", "display_name: Alice"))
+	Given(ctx, AnAuthenticatedUser("token: valid-token-123", "display_name: Alice"))
+	When(ctx, IAddTask("title: Fix login bug"))
+	When(ctx, IVisitTheBoard())
+	Then(ctx, ColumnContainsCards("column: Todo", "title: Fix login bug"))
+	Then(ctx, TaskExistsInRepo(
+		"title: Fix login bug",
+		"status: todo",
+		"created_by: Alice",
+	))
+}
+
 // TestAddTask_AllFields verifies that an authenticated user can add a task with
 // all fields (title, description, priority, assignee) via the web form.
 // The task appears in the Todo column on the board and its file exists in the repo
