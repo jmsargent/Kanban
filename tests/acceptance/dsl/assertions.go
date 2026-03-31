@@ -6,14 +6,29 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/jmsargent/kanban/pkg/simpledsl"
 )
 
-// ExitCodeIs asserts ctx.lastExit == code.
-func ExitCodeIs(code int) Step {
+var exitCodeIsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("code"),
+)
+
+// ExitCodeIs asserts ctx.lastExit equals the given code. Required param: "code: <N>".
+func ExitCodeIs(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("exit code is %d", code),
+		Description: fmt.Sprintf("exit code is (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := exitCodeIsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("ExitCodeIs: %w", err)
+			}
+			code, err := strconv.Atoi(vals.Value("code"))
+			if err != nil {
+				return fmt.Errorf("ExitCodeIs: invalid code %q: %w", vals.Value("code"), err)
+			}
 			if ctx.lastExit != code {
 				return fmt.Errorf("expected exit code %d, got %d\nOutput:\n%s", code, ctx.lastExit, ctx.lastOutput)
 			}
@@ -22,11 +37,21 @@ func ExitCodeIs(code int) Step {
 	}
 }
 
+var stdoutContainsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("text"),
+)
+
 // StdoutContains asserts ctx.lastStdout contains text.
-func StdoutContains(text string) Step {
+// Required param: "text: <text>".
+func StdoutContains(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("stdout contains %q", text),
+		Description: fmt.Sprintf("stdout contains (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := stdoutContainsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("StdoutContains: %w", err)
+			}
+			text := vals.Value("text")
 			if !strings.Contains(ctx.lastStdout, text) {
 				return fmt.Errorf("expected stdout to contain %q\nStdout:\n%s", text, ctx.lastStdout)
 			}
@@ -35,11 +60,21 @@ func StdoutContains(text string) Step {
 	}
 }
 
+var stderrContainsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("text"),
+)
+
 // StderrContains asserts ctx.lastStderr contains text.
-func StderrContains(text string) Step {
+// Required param: "text: <text>".
+func StderrContains(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("stderr contains %q", text),
+		Description: fmt.Sprintf("stderr contains (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := stderrContainsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("StderrContains: %w", err)
+			}
+			text := vals.Value("text")
 			if !strings.Contains(ctx.lastStderr, text) {
 				return fmt.Errorf("expected stderr to contain %q\nStderr:\n%s", text, ctx.lastStderr)
 			}
@@ -48,11 +83,21 @@ func StderrContains(text string) Step {
 	}
 }
 
-// OutputContains asserts ctx.lastOutput (stdout+stderr) contains text.
-func OutputContains(text string) Step {
+var outputContainsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("text"),
+)
+
+// OutputContains asserts ctx.lastOutput (stdout+stderr) contains the given text.
+// Required param: "text: <text>".
+func OutputContains(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("output contains %q", text),
+		Description: fmt.Sprintf("output contains (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := outputContainsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("OutputContains: %w", err)
+			}
+			text := vals.Value("text")
 			if !strings.Contains(ctx.lastOutput, text) {
 				return fmt.Errorf("expected output to contain %q\nOutput:\n%s", text, ctx.lastOutput)
 			}
@@ -62,7 +107,7 @@ func OutputContains(text string) Step {
 }
 
 // OutputIsValidJSON asserts ctx.lastOutput is parseable as JSON.
-func OutputIsValidJSON() Step {
+func OutputIsValidJSON(params ...string) Step {
 	return Step{
 		Description: "output is valid JSON",
 		Run: func(ctx *Context) error {
@@ -75,12 +120,21 @@ func OutputIsValidJSON() Step {
 	}
 }
 
+var jsonHasFieldsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("fields"),
+)
+
 // JSONHasFields asserts the JSON array in ctx.lastOutput contains an object
-// with all named fields present. fields is a comma-separated list.
-func JSONHasFields(fields string) Step {
+// with all named fields present. Required param: "fields: <comma-separated list>".
+func JSONHasFields(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("JSON has fields %s", fields),
+		Description: fmt.Sprintf("JSON has fields (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := jsonHasFieldsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("JSONHasFields: %w", err)
+			}
+			fields := vals.Value("fields")
 			var tasks []map[string]interface{}
 			if err := json.Unmarshal([]byte(strings.TrimSpace(ctx.lastOutput)), &tasks); err != nil {
 				return fmt.Errorf("output is not a JSON array: %w", err)
@@ -105,7 +159,13 @@ func taskFilePath(ctx *Context, taskID string) string {
 	return filepath.Join(ctx.repoDir, ".kanban", "tasks", taskID+".md")
 }
 
-// TaskHasStatus asserts the effective status of taskID equals expected.
+var taskHasStatusDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+	simpledsl.NewRequiredArg("status"),
+)
+
+// TaskHasStatus asserts the effective status of a task equals expected.
+// Required params: "task: <TASK-NNN>", "status: <status>".
 //
 // Status resolution order (reflects the migration from YAML → transitions.log):
 //  1. If transitions.log contains entries for taskID, the last entry's To field
@@ -113,10 +173,16 @@ func taskFilePath(ctx *Context, taskID string) string {
 //  2. Otherwise fall back to the status: field in the YAML front matter (written
 //     by legacy use cases that have not yet been migrated to transitions.log).
 //  3. If neither source has a status, default to "todo".
-func TaskHasStatus(taskID, expected string) Step {
+func TaskHasStatus(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %s has status %q", taskID, expected),
+		Description: fmt.Sprintf("task has status (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := taskHasStatusDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("TaskHasStatus: %w", err)
+			}
+			taskID := vals.Value("task")
+			expected := vals.Value("status")
 			// Ensure the task file itself exists.
 			if _, err := os.Stat(taskFilePath(ctx, taskID)); os.IsNotExist(err) {
 				return fmt.Errorf("task file %s not found", taskID)
@@ -225,18 +291,29 @@ func statusFromYAML(ctx *Context, taskID string) string {
 
 // TaskStatusRemains is an alias for TaskHasStatus with a distinct description
 // for use in "status unchanged" assertions.
-func TaskStatusRemains(taskID, expected string) Step {
+// Required params: "task: <TASK-NNN>", "status: <status>".
+func TaskStatusRemains(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %s status remains %q", taskID, expected),
-		Run:         TaskHasStatus(taskID, expected).Run,
+		Description: fmt.Sprintf("task status remains (%s)", strings.Join(params, ", ")),
+		Run:         TaskHasStatus(params...).Run,
 	}
 }
 
-// TaskFilePresent asserts the file .kanban/tasks/<taskID>.md is present.
-func TaskFilePresent(taskID string) Step {
+var taskFilePresentDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+)
+
+// TaskFilePresent asserts the file .kanban/tasks/<task>.md is present.
+// Required param: "task: <TASK-NNN>".
+func TaskFilePresent(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task file %s.md is present", taskID),
+		Description: fmt.Sprintf("task file is present (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := taskFilePresentDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("TaskFilePresent: %w", err)
+			}
+			taskID := vals.Value("task")
 			if _, err := os.Stat(taskFilePath(ctx, taskID)); os.IsNotExist(err) {
 				return fmt.Errorf("expected task file %s.md to exist but it does not", taskID)
 			}
@@ -245,11 +322,21 @@ func TaskFilePresent(taskID string) Step {
 	}
 }
 
-// TaskFileRemoved asserts the file .kanban/tasks/<taskID>.md is absent.
-func TaskFileRemoved(taskID string) Step {
+var taskFileRemovedDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+)
+
+// TaskFileRemoved asserts the file .kanban/tasks/<task>.md is absent.
+// Required param: "task: <TASK-NNN>".
+func TaskFileRemoved(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task file %s.md is removed", taskID),
+		Description: fmt.Sprintf("task file is removed (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := taskFileRemovedDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("TaskFileRemoved: %w", err)
+			}
+			taskID := vals.Value("task")
 			if _, err := os.Stat(taskFilePath(ctx, taskID)); err == nil {
 				return fmt.Errorf("expected task file %s.md to be removed but it still exists", taskID)
 			}
@@ -258,12 +345,23 @@ func TaskFileRemoved(taskID string) Step {
 	}
 }
 
-// BoardShowsTaskUnder runs "kanban board" and asserts that title appears
-// after the given heading line in the output.
-func BoardShowsTaskUnder(title, heading string) Step {
+var boardShowsTaskUnderDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+	simpledsl.NewRequiredArg("column"),
+)
+
+// BoardShowsTaskUnder runs "kanban board" and asserts title appears under the
+// given column heading. Required params: "title: <title>", "column: <heading>".
+func BoardShowsTaskUnder(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("board shows %q under %s", title, heading),
+		Description: fmt.Sprintf("board shows task under (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := boardShowsTaskUnderDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("BoardShowsTaskUnder: %w", err)
+			}
+			title := vals.Value("title")
+			heading := vals.Value("column")
 			run(ctx, "board")
 			output := ctx.lastOutput
 			lines := strings.Split(output, "\n")
@@ -296,14 +394,24 @@ func BoardShowsTaskUnder(title, heading string) Step {
 	}
 }
 
-// BoardNotListsTask runs "kanban board" and asserts taskID does not appear.
-func BoardNotListsTask(taskID string) Step {
+var boardNotListsTaskDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+)
+
+// BoardNotListsTask runs "kanban board" and asserts the given title does not appear.
+// Required param: "title: <title>".
+func BoardNotListsTask(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("board does not list %s", taskID),
+		Description: fmt.Sprintf("board does not list (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := boardNotListsTaskDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("BoardNotListsTask: %w", err)
+			}
+			title := vals.Value("title")
 			run(ctx, "board")
-			if strings.Contains(ctx.lastOutput, taskID) {
-				return fmt.Errorf("expected board to not list %s but found it:\n%s", taskID, ctx.lastOutput)
+			if strings.Contains(ctx.lastOutput, title) {
+				return fmt.Errorf("expected board to not list %q but found it:\n%s", title, ctx.lastOutput)
 			}
 			return nil
 		},
@@ -311,16 +419,16 @@ func BoardNotListsTask(taskID string) Step {
 }
 
 // GitCommitExitCodeIs asserts ctx.lastExit == code after a git commit action.
-// It is a semantic alias for ExitCodeIs with a more descriptive name.
-func GitCommitExitCodeIs(code int) Step {
+// Required param: "code: <N>".
+func GitCommitExitCodeIs(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("git commit exit code is %d", code),
-		Run:         ExitCodeIs(code).Run,
+		Description: fmt.Sprintf("git commit exit code is (%s)", strings.Join(params, ", ")),
+		Run:         ExitCodeIs(params...).Run,
 	}
 }
 
 // WorkspaceReady asserts .kanban/tasks/ exists in the repo directory.
-func WorkspaceReady() Step {
+func WorkspaceReady(params ...string) Step {
 	return Step{
 		Description: "kanban workspace is ready for use",
 		Run: func(ctx *Context) error {
@@ -334,7 +442,7 @@ func WorkspaceReady() Step {
 }
 
 // ConfigFileHasDefaults asserts .kanban/config exists and contains TASK- and todo.
-func ConfigFileHasDefaults() Step {
+func ConfigFileHasDefaults(params ...string) Step {
 	return Step{
 		Description: "config file has default task pattern and column list",
 		Run: func(ctx *Context) error {
@@ -356,7 +464,7 @@ func ConfigFileHasDefaults() Step {
 }
 
 // HookLogInGitignore asserts .gitignore contains "hook.log".
-func HookLogInGitignore() Step {
+func HookLogInGitignore(params ...string) Step {
 	return Step{
 		Description: "hook log path is in .gitignore",
 		Run: func(ctx *Context) error {
@@ -374,7 +482,7 @@ func HookLogInGitignore() Step {
 }
 
 // NoTempFilesRemain asserts no *.tmp files exist in .kanban/tasks/.
-func NoTempFilesRemain() Step {
+func NoTempFilesRemain(params ...string) Step {
 	return Step{
 		Description: "no partial or temporary files remain in the tasks directory",
 		Run: func(ctx *Context) error {
@@ -394,7 +502,7 @@ func NoTempFilesRemain() Step {
 }
 
 // UpdatedTaskCommitted asserts the recent git log contains a commit referencing "kanban".
-func UpdatedTaskCommitted() Step {
+func UpdatedTaskCommitted(params ...string) Step {
 	return Step{
 		Description: "updated task file is committed back to the repository",
 		Run: func(ctx *Context) error {
@@ -412,7 +520,7 @@ func UpdatedTaskCommitted() Step {
 
 // NoAutoCommitFromDelete asserts the most recent git log entry does not reference
 // "delete" or "remove task".
-func NoAutoCommitFromDelete() Step {
+func NoAutoCommitFromDelete(params ...string) Step {
 	return Step{
 		Description: "git repository has no new commits from the delete operation",
 		Run: func(ctx *Context) error {
@@ -430,7 +538,7 @@ func NoAutoCommitFromDelete() Step {
 }
 
 // NoKanbanOutputLines asserts no line in ctx.lastOutput starts with "kanban:".
-func NoKanbanOutputLines() Step {
+func NoKanbanOutputLines(params ...string) Step {
 	return Step{
 		Description: "output contains no kanban: prefix lines",
 		Run: func(ctx *Context) error {
@@ -445,7 +553,7 @@ func NoKanbanOutputLines() Step {
 }
 
 // NoTransitionLines asserts no line in ctx.lastOutput contains both "moved" and "->".
-func NoTransitionLines() Step {
+func NoTransitionLines(params ...string) Step {
 	return Step{
 		Description: "output contains no kanban transition lines",
 		Run: func(ctx *Context) error {
@@ -463,7 +571,7 @@ func NoTransitionLines() Step {
 var ansiPattern = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
 // NoANSIEscapeCodes asserts ctx.lastOutput contains no ANSI escape sequences.
-func NoANSIEscapeCodes() Step {
+func NoANSIEscapeCodes(params ...string) Step {
 	return Step{
 		Description: "output contains no ANSI colour escape sequences",
 		Run: func(ctx *Context) error {
@@ -479,7 +587,7 @@ func NoANSIEscapeCodes() Step {
 var spinnerChars = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 // NoSpinnerChars asserts ctx.lastOutput contains no Unicode spinner characters.
-func NoSpinnerChars() Step {
+func NoSpinnerChars(params ...string) Step {
 	return Step{
 		Description: "output contains no spinner characters",
 		Run: func(ctx *Context) error {

@@ -17,7 +17,7 @@ func TestAssertionExitCodeIs_Pass(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanBoard())
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 }
 
 // TestAssertionExitCodeIs_Fail verifies ExitCodeIs(1) returns an error when lastExit is 0.
@@ -26,7 +26,7 @@ func TestAssertionExitCodeIs_Fail(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanBoard()) // exits 0
-	step := dsl.ExitCodeIs(1)
+	step := dsl.ExitCodeIs("code: 1")
 	if err := step.Run(ctx); err == nil {
 		t.Fatal("ExitCodeIs(1) should return an error when lastExit is 0")
 	}
@@ -39,9 +39,9 @@ func TestAssertionOutputContains_Pass(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatus("Search target task", "todo"))
+	dsl.Given(ctx, dsl.ATaskWithStatus("title: Search target task", "status: todo"))
 	dsl.When(ctx, dsl.IRunKanbanBoard())
-	dsl.Then(ctx, dsl.OutputContains("Search target task"))
+	dsl.Then(ctx, dsl.OutputContains("text: Search target task"))
 }
 
 // TestAssertionOutputContains_Fail verifies OutputContains returns error when text is absent.
@@ -50,7 +50,7 @@ func TestAssertionOutputContains_Fail(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanBoard())
-	step := dsl.OutputContains("NOTPRESENT_XYZ_12345")
+	step := dsl.OutputContains("text: NOTPRESENT_XYZ_12345")
 	if err := step.Run(ctx); err == nil {
 		t.Fatal("OutputContains should return an error when text is absent from output")
 	}
@@ -64,7 +64,7 @@ func TestAssertionStderrContains_Fail(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanBoard())
-	step := dsl.StderrContains("NOTPRESENT_STDERR_XYZ")
+	step := dsl.StderrContains("text: NOTPRESENT_STDERR_XYZ")
 	if err := step.Run(ctx); err == nil {
 		t.Fatal("StderrContains should return an error when text is absent from stderr")
 	}
@@ -77,8 +77,8 @@ func TestAssertionTaskHasStatus_Pass(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Status check task", "in-progress", "TASK-050"))
-	dsl.Then(ctx, dsl.TaskHasStatus("TASK-050", "in-progress"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Status check task", "status: in-progress", "id: TASK-050"))
+	dsl.Then(ctx, dsl.TaskHasStatus("task: TASK-050", "status: in-progress"))
 }
 
 // TestAssertionTaskHasStatus_Fail verifies TaskHasStatus returns error on status mismatch.
@@ -86,8 +86,8 @@ func TestAssertionTaskHasStatus_Fail(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Mismatch status task", "todo", "TASK-051"))
-	step := dsl.TaskHasStatus("TASK-051", "done")
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Mismatch status task", "status: todo", "id: TASK-051"))
+	step := dsl.TaskHasStatus("task: TASK-051", "status: done")
 	if err := step.Run(ctx); err == nil {
 		t.Fatal("TaskHasStatus should return an error when status does not match")
 	}
@@ -100,8 +100,8 @@ func TestAssertionTaskFilePresent(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Present task", "todo", "TASK-060"))
-	dsl.Then(ctx, dsl.TaskFilePresent("TASK-060"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Present task", "status: todo", "id: TASK-060"))
+	dsl.Then(ctx, dsl.TaskFilePresent("task: TASK-060"))
 }
 
 // TestAssertionTaskFileRemoved verifies TaskFileRemoved returns error when file exists.
@@ -109,8 +109,8 @@ func TestAssertionTaskFileRemoved(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Still present task", "todo", "TASK-061"))
-	step := dsl.TaskFileRemoved("TASK-061")
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Still present task", "status: todo", "id: TASK-061"))
+	step := dsl.TaskFileRemoved("task: TASK-061")
 	if err := step.Run(ctx); err == nil {
 		t.Fatal("TaskFileRemoved should return an error when the file still exists")
 	}
@@ -156,7 +156,7 @@ func TestAssertionNoTempFilesRemain(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatus("Atomicity task", "todo"))
+	dsl.Given(ctx, dsl.ATaskWithStatus("title: Atomicity task", "status: todo"))
 	dsl.Then(ctx, dsl.NoTempFilesRemain())
 }
 

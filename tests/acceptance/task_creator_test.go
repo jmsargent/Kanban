@@ -15,10 +15,10 @@ func TestTaskCreator_CreatorRecordedOnKanbanNew(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo()) // configures git user.name = "Test User"
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNew("Fix login bug"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.And(ctx, dsl.StdoutContains("Created TASK-"))
-	dsl.And(ctx, dsl.TaskHasCreator(ctx.LastTaskID(), "Test User"))
+	dsl.When(ctx, dsl.IRunKanbanNew("title: Fix login bug"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
+	dsl.And(ctx, dsl.StdoutContains("text: Created TASK-"))
+	dsl.And(ctx, dsl.TaskHasCreator("task: "+ctx.LastTaskID(), "creator: Test User"))
 }
 
 // AC-01-2
@@ -28,11 +28,11 @@ func TestTaskCreator_FrontMatterContainsCreatorField(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNew("Fix login bug"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.When(ctx, dsl.IRunKanbanNew("title: Fix login bug"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	taskID := ctx.LastTaskID()
-	dsl.And(ctx, dsl.TaskHasCreator(taskID, "Test User"))
-	dsl.And(ctx, dsl.TaskHasStatus(taskID, "todo"))
+	dsl.And(ctx, dsl.TaskHasCreator("task: "+taskID, "creator: Test User"))
+	dsl.And(ctx, dsl.TaskHasStatus("task: "+taskID, "status: todo"))
 }
 
 // AC-01-3
@@ -41,10 +41,10 @@ func TestTaskCreator_AtomicWriteNoTempFiles(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNew("Fix login bug"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.When(ctx, dsl.IRunKanbanNew("title: Fix login bug"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.And(ctx, dsl.NoTempFilesRemain())
-	dsl.And(ctx, dsl.TaskHasCreator(ctx.LastTaskID(), "Test User"))
+	dsl.And(ctx, dsl.TaskHasCreator("task: "+ctx.LastTaskID(), "creator: Test User"))
 }
 
 // --- US-02: Creator visible on the board ---
@@ -56,11 +56,11 @@ func TestTaskCreator_BoardShowsCreatorName(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskExists("Fix login bug"))
+	dsl.Given(ctx, dsl.ATaskExists("title: Fix login bug"))
 	taskID := ctx.LastTaskID()
 	dsl.When(ctx, dsl.IRunKanbanBoard())
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.And(ctx, dsl.BoardRowForTaskContains(taskID, "Test User"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
+	dsl.And(ctx, dsl.BoardRowForTaskContains("task: "+taskID, "text: Test User"))
 }
 
 // AC-02-2
@@ -70,11 +70,11 @@ func TestTaskCreator_PreExistingTaskShowsDashOnBoard(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.APreExistingTaskWithoutCreator("Old task from before creator feature"))
+	dsl.Given(ctx, dsl.APreExistingTaskWithoutCreator("title: Old task from before creator feature"))
 	taskID := ctx.LastTaskID()
 	dsl.When(ctx, dsl.IRunKanbanBoard())
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.And(ctx, dsl.BoardRowForTaskContains(taskID, "--"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
+	dsl.And(ctx, dsl.BoardRowForTaskContains("task: "+taskID, "text: --"))
 }
 
 // AC-02-3
@@ -84,11 +84,11 @@ func TestTaskCreator_JSONOutputHasCreatedByField(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskExists("Fix login bug"))
+	dsl.Given(ctx, dsl.ATaskExists("title: Fix login bug"))
 	dsl.When(ctx, dsl.IRunKanbanBoardJSON())
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.And(ctx, dsl.OutputIsValidJSON())
-	dsl.And(ctx, dsl.JSONHasFields("created_by"))
+	dsl.And(ctx, dsl.JSONHasFields("fields: created_by"))
 }
 
 // --- US-03: Error guidance when git identity is not configured ---
@@ -102,10 +102,10 @@ func TestTaskCreator_MissingIdentityFailsWithGuidance(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepoWithoutGitIdentity())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.Given(ctx, dsl.GitIdentityUnconfigured())
-	dsl.When(ctx, dsl.IRunKanbanNew("Fix login bug"))
-	dsl.Then(ctx, dsl.ExitCodeIs(1))
-	dsl.And(ctx, dsl.StderrContains("git identity not configured"))
-	dsl.And(ctx, dsl.StderrContains("git config --global user.name"))
+	dsl.When(ctx, dsl.IRunKanbanNew("title: Fix login bug"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 1"))
+	dsl.And(ctx, dsl.StderrContains("text: git identity not configured"))
+	dsl.And(ctx, dsl.StderrContains("text: git config --global user.name"))
 }
 
 // AC-03-2
@@ -115,8 +115,8 @@ func TestTaskCreator_MissingIdentityWritesNoFile(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepoWithoutGitIdentity())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.Given(ctx, dsl.GitIdentityUnconfigured())
-	dsl.When(ctx, dsl.IRunKanbanNew("Fix login bug"))
-	dsl.Then(ctx, dsl.ExitCodeIs(1))
+	dsl.When(ctx, dsl.IRunKanbanNew("title: Fix login bug"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 1"))
 	dsl.And(ctx, dsl.TasksDirIsEmpty())
 }
 
@@ -133,9 +133,9 @@ func TestTaskCreator_EditDoesNotChangeCreator(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskExists("Fix login bug"))
+	dsl.Given(ctx, dsl.ATaskExists("title: Fix login bug"))
 	taskID := ctx.LastTaskID()
-	dsl.When(ctx, dsl.IRunKanbanEditTitle(taskID, "Fix login bug (updated)"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.And(ctx, dsl.TaskHasCreator(taskID, "Test User"))
+	dsl.When(ctx, dsl.IRunKanbanEditTitle("task: "+taskID, "title: Fix login bug (updated)"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
+	dsl.And(ctx, dsl.TaskHasCreator("task: "+taskID, "creator: Test User"))
 }

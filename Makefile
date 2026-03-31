@@ -155,13 +155,18 @@ ci-release: install-goreleaser
 
 ## ci-arch-check: run architecture lint (CI step)
 ci-arch-check:
-	@go-arch-lint check --arch-file cicd/go-arch-lint.yml
+	@go-arch-lint check --arch-file code-style/go-arch-lint.yml
+
+## ci-dsl-check: enforce backend acceptance test DSL shape and import rules (CI step)
+ci-dsl-check:
+	@go run ./tests/style
 
 ## ci-static-analysis: run vet, lint, and vulnerability scan (CI step)
 ci-static-analysis:
 	@go vet ./...
 	@golangci-lint run
 	@govulncheck ./...
+	# @make ci-dsl-check
 
 ## ci-unit-tests: run unit tests via gotestsum (CI step)
 ci-unit-tests:

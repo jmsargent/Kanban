@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/jmsargent/kanban/pkg/simpledsl"
 )
 
 // gitCmd runs a git command in ctx.repoDir using ctx.env and returns combined output.
@@ -30,7 +32,7 @@ func gitCmd(ctx *Context, args ...string) (string, error) {
 
 // InAGitRepo creates a temp directory, initialises a git repo with a baseline
 // commit, and registers cleanup via t.Cleanup.
-func InAGitRepo() Step {
+func InAGitRepo(params ...string) Step {
 	return Step{
 		Description: "a git repository in a temp dir",
 		Run: func(ctx *Context) error {
@@ -64,7 +66,7 @@ func InAGitRepo() Step {
 
 // KanbanInitialised runs "kanban init" in ctx.repoDir and returns an error if
 // the command exits non-zero.
-func KanbanInitialised() Step {
+func KanbanInitialised(params ...string) Step {
 	return Step{
 		Description: "kanban already initialised",
 		Run: func(ctx *Context) error {
@@ -78,7 +80,7 @@ func KanbanInitialised() Step {
 }
 
 // NoKanbanSetup asserts that .kanban/ does not exist in ctx.repoDir.
-func NoKanbanSetup() Step {
+func NoKanbanSetup(params ...string) Step {
 	return Step{
 		Description: "repository has no kanban setup",
 		Run: func(ctx *Context) error {
@@ -102,13 +104,24 @@ func NotAGitRepo() Step {
 	}
 }
 
+var aTaskWithStatusDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+	simpledsl.NewOptionalArg("status").SetDefault("todo"),
+)
+
 // ATaskWithStatus creates a task via "kanban new" and, if status is not "todo",
-// injects the status directly into the task YAML front matter. Status is the
-// authoritative source of truth (transitions.log has been removed).
-func ATaskWithStatus(title, status string) Step {
+// injects the status directly into the task YAML front matter.
+// Required param: "title: <title>". Optional param: "status: <status>" (default "todo").
+func ATaskWithStatus(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %q with status %q", title, status),
+		Description: fmt.Sprintf("task with status (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := aTaskWithStatusDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("ATaskWithStatus: %w", err)
+			}
+			title := vals.Value("title")
+			status := vals.Value("status")
 			run(ctx, "new", title)
 			if ctx.lastExit != 0 {
 				return fmt.Errorf("kanban new failed: %s", ctx.lastOutput)
@@ -190,13 +203,26 @@ func replaceStatusLine(content, newStatus string) string {
 	return strings.Join(lines, "\n")
 }
 
-// ATaskWithStatusAs creates a task with ATaskWithStatus logic, then renames the
-// file and updates the id field if the generated ID differs from taskID.
-func ATaskWithStatusAs(title, status, taskID string) Step {
+var aTaskWithStatusAsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+	simpledsl.NewRequiredArg("status"),
+	simpledsl.NewRequiredArg("id"),
+)
+
+// ATaskWithStatusAs creates a task then renames it to the given id.
+// Required params: "title: <title>", "status: <status>", "id: <TASK-NNN>".
+func ATaskWithStatusAs(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %q with status %q as %q", title, status, taskID),
+		Description: fmt.Sprintf("task with status as (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
-			if err := ATaskWithStatus(title, status).Run(ctx); err != nil {
+			vals, err := aTaskWithStatusAsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("ATaskWithStatusAs: %w", err)
+			}
+			title := vals.Value("title")
+			status := vals.Value("status")
+			taskID := vals.Value("id")
+			if err := ATaskWithStatus("title: "+title, "status: "+status).Run(ctx); err != nil {
 				return err
 			}
 			if taskID != "" && ctx.lastTaskID != "" && ctx.lastTaskID != taskID {
@@ -221,11 +247,21 @@ func ATaskWithStatusAs(title, status, taskID string) Step {
 	}
 }
 
-// ATaskExists creates a task with "todo" status (shorthand for ATaskWithStatus(title, "todo")).
-func ATaskExists(title string) Step {
+var aTaskExistsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+)
+
+// ATaskExists creates a task with "todo" status. Required param: "title: <title>".
+func ATaskExists(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %q exists", title),
-		Run:         ATaskWithStatus(title, "todo").Run,
+		Description: fmt.Sprintf("task exists (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *Context) error {
+			vals, err := aTaskExistsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("ATaskExists: %w", err)
+			}
+			return ATaskWithStatus("title: "+vals.Value("title"), "status: todo").Run(ctx)
+		},
 	}
 }
 

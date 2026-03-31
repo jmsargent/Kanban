@@ -47,7 +47,7 @@ func TestSetupATaskWithStatus(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatus("Fix login bug", "in-progress"))
+	dsl.Given(ctx, dsl.ATaskWithStatus("title: Fix login bug", "status: in-progress"))
 	// If ATaskWithStatus succeeded without fatal, the task file was created.
 	// The observable outcome is that lastTaskID is set.
 	if ctx.LastTaskID() == "" {
@@ -68,7 +68,7 @@ func TestSetupNoTasksExist(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatus("Some Task", "todo"))
+	dsl.Given(ctx, dsl.ATaskWithStatus("title: Some Task", "status: todo"))
 	dsl.Given(ctx, dsl.NoTasksExist())
 	// ATaskWithStatus set lastTaskID; after NoTasksExist, task file should be gone.
 	// TaskFileExistsAs would fail — we just verify NoTasksExist doesn't error here.

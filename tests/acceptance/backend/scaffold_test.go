@@ -4,14 +4,15 @@ import (
 	"testing"
 
 	"github.com/jmsargent/kanban/tests/acceptance/backend/driver"
-	"github.com/jmsargent/kanban/tests/acceptance/backend/dsl"
 )
+
+import . "github.com/jmsargent/kanban/tests/acceptance/backend/dsl"
 
 // TestScaffoldCompiles verifies all driver and DSL types can be constructed.
 // This is a compilation smoke test for step 01-01 infrastructure scaffolding.
 func TestScaffoldCompiles(t *testing.T) {
 	// Verify WebContext construction
-	ctx := dsl.NewWebContext(t)
+	ctx := NewWebContext(t)
 	if ctx == nil {
 		t.Fatal("expected non-nil WebContext")
 	}
@@ -48,13 +49,13 @@ func TestScaffoldCompiles(t *testing.T) {
 	}
 
 	// Verify DSL step types exist
-	step := dsl.Step{}
+	step := Step{}
 	_ = step.Description
 	_ = step.Run
 
 	// Verify Given/When/Then/And compile with WebContext
-	_ = dsl.Given
-	_ = dsl.When
-	_ = dsl.Then
-	_ = dsl.And
+	_ = Given
+	_ = When
+	_ = Then
+	_ = And
 }

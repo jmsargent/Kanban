@@ -12,21 +12,21 @@ import (
 
 func TestBoardLoadsWithin_EnforcesThreshold(t *testing.T) {
 	cases := []struct {
-		name          string
-		lastDuration  time.Duration
-		threshold     time.Duration
-		expectError   bool
+		name         string
+		lastDuration time.Duration
+		timeout      string
+		expectError  bool
 	}{
 		{
 			name:         "passes when duration is under threshold",
 			lastDuration: 100 * time.Millisecond,
-			threshold:    500 * time.Millisecond,
+			timeout:      "timeout: 500ms",
 			expectError:  false,
 		},
 		{
 			name:         "fails when duration exceeds threshold",
 			lastDuration: 600 * time.Millisecond,
-			threshold:    500 * time.Millisecond,
+			timeout:      "timeout: 500ms",
 			expectError:  true,
 		},
 	}
@@ -36,14 +36,14 @@ func TestBoardLoadsWithin_EnforcesThreshold(t *testing.T) {
 			ctx := dsl.NewWebContext(t)
 			ctx.LastDuration = tc.lastDuration
 
-			step := dsl.BoardLoadsWithin(tc.threshold)
+			step := dsl.BoardLoadsWithin(tc.timeout)
 			err := step.Run(ctx)
 
 			if tc.expectError && err == nil {
-				t.Errorf("expected error for duration %v > threshold %v, got nil", tc.lastDuration, tc.threshold)
+				t.Errorf("expected error for duration %v > %s, got nil", tc.lastDuration, tc.timeout)
 			}
 			if !tc.expectError && err != nil {
-				t.Errorf("expected no error for duration %v <= threshold %v, got: %v", tc.lastDuration, tc.threshold, err)
+				t.Errorf("expected no error for duration %v <= %s, got: %v", tc.lastDuration, tc.timeout, err)
 			}
 		})
 	}

@@ -9,44 +9,80 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/jmsargent/kanban/pkg/simpledsl"
+)
+
+var iRunKanbanDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("subcommand"),
 )
 
 // IRunKanban runs "kanban <subcommand>" splitting the subcommand on whitespace.
-func IRunKanban(subcommand string) Step {
+// Required param: "subcommand: <cmd>".
+func IRunKanban(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I run kanban %s", subcommand),
+		Description: fmt.Sprintf("I run kanban (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
-			args := strings.Fields(subcommand)
+			vals, err := iRunKanbanDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IRunKanban: %w", err)
+			}
+			args := strings.Fields(vals.Value("subcommand"))
 			run(ctx, args...)
 			return nil
 		},
 	}
 }
 
+var iRunKanbanNewDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+)
+
 // IRunKanbanNew runs "kanban new <title>".
-func IRunKanbanNew(title string) Step {
+// Required param: "title: <title>".
+func IRunKanbanNew(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I run kanban new %q", title),
+		Description: fmt.Sprintf("I run kanban new (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
-			run(ctx, "new", title)
+			vals, err := iRunKanbanNewDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IRunKanbanNew: %w", err)
+			}
+			run(ctx, "new", vals.Value("title"))
 			return nil
 		},
 	}
 }
 
+var iRunKanbanNewWithOptionsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+	simpledsl.NewRequiredArg("priority"),
+	simpledsl.NewRequiredArg("due"),
+	simpledsl.NewRequiredArg("assignee"),
+)
+
 // IRunKanbanNewWithOptions runs "kanban new <title> --priority P --due D --assignee A".
-func IRunKanbanNewWithOptions(title, priority, due, assignee string) Step {
+// Required params: "title: <title>", "priority: <P>", "due: <D>", "assignee: <A>".
+func IRunKanbanNewWithOptions(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I run kanban new %q with priority=%s due=%s assignee=%s", title, priority, due, assignee),
+		Description: fmt.Sprintf("I run kanban new with options (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
-			run(ctx, "new", title, "--priority", priority, "--due", due, "--assignee", assignee)
+			vals, err := iRunKanbanNewWithOptionsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IRunKanbanNewWithOptions: %w", err)
+			}
+			run(ctx, "new", vals.Value("title"),
+				"--priority", vals.Value("priority"),
+				"--due", vals.Value("due"),
+				"--assignee", vals.Value("assignee"),
+			)
 			return nil
 		},
 	}
 }
 
 // IRunKanbanBoard runs "kanban board".
-func IRunKanbanBoard() Step {
+func IRunKanbanBoard(params ...string) Step {
 	return Step{
 		Description: "I run kanban board",
 		Run: func(ctx *Context) error {
@@ -57,7 +93,7 @@ func IRunKanbanBoard() Step {
 }
 
 // IRunKanbanBoardJSON runs "kanban board --json".
-func IRunKanbanBoardJSON() Step {
+func IRunKanbanBoardJSON(params ...string) Step {
 	return Step{
 		Description: "I run kanban board --json",
 		Run: func(ctx *Context) error {
@@ -67,19 +103,28 @@ func IRunKanbanBoardJSON() Step {
 	}
 }
 
-// IRunKanbanStart runs "kanban start <taskID>".
-func IRunKanbanStart(taskID string) Step {
+var iRunKanbanStartDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+)
+
+// IRunKanbanStart runs "kanban start <task>".
+// Required param: "task: <TASK-NNN>".
+func IRunKanbanStart(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I run kanban start %s", taskID),
+		Description: fmt.Sprintf("I run kanban start (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
-			run(ctx, "start", taskID)
+			vals, err := iRunKanbanStartDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IRunKanbanStart: %w", err)
+			}
+			run(ctx, "start", vals.Value("task"))
 			return nil
 		},
 	}
 }
 
 // IRunKanbanStartOnThatTask runs "kanban start <ctx.lastTaskID>" resolved at run time.
-func IRunKanbanStartOnThatTask() Step {
+func IRunKanbanStartOnThatTask(params ...string) Step {
 	return Step{
 		Description: "I run kanban start on that task",
 		Run: func(ctx *Context) error {
@@ -92,12 +137,25 @@ func IRunKanbanStartOnThatTask() Step {
 	}
 }
 
-// IRunKanbanEditAddDescription runs "kanban edit <taskID>" with a mock EDITOR script
+var iRunKanbanEditAddDescriptionDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+	simpledsl.NewRequiredArg("description"),
+)
+
+// IRunKanbanEditAddDescription runs "kanban edit <task>" with a mock EDITOR script
 // that appends the given description text after the YAML front matter.
-func IRunKanbanEditAddDescription(taskID, description string) Step {
+// Required params: "task: <TASK-NNN>", "description: <text>".
+func IRunKanbanEditAddDescription(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I run kanban edit %s and add description", taskID),
+		Description: fmt.Sprintf("I run kanban edit and add description (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := iRunKanbanEditAddDescriptionDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IRunKanbanEditAddDescription: %w", err)
+			}
+			taskID := vals.Value("task")
+			description := vals.Value("description")
+
 			scriptDir, err := os.MkdirTemp("", "kanban-editor-desc-*")
 			if err != nil {
 				return fmt.Errorf("create editor script dir: %w", err)
@@ -119,12 +177,23 @@ func IRunKanbanEditAddDescription(taskID, description string) Step {
 	}
 }
 
-// IRunKanbanEditTitle runs "kanban edit <taskID>" with a mock EDITOR script
-// that replaces the title field in the front matter with newTitle.
-func IRunKanbanEditTitle(taskID, newTitle string) Step {
+var iRunKanbanEditTitleDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+	simpledsl.NewRequiredArg("title"),
+)
+
+// IRunKanbanEditTitle runs "kanban edit <task>" with a mock EDITOR that sets the title.
+// Required params: "task: <TASK-NNN>", "title: <new title>".
+func IRunKanbanEditTitle(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I run kanban edit %s and set title to %q", taskID, newTitle),
+		Description: fmt.Sprintf("I run kanban edit title (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := iRunKanbanEditTitleDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IRunKanbanEditTitle: %w", err)
+			}
+			taskID := vals.Value("task")
+			newTitle := vals.Value("title")
 			scriptDir, err := os.MkdirTemp("", "kanban-editor-title-*")
 			if err != nil {
 				return fmt.Errorf("create editor script dir: %w", err)
@@ -164,11 +233,23 @@ func runWithEditor(ctx *Context, scriptPath, taskID string) error {
 	return nil
 }
 
-// IRunKanbanDelete runs "kanban delete <taskID>" piping confirmInput+"\n" to stdin.
-func IRunKanbanDelete(taskID, confirmInput string) Step {
+var iRunKanbanDeleteDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+	simpledsl.NewRequiredArg("confirm"),
+)
+
+// IRunKanbanDelete runs "kanban delete <task>" piping the confirm input to stdin.
+// Required params: "task: <TASK-NNN>", "confirm: <y/n>".
+func IRunKanbanDelete(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I run kanban delete %s confirming with %q", taskID, confirmInput),
+		Description: fmt.Sprintf("I run kanban delete (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := iRunKanbanDeleteDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IRunKanbanDelete: %w", err)
+			}
+			taskID := vals.Value("task")
+			confirmInput := vals.Value("confirm")
 			cmdCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
@@ -187,23 +268,42 @@ func IRunKanbanDelete(taskID, confirmInput string) Step {
 	}
 }
 
-// IRunKanbanDeleteForce runs "kanban delete <taskID> --force".
-func IRunKanbanDeleteForce(taskID string) Step {
+var iRunKanbanDeleteForceDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+)
+
+// IRunKanbanDeleteForce runs "kanban delete <task> --force".
+// Required param: "task: <TASK-NNN>".
+func IRunKanbanDeleteForce(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I run kanban delete %s --force", taskID),
+		Description: fmt.Sprintf("I run kanban delete force (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
-			run(ctx, "delete", taskID, "--force")
+			vals, err := iRunKanbanDeleteForceDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IRunKanbanDeleteForce: %w", err)
+			}
+			run(ctx, "delete", vals.Value("task"), "--force")
 			return nil
 		},
 	}
 }
 
+var iCommitWithMessageDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("message"),
+)
+
 // ICommitWithMessage runs "git commit --allow-empty -m <message>" in ctx.repoDir.
-// The exit code and output are captured into ctx fields.
-func ICommitWithMessage(message string) Step {
+// Required param: "message: <text>".
+func ICommitWithMessage(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I commit with message %q", message),
+		Description: fmt.Sprintf("I commit with message (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := iCommitWithMessageDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("ICommitWithMessage: %w", err)
+			}
+			message := vals.Value("message")
+
 			cmdCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
@@ -223,20 +323,20 @@ func ICommitWithMessage(message string) Step {
 
 // ICommitWithTaskID runs "git commit --allow-empty -m <ctx.lastTaskID>: start working on this".
 // The task ID is resolved at run time from ctx.lastTaskID.
-func ICommitWithTaskID() Step {
+func ICommitWithTaskID(params ...string) Step {
 	return Step{
 		Description: "I commit with message containing the task ID",
 		Run: func(ctx *Context) error {
 			if ctx.lastTaskID == "" {
 				return fmt.Errorf("no task ID in context")
 			}
-			return ICommitWithMessage(ctx.lastTaskID + ": start working on this").Run(ctx)
+			return ICommitWithMessage("message: " + ctx.lastTaskID + ": start working on this").Run(ctx)
 		},
 	}
 }
 
 // CIStepRunsPass runs "kanban ci-done".
-func CIStepRunsPass() Step {
+func CIStepRunsPass(params ...string) Step {
 	return Step{
 		Description: "the CI step runs after all tests pass",
 		Run: func(ctx *Context) error {
@@ -247,7 +347,7 @@ func CIStepRunsPass() Step {
 }
 
 // CIStepRunsFail runs "kanban ci-done" with KANBAN_TEST_EXIT=1 appended to env.
-func CIStepRunsFail() Step {
+func CIStepRunsFail(params ...string) Step {
 	return Step{
 		Description: "the CI step runs after one or more tests fail",
 		Run: func(ctx *Context) error {

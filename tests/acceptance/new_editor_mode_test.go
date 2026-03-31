@@ -28,7 +28,7 @@ func TestNewEditorMode_WalkingSkeleton_TaskCreated(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.SuccessMessageMatchesNewWithTitle("Implement user authentication"))
 	dsl.Then(ctx, dsl.HintMessagePresent())
 	dsl.And(ctx, dsl.TaskCreatedWithTitle("Implement user authentication"))
@@ -57,7 +57,7 @@ func TestNewEditorMode_BlankTemplate_StructureCorrect(t *testing.T) {
 	dsl.Then(ctx, dsl.TemplateHasBlankTitleField(capturePath))
 	dsl.Then(ctx, dsl.TemplateHasBlankPriorityField(capturePath))
 	dsl.Then(ctx, dsl.TemplateHasBlankAssigneeField(capturePath))
-	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField(capturePath))
+	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField("path: " + capturePath))
 	dsl.Then(ctx, dsl.TemplateHasTitleRequiredComment(capturePath))
 	dsl.And(ctx, dsl.TemplateHasNoDueField(capturePath))
 }
@@ -83,7 +83,7 @@ func TestNewEditorMode_OptionalFields_Persisted(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.TaskCreatedWithFields(
 		"Add rate limiting to payment endpoint",
 		"high",
@@ -107,8 +107,8 @@ func TestNewEditorMode_EmptyTitle_RejectedWithExitCode2(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(2))
-	dsl.Then(ctx, dsl.StderrContains("title cannot be empty"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 2"))
+	dsl.Then(ctx, dsl.StderrContains("text: title cannot be empty"))
 	dsl.And(ctx, dsl.NoTaskFileCreated())
 	dsl.And(ctx, dsl.NoTempFileFromNewEditor())
 }
@@ -125,8 +125,8 @@ func TestNewEditorMode_TitleArgument_NoEditorOpened(t *testing.T) {
 
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanbanNew("Fix pagination bug in task list"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.When(ctx, dsl.IRunKanbanNew("title: Fix pagination bug in task list"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.SuccessMessageMatchesNewWithTitle("Fix pagination bug in task list"))
 	dsl.And(ctx, dsl.TaskCreatedWithTitle("Fix pagination bug in task list"))
 }
@@ -142,8 +142,8 @@ func TestNewEditorMode_EditorUnavailable_ExitsWithRuntimeError(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractiveNoEditor())
-	dsl.Then(ctx, dsl.ExitCodeIs(1))
-	dsl.Then(ctx, dsl.StderrContains("open editor"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 1"))
+	dsl.Then(ctx, dsl.StderrContains("text: open editor"))
 }
 
 // TestNewEditorMode_KanbanNotInitialised_PreflightBlocksEditor validates that
@@ -164,8 +164,8 @@ func TestNewEditorMode_KanbanNotInitialised_PreflightBlocksEditor(t *testing.T) 
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.NoKanbanSetup())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(1))
-	dsl.Then(ctx, dsl.StderrContains("kanban not initialised"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 1"))
+	dsl.Then(ctx, dsl.StderrContains("text: kanban not initialised"))
 	dsl.And(ctx, dsl.NoTaskFileCreated())
 }
 
@@ -186,7 +186,7 @@ func TestNewEditorMode_TempFileCleanedUpOnSuccess(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.And(ctx, dsl.NoTempFileFromNewEditor())
 }
 
@@ -206,6 +206,6 @@ func TestNewEditorMode_TempFileCleanedUpOnEmptyTitle(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(2))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 2"))
 	dsl.And(ctx, dsl.NoTempFileFromNewEditor())
 }

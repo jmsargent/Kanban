@@ -2,7 +2,6 @@ package backend
 
 import (
 	"testing"
-	"time"
 )
 
 import . "github.com/jmsargent/kanban/tests/acceptance/backend/dsl"
@@ -21,5 +20,5 @@ func TestHelloWorld_ServerResponds(t *testing.T) {
 func TestHelloWorld_ResponseTime(t *testing.T) {
 	ctx := NewWebContext(t)
 	When(ctx, IVisitTheBoard())
-	Then(ctx, BoardLoadsWithin(500*time.Millisecond))
+	Then(ctx, BoardLoadsWithin("timeout: 500ms"))
 }

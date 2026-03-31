@@ -50,7 +50,7 @@ func TestBoardMe_WarnsAboutUnassignedTasks(t *testing.T) {
 
 	dsl.Then(ctx, dsl.ExitsSuccessfully())
 	// The warning should mention unassigned tasks exist.
-	dsl.And(ctx, dsl.OutputContains("unassigned"))
+	dsl.And(ctx, dsl.OutputContains("text: unassigned"))
 }
 
 // TestBoardMe_ShowsEmptyBoardGracefully_WhenNoMatchingTasks validates AC-03-5:
@@ -69,7 +69,7 @@ func TestBoardMe_ShowsEmptyBoardGracefully_WhenNoMatchingTasks(t *testing.T) {
 
 	dsl.Then(ctx, dsl.ExitsSuccessfully())
 	// Empty board message — exact wording determined by implementation.
-	dsl.And(ctx, dsl.OutputContains("no tasks"))
+	dsl.And(ctx, dsl.OutputContains("text: no tasks"))
 }
 
 // TestBoardMe_DoesNotAffectUnfilteredBoard validates AC-03-6:

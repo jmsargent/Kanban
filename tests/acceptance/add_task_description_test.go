@@ -39,7 +39,7 @@ import (
 // Covers: AC-01-1, AC-01-2, AC-01-4
 func TestAddTaskDescription_WalkingSkeleton_DescriptionFieldInTemplate(t *testing.T) {
 	t.Skip("TODO: implement")
-	
+
 	ctx := dsl.NewContext(t)
 
 	editorScript, capturePath, err := dsl.EditorScriptThatCapturesTemplate(ctx)
@@ -52,7 +52,7 @@ func TestAddTaskDescription_WalkingSkeleton_DescriptionFieldInTemplate(t *testin
 	// Editor captures the template then leaves title blank — binary exits 2.
 	// We assert only on template structure, not exit code.
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField(capturePath))
+	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField("path: "+capturePath))
 	dsl.And(ctx, dsl.TemplateHasBlankTitleField(capturePath))
 	dsl.And(ctx, dsl.TemplateHasBlankPriorityField(capturePath))
 	dsl.And(ctx, dsl.TemplateHasBlankAssigneeField(capturePath))
@@ -80,7 +80,7 @@ func TestAddTaskDescription_EmptyDescriptionNoError(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.And(ctx, dsl.SuccessMessageMatchesNewWithTitle("Add pagination to results"))
 }
 
@@ -104,7 +104,7 @@ func TestAddTaskDescription_TemplateFieldAppearsInEditorSession(t *testing.T) {
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
 	// The template must contain description before the editor touches it.
-	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField(capturePath))
+	dsl.Then(ctx, dsl.TemplateHasBlankDescriptionField("path: "+capturePath))
 	dsl.And(ctx, dsl.TemplateHasNoDueField(capturePath))
 }
 
@@ -134,9 +134,9 @@ func TestAddTaskDescription_EditorDescription_SavedToTaskBody(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.And(ctx, dsl.SuccessMessageMatchesNewWithTitle("Fix JWT refresh auth bug"))
-	dsl.And(ctx, dsl.TaskBodyContains("JWT expiry not checked on refresh path"))
+	dsl.And(ctx, dsl.TaskBodyContains("text: JWT expiry not checked on refresh path"))
 }
 
 // TestAddTaskDescription_EmptyEditorDescription_NoBodyContent validates that
@@ -157,7 +157,7 @@ func TestAddTaskDescription_EmptyEditorDescription_NoBodyContent(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.And(ctx, dsl.TaskBodyIsEmpty())
 }
 
@@ -180,8 +180,8 @@ func TestAddTaskDescription_EmptyTitle_DescriptionNotPersisted(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewInteractive(editorScript))
-	dsl.Then(ctx, dsl.ExitCodeIs(2))
-	dsl.And(ctx, dsl.StderrContains("title cannot be empty"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 2"))
+	dsl.And(ctx, dsl.StderrContains("text: title cannot be empty"))
 	dsl.And(ctx, dsl.NoTaskFileCreated())
 }
 
@@ -201,13 +201,13 @@ func TestAddTaskDescription_FlagSavesDescriptionToTaskBody(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewWithDescription(
-		"Deploy hotfix to prod",
-		"CVE-2025-1234 patch, must ship before 17:00 UTC",
+		"title: Deploy hotfix to prod",
+		"description: CVE-2025-1234 patch, must ship before 17:00 UTC",
 	))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.And(ctx, dsl.StdoutContains("Created TASK-"))
-	dsl.And(ctx, dsl.StdoutContains("Deploy hotfix to prod"))
-	dsl.And(ctx, dsl.TaskBodyContains("CVE-2025-1234 patch, must ship before 17:00 UTC"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
+	dsl.And(ctx, dsl.StdoutContains("text: Created TASK-"))
+	dsl.And(ctx, dsl.StdoutContains("text: Deploy hotfix to prod"))
+	dsl.And(ctx, dsl.TaskBodyContains("text: CVE-2025-1234 patch, must ship before 17:00 UTC"))
 }
 
 // TestAddTaskDescription_FlagEmpty_TaskCreatedWithNoBody validates that an
@@ -223,7 +223,7 @@ func TestAddTaskDescription_FlagEmpty_TaskCreatedWithNoBody(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewWithDescription("Add pagination", ""))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.And(ctx, dsl.TaskBodyIsEmpty())
 }
 
@@ -240,8 +240,8 @@ func TestAddTaskDescription_FlagWithEmptyTitle_ExitsWithCode2(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanNewWithDescription("", "Some context"))
-	dsl.Then(ctx, dsl.ExitCodeIs(2))
-	dsl.And(ctx, dsl.StderrContains("title cannot be empty"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 2"))
+	dsl.And(ctx, dsl.StderrContains("text: title cannot be empty"))
 }
 
 // TestAddTaskDescription_FlagAppearsInHelpOutput validates that the new flag
@@ -255,6 +255,6 @@ func TestAddTaskDescription_FlagAppearsInHelpOutput(t *testing.T) {
 
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanban("new --help"))
-	dsl.Then(ctx, dsl.StdoutContains("--description"))
+	dsl.When(ctx, dsl.IRunKanban("subcommand: new --help"))
+	dsl.Then(ctx, dsl.StdoutContains("text: --description"))
 }

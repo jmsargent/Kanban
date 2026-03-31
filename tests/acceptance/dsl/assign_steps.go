@@ -5,18 +5,27 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/jmsargent/kanban/pkg/simpledsl"
 )
 
 // --- Setup Steps for Auto-Assign on Start ---
 
-// GitIdentityConfiguredAs reconfigures the git user.name for the current repo
-// to name. Must be called after InAGitRepo() so that ctx.repoDir is set.
-// Use this to override the default "Test User" identity for tests that need a
-// specific developer name.
-func GitIdentityConfiguredAs(name string) Step {
+var gitIdentityConfiguredAsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("name"),
+)
+
+// GitIdentityConfiguredAs reconfigures the git user.name for the current repo.
+// Required param: "name: <name>".
+func GitIdentityConfiguredAs(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("git identity configured as %q", name),
+		Description: fmt.Sprintf("git identity configured as (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := gitIdentityConfiguredAsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("GitIdentityConfiguredAs: %w", err)
+			}
+			name := vals.Value("name")
 			if _, err := gitCmd(ctx, "config", "user.name", name); err != nil {
 				return fmt.Errorf("git config user.name %q: %w", name, err)
 			}
@@ -27,11 +36,7 @@ func GitIdentityConfiguredAs(name string) Step {
 
 // GitIdentityUnset unsets git user.name in the local repo config and isolates
 // the global and system git config so that no fallback identity is available.
-// Call after InAGitRepo() + KanbanInitialised() + any task setup steps — the
-// task setup steps require identity to run kanban new.
-// After this step, git config user.name returns empty, triggering
-// ErrGitIdentityNotConfigured in kanban commands that require identity.
-func GitIdentityUnset() Step {
+func GitIdentityUnset(params ...string) Step {
 	return Step{
 		Description: "git identity not configured",
 		Run: func(ctx *Context) error {
@@ -62,14 +67,23 @@ func GitIdentityUnset() Step {
 	}
 }
 
-// ATaskAssigneeSetTo patches the assignee field in the task file for taskID.
-// The task file must already exist (created via ATaskWithStatusAs or similar).
-// If the file already contains an "assignee:" line it is replaced; if not,
-// the field is inserted after the "status:" line.
-func ATaskAssigneeSetTo(taskID, assignee string) Step {
+var aTaskAssigneeSetToDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+	simpledsl.NewRequiredArg("assignee"),
+)
+
+// ATaskAssigneeSetTo patches the assignee field in the task file.
+// Required params: "task: <TASK-NNN>", "assignee: <name>".
+func ATaskAssigneeSetTo(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %s assignee set to %q", taskID, assignee),
+		Description: fmt.Sprintf("task assignee set to (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := aTaskAssigneeSetToDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("ATaskAssigneeSetTo: %w", err)
+			}
+			taskID := vals.Value("task")
+			assignee := vals.Value("assignee")
 			path := filepath.Join(ctx.repoDir, ".kanban", "tasks", taskID+".md")
 			content, err := os.ReadFile(path)
 			if err != nil {
@@ -91,12 +105,23 @@ func ATaskAssigneeSetTo(taskID, assignee string) Step {
 
 // --- Assertion Steps for Auto-Assign on Start ---
 
-// TaskHasAssignee reads the task file for taskID and asserts it contains
-// `assignee: <expected>` in the YAML front matter.
-func TaskHasAssignee(taskID, expected string) Step {
+var taskHasAssigneeDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+	simpledsl.NewRequiredArg("assignee"),
+)
+
+// TaskHasAssignee asserts the task file contains the given assignee.
+// Required params: "task: <TASK-NNN>", "assignee: <name>".
+func TaskHasAssignee(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %s has assignee %q", taskID, expected),
+		Description: fmt.Sprintf("task has assignee (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := taskHasAssigneeDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("TaskHasAssignee: %w", err)
+			}
+			taskID := vals.Value("task")
+			expected := vals.Value("assignee")
 			content, err := os.ReadFile(taskFilePath(ctx, taskID))
 			if err != nil {
 				return fmt.Errorf("task file %s not found: %w", taskID, err)
@@ -111,21 +136,30 @@ func TaskHasAssignee(taskID, expected string) Step {
 	}
 }
 
-// TaskAssigneeRemains is a semantic alias for TaskHasAssignee used in assertions
-// that verify the assignee was not changed by an operation.
-func TaskAssigneeRemains(taskID, expected string) Step {
+// TaskAssigneeRemains is a semantic alias for TaskHasAssignee.
+// Required params: "task: <TASK-NNN>", "assignee: <name>".
+func TaskAssigneeRemains(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %s assignee remains %q", taskID, expected),
-		Run:         TaskHasAssignee(taskID, expected).Run,
+		Description: fmt.Sprintf("task assignee remains (%s)", strings.Join(params, ", ")),
+		Run:         TaskHasAssignee(params...).Run,
 	}
 }
 
-// TaskHasNoAssignee reads the task file for taskID and asserts the assignee
-// field is absent or empty.
-func TaskHasNoAssignee(taskID string) Step {
+var taskHasNoAssigneeDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+)
+
+// TaskHasNoAssignee asserts the assignee field is absent or empty.
+// Required param: "task: <TASK-NNN>".
+func TaskHasNoAssignee(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %s has no assignee", taskID),
+		Description: fmt.Sprintf("task has no assignee (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := taskHasNoAssigneeDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("TaskHasNoAssignee: %w", err)
+			}
+			taskID := vals.Value("task")
 			content, err := os.ReadFile(taskFilePath(ctx, taskID))
 			if err != nil {
 				return fmt.Errorf("task file %s not found: %w", taskID, err)
@@ -150,11 +184,21 @@ func TaskHasNoAssignee(taskID string) Step {
 	}
 }
 
+var stdoutDoesNotContainDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("text"),
+)
+
 // StdoutDoesNotContain asserts ctx.lastStdout does NOT contain text.
-func StdoutDoesNotContain(text string) Step {
+// Required param: "text: <text>".
+func StdoutDoesNotContain(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("stdout does not contain %q", text),
+		Description: fmt.Sprintf("stdout does not contain (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := stdoutDoesNotContainDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("StdoutDoesNotContain: %w", err)
+			}
+			text := vals.Value("text")
 			if strings.Contains(ctx.lastStdout, text) {
 				return fmt.Errorf("expected stdout NOT to contain %q\nStdout:\n%s", text, ctx.lastStdout)
 			}

@@ -83,7 +83,7 @@ func ColumnIsEmpty(params ...string) Step {
 // IVisitTheBoard starts the kanban-web server (if not already running) and
 // performs a GET /board request, storing the response in the context.
 // When ctx.RepoDir is set, the server is started with --repo pointing to it.
-func IVisitTheBoard() Step {
+func IVisitTheBoard(params ...string) Step {
 	return Step{
 		Description: "I visit the board",
 		Run: func(ctx *WebContext) error {
@@ -120,7 +120,7 @@ func IVisitTheBoard() Step {
 }
 
 // BoardIsVisible asserts that the last response contains a non-empty board page.
-func BoardIsVisible() Step {
+func BoardIsVisible(params ...string) Step {
 	return Step{
 		Description: "board is visible",
 		Run: func(ctx *WebContext) error {

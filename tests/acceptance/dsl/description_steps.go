@@ -14,6 +14,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/jmsargent/kanban/pkg/simpledsl"
 )
 
 // ---- Editor script helpers (not Steps) ----
@@ -51,27 +53,44 @@ func EditorScriptThatSetsTitleAndDescription(ctx *Context, title, description st
 
 // ---- Template assertion steps ----
 
-// TemplateHasBlankDescriptionField reads the captured template file at
-// capturePath and asserts it contains a blank description field
-// (description: "").
-func TemplateHasBlankDescriptionField(capturePath string) Step {
+var templateHasBlankDescriptionFieldDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("path"),
+)
+
+// TemplateHasBlankDescriptionField reads the captured template file at path
+// and asserts it contains a blank description field (description: "").
+// Required param: "path: <capturePath>".
+func TemplateHasBlankDescriptionField(params ...string) Step {
 	return Step{
-		Description: "template file contains a blank description field",
+		Description: fmt.Sprintf("template file contains a blank description field (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
-			return assertTemplateContains(capturePath, `description: ""`, "blank description field")
+			vals, err := templateHasBlankDescriptionFieldDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("TemplateHasBlankDescriptionField: %w", err)
+			}
+			return assertTemplateContains(vals.Value("path"), `description: ""`, "blank description field")
 		},
 	}
 }
 
 // ---- Task body assertion steps ----
 
+var taskBodyContainsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("text"),
+)
+
 // TaskBodyContains reads the task file for the most recently created task
-// (ctx.LastTaskID()) and asserts the Markdown body (text below the closing
-// "---" delimiter) contains the given substring.
-func TaskBodyContains(text string) Step {
+// and asserts the Markdown body contains the given text.
+// Required param: "text: <text>".
+func TaskBodyContains(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task body contains %q", text),
+		Description: fmt.Sprintf("task body contains (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := taskBodyContainsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("TaskBodyContains: %w", err)
+			}
+			text := vals.Value("text")
 			taskID := ctx.LastTaskID()
 			if taskID == "" {
 				return fmt.Errorf("no task ID in context — cannot read task body")
@@ -91,7 +110,7 @@ func TaskBodyContains(text string) Step {
 // TaskBodyIsEmpty asserts the task body (below closing "---") for the most
 // recently created task is empty or contains only whitespace. Used when
 // description was not set.
-func TaskBodyIsEmpty() Step {
+func TaskBodyIsEmpty(params ...string) Step {
 	return Step{
 		Description: "task body is empty or whitespace only",
 		Run: func(ctx *Context) error {
@@ -113,12 +132,22 @@ func TaskBodyIsEmpty() Step {
 
 // ---- CLI action steps ----
 
+var iRunKanbanNewWithDescriptionDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+	simpledsl.NewRequiredArg("description"),
+)
+
 // IRunKanbanNewWithDescription runs "kanban new <title> --description <desc>".
-func IRunKanbanNewWithDescription(title, description string) Step {
+// Required params: "title: <title>", "description: <text>".
+func IRunKanbanNewWithDescription(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("I run kanban new %q --description %q", title, description),
+		Description: fmt.Sprintf("I run kanban new with description (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
-			run(ctx, "new", title, "--description", description)
+			vals, err := iRunKanbanNewWithDescriptionDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IRunKanbanNewWithDescription: %w", err)
+			}
+			run(ctx, "new", vals.Value("title"), "--description", vals.Value("description"))
 			return nil
 		},
 	}

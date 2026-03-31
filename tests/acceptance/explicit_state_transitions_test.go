@@ -15,12 +15,12 @@ func TestCiDone_UpdatesTaskStatusFromCommitMessages(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Fix OAuth login bug", "in-progress", "TASK-001"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Fix OAuth login bug", "status: in-progress", "id: TASK-001"))
 	dsl.Given(ctx, dsl.CaptureGitHeadSHA(&sinceSHA))
 	dsl.Given(ctx, dsl.GitCommitReferencingTask("TASK-001"))
 	dsl.Given(ctx, dsl.CaptureGitHeadSHA(&headBefore))
 	dsl.When(ctx, dsl.IRunKanbanCiDoneFrom(&sinceSHA))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.TaskFileStatusIs("TASK-001", "done"))
 	dsl.Then(ctx, dsl.GitHeadSHAIs(&headBefore))
 }
@@ -33,7 +33,7 @@ func TestCiDone_NoTasksInRangeExitsClean(t *testing.T) {
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.Given(ctx, dsl.CaptureGitHeadSHA(&sinceSHA))
 	dsl.When(ctx, dsl.IRunKanbanCiDoneFrom(&sinceSHA))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 }
 
 // AC-02-4: ci-done is idempotent — a task already at done is skipped.
@@ -42,11 +42,11 @@ func TestCiDone_AlreadyDoneTaskIsSkipped(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Deploy to staging", "done", "TASK-001"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Deploy to staging", "status: done", "id: TASK-001"))
 	dsl.Given(ctx, dsl.CaptureGitHeadSHA(&sinceSHA))
 	dsl.Given(ctx, dsl.GitCommitReferencingTask("TASK-001"))
 	dsl.When(ctx, dsl.IRunKanbanCiDoneFrom(&sinceSHA))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.TaskFileStatusIs("TASK-001", "done"))
 }
 
@@ -58,10 +58,10 @@ func TestBoard_ReadsStatusFromYAMLWithNoTransitionsLog(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Implement login page", "in-progress", "TASK-001"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Implement login page", "status: in-progress", "id: TASK-001"))
 	dsl.Given(ctx, dsl.TransitionsLogAbsent())
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoard())
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-001", "In Progress"))
 }
 
@@ -70,11 +70,11 @@ func TestBoard_GroupsTasksByYAMLStatus(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Write docs", "todo", "TASK-001"))
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Fix bug", "in-progress", "TASK-002"))
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Deploy service", "done", "TASK-003"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Write docs", "status: todo", "id: TASK-001"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Fix bug", "status: in-progress", "id: TASK-002"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Deploy service", "status: done", "id: TASK-003"))
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoard())
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-001", "To Do"))
 	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-002", "In Progress"))
 	dsl.Then(ctx, dsl.BoardShowsTaskInColumn("TASK-003", "Done"))
@@ -92,8 +92,8 @@ func TestHookRemoved_InstallHookAbsentFromHelp(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanban("--help"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.When(ctx, dsl.IRunKanban("subcommand: --help"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.OutputDoesNotContain("install-hook"))
 }
 
@@ -102,9 +102,9 @@ func TestHookRemoved_InstallHookCommandExitsWithError(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.When(ctx, dsl.IRunKanban("install-hook"))
-	dsl.Then(ctx, dsl.ExitCodeIs(1))
-	dsl.Then(ctx, dsl.OutputContains("install-hook has been removed"))
+	dsl.When(ctx, dsl.IRunKanban("subcommand: install-hook"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 1"))
+	dsl.Then(ctx, dsl.OutputContains("text: install-hook has been removed"))
 }
 
 // AC-04-3: leftover _hook commit-msg invocations (on developer machines that
@@ -114,7 +114,7 @@ func TestHookRemoved_CommitMsgHookDelegationIsNoOp(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanHookCommitMsg("TASK-001: implement feature"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.TransitionsLogAbsent())
 }
 
@@ -128,8 +128,8 @@ func TestInit_DoesNotAutoCommit(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.NoKanbanSetup())
 	dsl.Given(ctx, dsl.CaptureGitHeadSHA(&headBefore))
-	dsl.When(ctx, dsl.IRunKanban("init"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.When(ctx, dsl.IRunKanban("subcommand: init"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.KanbanDotKanbanDirectoryExists())
 	dsl.Then(ctx, dsl.GitHeadSHAIs(&headBefore))
 	dsl.Then(ctx, dsl.InitDidNotAutoCommit())

@@ -7,16 +7,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/jmsargent/kanban/pkg/simpledsl"
 )
 
 // --- Setup Steps for Creator Attribution ---
 
 // InAGitRepoWithoutGitIdentity creates a temp git repo with no git user.name configured.
-// HOME is set to an isolated empty directory so that no global ~/.gitconfig provides a name.
-// GIT_AUTHOR_NAME and GIT_COMMITTER_NAME env vars allow git commit to proceed without
-// a user.name in config — but `git config user.name` still returns empty, which is what
-// GetIdentity() reads, triggering ErrGitIdentityNotConfigured in kanban new.
-func InAGitRepoWithoutGitIdentity() Step {
+func InAGitRepoWithoutGitIdentity(params ...string) Step {
 	return Step{
 		Description: "a git repository with no git identity configured",
 		Run: func(ctx *Context) error {
@@ -77,18 +75,11 @@ func InAGitRepoWithoutGitIdentity() Step {
 	}
 }
 
-// GitIdentityUnconfigured removes user.name and user.email from the repo's
-// local git config. Use this after KanbanInitialised() in tests that verify
-// kanban new behaviour when no git identity is configured: kanban init needs
-// local config entries to commit its initial setup, but the "When" step must
-// see no identity so that GetIdentity() returns ErrGitIdentityNotConfigured.
-func GitIdentityUnconfigured() Step {
+// GitIdentityUnconfigured removes user.name and user.email from the repo's local git config.
+func GitIdentityUnconfigured(params ...string) Step {
 	return Step{
 		Description: "git identity removed from local repo config",
 		Run: func(ctx *Context) error {
-			// git config --unset exits 5 when the key is absent — that is
-			// expected here since the field may not have been set. Any other
-			// error (permission denied, malformed config) propagates.
 			for _, key := range []string{"user.name", "user.email"} {
 				if _, err := gitCmd(ctx, "config", "--unset", key); err != nil {
 					var exitErr *exec.ExitError
@@ -103,14 +94,21 @@ func GitIdentityUnconfigured() Step {
 	}
 }
 
-// APreExistingTaskWithoutCreator writes a minimal task file to .kanban/tasks/
-// without a created_by field. This simulates a task that was created before the
-// creator attribution feature was introduced. The task is assigned the next
-// available ID and ctx.lastTaskID is updated.
-func APreExistingTaskWithoutCreator(title string) Step {
+var aPreExistingTaskWithoutCreatorDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+)
+
+// APreExistingTaskWithoutCreator writes a minimal task file without a created_by field.
+// Required param: "title: <title>".
+func APreExistingTaskWithoutCreator(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("pre-existing task %q without creator field", title),
+		Description: fmt.Sprintf("pre-existing task without creator field (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := aPreExistingTaskWithoutCreatorDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("APreExistingTaskWithoutCreator: %w", err)
+			}
+			title := vals.Value("title")
 			tasksDir := filepath.Join(ctx.repoDir, ".kanban", "tasks")
 			if err := os.MkdirAll(tasksDir, 0o755); err != nil {
 				return fmt.Errorf("ensure tasks dir: %w", err)
@@ -137,12 +135,23 @@ func APreExistingTaskWithoutCreator(title string) Step {
 
 // --- Assertion Steps for Creator Attribution ---
 
-// TaskHasCreator reads the task file for taskID and asserts it contains
-// `created_by: <creator>` in the YAML front matter.
-func TaskHasCreator(taskID, creator string) Step {
+var taskHasCreatorDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+	simpledsl.NewRequiredArg("creator"),
+)
+
+// TaskHasCreator asserts the task file contains `created_by: <creator>`.
+// Required params: "task: <TASK-NNN>", "creator: <name>".
+func TaskHasCreator(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("task %s has creator %q", taskID, creator),
+		Description: fmt.Sprintf("task has creator (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := taskHasCreatorDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("TaskHasCreator: %w", err)
+			}
+			taskID := vals.Value("task")
+			creator := vals.Value("creator")
 			content, err := os.ReadFile(taskFilePath(ctx, taskID))
 			if err != nil {
 				return fmt.Errorf("task file %s not found: %w", taskID, err)
@@ -157,13 +166,23 @@ func TaskHasCreator(taskID, creator string) Step {
 	}
 }
 
-// BoardRowForTaskContains asserts that the line in ctx.lastOutput containing
-// taskID also contains text. The last board command output is used — call
-// IRunKanbanBoard() before this assertion.
-func BoardRowForTaskContains(taskID, text string) Step {
+var boardRowForTaskContainsDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("task"),
+	simpledsl.NewRequiredArg("text"),
+)
+
+// BoardRowForTaskContains asserts the board row for a task contains text.
+// Required params: "task: <TASK-NNN>", "text: <text>".
+func BoardRowForTaskContains(params ...string) Step {
 	return Step{
-		Description: fmt.Sprintf("board row for %s contains %q", taskID, text),
+		Description: fmt.Sprintf("board row for task contains (%s)", strings.Join(params, ", ")),
 		Run: func(ctx *Context) error {
+			vals, err := boardRowForTaskContainsDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("BoardRowForTaskContains: %w", err)
+			}
+			taskID := vals.Value("task")
+			text := vals.Value("text")
 			for _, line := range strings.Split(ctx.lastOutput, "\n") {
 				if strings.Contains(line, taskID) {
 					if strings.Contains(line, text) {
@@ -174,30 +193,6 @@ func BoardRowForTaskContains(taskID, text string) Step {
 				}
 			}
 			return fmt.Errorf("board row for %s not found\nFull output:\n%s", taskID, ctx.lastOutput)
-		},
-	}
-}
-
-// TasksDirIsEmpty asserts that .kanban/tasks/ contains no .md task files.
-// Used to verify that a failed kanban new wrote nothing to disk.
-func TasksDirIsEmpty() Step {
-	return Step{
-		Description: "tasks directory contains no task files",
-		Run: func(ctx *Context) error {
-			dir := filepath.Join(ctx.repoDir, ".kanban", "tasks")
-			entries, err := os.ReadDir(dir)
-			if os.IsNotExist(err) {
-				return nil // directory absent → definitively empty
-			}
-			if err != nil {
-				return fmt.Errorf("read tasks dir: %w", err)
-			}
-			for _, e := range entries {
-				if strings.HasSuffix(e.Name(), ".md") {
-					return fmt.Errorf("expected tasks directory to be empty but found: %s", e.Name())
-				}
-			}
-			return nil
 		},
 	}
 }
@@ -220,4 +215,27 @@ func filterEnv(env []string, keys ...string) []string {
 		}
 	}
 	return result
+}
+
+// TasksDirIsEmpty asserts that .kanban/tasks/ contains no .md task files.
+func TasksDirIsEmpty(params ...string) Step {
+	return Step{
+		Description: "tasks directory contains no task files",
+		Run: func(ctx *Context) error {
+			dir := filepath.Join(ctx.repoDir, ".kanban", "tasks")
+			entries, err := os.ReadDir(dir)
+			if os.IsNotExist(err) {
+				return nil // directory absent → definitively empty
+			}
+			if err != nil {
+				return fmt.Errorf("read tasks dir: %w", err)
+			}
+			for _, e := range entries {
+				if strings.HasSuffix(e.Name(), ".md") {
+					return fmt.Errorf("expected tasks directory to be empty but found: %s", e.Name())
+				}
+			}
+			return nil
+		},
+	}
 }

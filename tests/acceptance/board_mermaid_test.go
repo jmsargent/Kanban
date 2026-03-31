@@ -27,7 +27,7 @@ func TestBoardMermaid_WalkingSkeleton(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskExists("Fix login bug"))
+	dsl.Given(ctx, dsl.ATaskExists("title: Fix login bug"))
 
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoardMermaid())
 
@@ -64,9 +64,9 @@ func TestBoardMermaid_TasksAppearAsNodesUnderTheirColumn(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatus("Fix login bug", "todo"))
+	dsl.Given(ctx, dsl.ATaskWithStatus("title: Fix login bug", "status: todo"))
 	todoTaskID := ctx.LastTaskID()
-	dsl.Given(ctx, dsl.ATaskWithStatus("Write docs", "in-progress"))
+	dsl.Given(ctx, dsl.ATaskWithStatus("title: Write docs", "status: in-progress"))
 	inProgressTaskID := ctx.LastTaskID()
 
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoardMermaid())
@@ -75,8 +75,8 @@ func TestBoardMermaid_TasksAppearAsNodesUnderTheirColumn(t *testing.T) {
 	dsl.And(ctx, dsl.StdoutContainsMermaidNode(todoTaskID))
 	dsl.And(ctx, dsl.StdoutContainsMermaidNode(inProgressTaskID))
 	// Both node labels should contain the task titles.
-	dsl.And(ctx, dsl.StdoutContains("Fix login bug"))
-	dsl.And(ctx, dsl.StdoutContains("Write docs"))
+	dsl.And(ctx, dsl.StdoutContains("text: Fix login bug"))
+	dsl.And(ctx, dsl.StdoutContains("text: Write docs"))
 }
 
 // TestBoardMermaid_EmptyBoardProducesValidMermaidBlock validates AC-04:
@@ -95,7 +95,7 @@ func TestBoardMermaid_EmptyBoardProducesValidMermaidBlock(t *testing.T) {
 	dsl.And(ctx, dsl.StdoutContainsMermaidKanbanType())
 	dsl.And(ctx, dsl.StdoutContainsMermaidSection("To Do"))
 	// No task nodes appear (the output should not contain "@{").
-	dsl.And(ctx, dsl.StdoutDoesNotContain("@{"))
+	dsl.And(ctx, dsl.StdoutDoesNotContain("text: @{"))
 }
 
 // ---------------------------------------------------------------------------
@@ -133,7 +133,7 @@ func TestBoardMermaid_MutuallyExclusiveWithJSON(t *testing.T) {
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoardMermaidAndJSON())
 
 	dsl.Then(ctx, dsl.ExitsWithCode(2))
-	dsl.And(ctx, dsl.StderrContains("mutually exclusive"))
+	dsl.And(ctx, dsl.StderrContains("text: mutually exclusive"))
 	dsl.And(ctx, dsl.StdoutIsEmpty())
 }
 
@@ -159,9 +159,9 @@ func TestBoardMermaid_TaskTitlesWithUnsafeCharsAreSanitised(t *testing.T) {
 	dsl.And(ctx, dsl.StdoutContainsMermaidNode(taskID))
 	// The unsafe characters must not appear unescaped inside the label value.
 	// Double-quoted word from title must not appear verbatim in output.
-	dsl.And(ctx, dsl.StdoutDoesNotContain(`"login"`))
+	dsl.And(ctx, dsl.StdoutDoesNotContain("text: \"login\""))
 	// Square brackets from title must not appear verbatim in output.
-	dsl.And(ctx, dsl.StdoutDoesNotContain("[urgent]"))
+	dsl.And(ctx, dsl.StdoutDoesNotContain("text: [urgent]"))
 }
 
 // TestBoardMermaid_ColumnLabelsWithSpecialCharsAreSafe validates AC-08:
@@ -199,7 +199,7 @@ func TestBoardMermaid_OutCreatesFileWhenNotExists(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskExists("Fix login bug"))
+	dsl.Given(ctx, dsl.ATaskExists("title: Fix login bug"))
 	// BOARD.md does not exist yet (InAGitRepo creates README.md, not BOARD.md).
 
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoardMermaidWithOut("BOARD.md"))
@@ -225,9 +225,9 @@ func TestBoardMermaid_OutErrorsWhenFileExistsWithNoKanbanBlock(t *testing.T) {
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoardMermaidWithOut("README.md"))
 
 	dsl.Then(ctx, dsl.ExitsWithCode(1))
-	dsl.And(ctx, dsl.StderrContains("README.md"))
+	dsl.And(ctx, dsl.StderrContains("text: README.md"))
 	// Error must tell the user what placeholder to add.
-	dsl.And(ctx, dsl.StderrContains("mermaid"))
+	dsl.And(ctx, dsl.StderrContains("text: mermaid"))
 	// File must be unchanged.
 	dsl.And(ctx, dsl.FileContentEquals("README.md", originalContent))
 }
@@ -239,7 +239,7 @@ func TestBoardMermaid_OutReplacesExistingKanbanBlockInPlace(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskExists("Fix login bug"))
+	dsl.Given(ctx, dsl.ATaskExists("title: Fix login bug"))
 	taskID := ctx.LastTaskID()
 	// Write a README with an existing mermaid kanban block.
 	dsl.Given(ctx, dsl.FileExistsWithKanbanBlock("README.md"))
@@ -269,5 +269,5 @@ func TestBoardMermaid_OutWithoutMermaidIsUsageError(t *testing.T) {
 	dsl.When(ctx, dsl.DeveloperRunsKanbanBoardWithOut("README.md"))
 
 	dsl.Then(ctx, dsl.ExitsWithCode(2))
-	dsl.And(ctx, dsl.StderrContains("--out requires --mermaid"))
+	dsl.And(ctx, dsl.StderrContains("text: --out requires --mermaid"))
 }

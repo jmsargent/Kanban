@@ -288,7 +288,7 @@ func ExitsSuccessfully() Step {
 func ExitsWithCode(code int) Step {
 	return Step{
 		Description: fmt.Sprintf("command exits with code %d", code),
-		Run:         ExitCodeIs(code).Run,
+		Run:         ExitCodeIs(fmt.Sprintf("code: %d", code)).Run,
 	}
 }
 

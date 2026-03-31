@@ -13,10 +13,10 @@ func TestDoneCommand_InProgressTaskTransitionsToDone(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Fix OAuth login bug", "in-progress", "TASK-001"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Fix OAuth login bug", "status: in-progress", "id: TASK-001"))
 	dsl.When(ctx, dsl.IRunKanbanDone("TASK-001"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.Then(ctx, dsl.OutputContains("moved in-progress -> done"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
+	dsl.Then(ctx, dsl.OutputContains("text: moved in-progress -> done"))
 	dsl.Then(ctx, dsl.TaskFileStatusIs("TASK-001", "done"))
 }
 
@@ -25,10 +25,10 @@ func TestDoneCommand_TodoTaskTransitionsToDone(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Refactor auth module", "todo", "TASK-002"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Refactor auth module", "status: todo", "id: TASK-002"))
 	dsl.When(ctx, dsl.IRunKanbanDone("TASK-002"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.Then(ctx, dsl.OutputContains("moved todo -> done"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
+	dsl.Then(ctx, dsl.OutputContains("text: moved todo -> done"))
 	dsl.Then(ctx, dsl.TaskFileStatusIs("TASK-002", "done"))
 }
 
@@ -38,8 +38,8 @@ func TestDoneCommand_NonexistentTask(t *testing.T) {
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
 	dsl.When(ctx, dsl.IRunKanbanDone("TASK-999"))
-	dsl.Then(ctx, dsl.ExitCodeIs(1))
-	dsl.Then(ctx, dsl.OutputContains("not found"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 1"))
+	dsl.Then(ctx, dsl.OutputContains("text: not found"))
 }
 
 // AC-01-6: calling done on an already-done task is idempotent — exits 0.
@@ -47,10 +47,10 @@ func TestDoneCommand_AlreadyDoneIsIdempotent(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Deploy to production", "done", "TASK-003"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Deploy to production", "status: done", "id: TASK-003"))
 	dsl.When(ctx, dsl.IRunKanbanDone("TASK-003"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.Then(ctx, dsl.OutputContains("already done"))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
+	dsl.Then(ctx, dsl.OutputContains("text: already done"))
 	dsl.Then(ctx, dsl.TaskFileStatusIs("TASK-003", "done"))
 }
 
@@ -61,9 +61,9 @@ func TestDoneCommand_NoAutoCommit(t *testing.T) {
 	ctx := dsl.NewContext(t)
 	dsl.Given(ctx, dsl.InAGitRepo())
 	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatusAs("Fix auth bug", "in-progress", "TASK-001"))
+	dsl.Given(ctx, dsl.ATaskWithStatusAs("title: Fix auth bug", "status: in-progress", "id: TASK-001"))
 	dsl.Given(ctx, dsl.CaptureGitHeadSHA(&headBefore))
 	dsl.When(ctx, dsl.IRunKanbanDone("TASK-001"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
+	dsl.Then(ctx, dsl.ExitCodeIs("code: 0"))
 	dsl.Then(ctx, dsl.GitHeadSHAIs(&headBefore))
 }

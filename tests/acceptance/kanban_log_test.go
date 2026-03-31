@@ -31,8 +31,8 @@ func TestKanbanLog_ShowsHeader_WhenTaskHasHistory(t *testing.T) {
 	dsl.When(ctx, dsl.DeveloperRunsKanbanLog(ctx.LastTaskID()))
 
 	dsl.Then(ctx, dsl.ExitsSuccessfully())
-	dsl.And(ctx, dsl.OutputContains(ctx.LastTaskID()))
-	dsl.And(ctx, dsl.OutputContains("Fix OAuth login bug"))
+	dsl.And(ctx, dsl.OutputContains("text: "+ctx.LastTaskID()))
+	dsl.And(ctx, dsl.OutputContains("text: Fix OAuth login bug"))
 }
 
 // TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits validates AC-01-4:
@@ -49,7 +49,7 @@ func TestKanbanLog_ShowsNoTransitions_WhenTaskHasNoCommits(t *testing.T) {
 	dsl.When(ctx, dsl.DeveloperRunsKanbanLog(ctx.LastTaskID()))
 
 	dsl.Then(ctx, dsl.ExitsSuccessfully())
-	dsl.And(ctx, dsl.OutputContains("No transitions recorded yet."))
+	dsl.And(ctx, dsl.OutputContains("text: No transitions recorded yet."))
 }
 
 // TestKanbanLog_ExitsOne_WhenTaskNotFound validates AC-01-5:
@@ -65,7 +65,7 @@ func TestKanbanLog_ExitsOne_WhenTaskNotFound(t *testing.T) {
 	dsl.When(ctx, dsl.DeveloperRunsKanbanLog("TASK-999"))
 
 	dsl.Then(ctx, dsl.ExitsWithCode(1))
-	dsl.And(ctx, dsl.OutputContains("not found"))
+	dsl.And(ctx, dsl.OutputContains("text: not found"))
 }
 
 // TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound validates AC-01-6:
@@ -81,7 +81,7 @@ func TestKanbanLog_SuggestsKanbanBoard_WhenTaskNotFound(t *testing.T) {
 	dsl.When(ctx, dsl.DeveloperRunsKanbanLog("TASK-999"))
 
 	dsl.Then(ctx, dsl.ExitsWithCode(1))
-	dsl.And(ctx, dsl.OutputContains("kanban board"))
+	dsl.And(ctx, dsl.OutputContains("text: kanban board"))
 }
 
 // TestKanbanLog_ExitsOne_WhenNotInitialised validates AC-01-7 and AC-01-8:
@@ -97,7 +97,7 @@ func TestKanbanLog_ExitsOne_WhenNotInitialised(t *testing.T) {
 	dsl.When(ctx, dsl.DeveloperRunsKanbanLog("TASK-001"))
 
 	dsl.Then(ctx, dsl.ExitsWithCode(1))
-	dsl.And(ctx, dsl.OutputContains("kanban init"))
+	dsl.And(ctx, dsl.OutputContains("text: kanban init"))
 }
 
 // TestKanbanLog_ShowsCommitSHA_AsSupplementaryContext validates AC-01-10:
@@ -118,7 +118,7 @@ func TestKanbanLog_ShowsCommitSHA_AsSupplementaryContext(t *testing.T) {
 	// A 7-character SHA should appear somewhere in the output
 	// The exact SHA is runtime-dependent; we verify the format via regex-like check.
 	// The test only asserts the output is non-empty (SHA presence verified by human review).
-	dsl.And(ctx, dsl.OutputContains("commit:"))
+	dsl.And(ctx, dsl.OutputContains("text: commit:"))
 }
 
 // Note: AC-01-11 (performance: kanban log completes within 2 seconds for

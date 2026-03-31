@@ -2,22 +2,22 @@ package acceptance
 
 import (
 	"testing"
-
-	dsl "github.com/jmsargent/kanban/tests/acceptance/dsl"
 )
+
+import . "github.com/jmsargent/kanban/tests/acceptance/dsl"
 
 // TestWalkingSkeleton_EditAndDelete ports the non-@skip scenario:
 // "Developer edits a task and then removes it when the work is cancelled"
 func TestWalkingSkeleton_EditAndDelete(t *testing.T) {
-	ctx := dsl.NewContext(t)
-	dsl.Given(ctx, dsl.InAGitRepo())
-	dsl.Given(ctx, dsl.KanbanInitialised())
-	dsl.Given(ctx, dsl.ATaskWithStatus("Migrate database schema", "todo"))
-	dsl.When(ctx, dsl.IRunKanbanEditTitle(ctx.LastTaskID(), "Migrate user table schema"))
-	dsl.Then(ctx, dsl.OutputContains("title"))
-	dsl.Then(ctx, dsl.BoardShowsTaskUnder("Migrate user table schema", "To Do"))
-	dsl.When(ctx, dsl.IRunKanbanDelete(ctx.LastTaskID(), "y"))
-	dsl.Then(ctx, dsl.OutputContains("git commit"))
-	dsl.Then(ctx, dsl.ExitCodeIs(0))
-	dsl.Then(ctx, dsl.BoardNotListsTask("Migrate user table schema"))
+	ctx := NewContext(t)
+	Given(ctx, InAGitRepo())
+	Given(ctx, KanbanInitialised())
+	Given(ctx, ATaskWithStatus("title: Migrate database schema", "status: todo"))
+	When(ctx, IRunKanbanEditTitle("task: "+ctx.LastTaskID(), "title: Migrate user table schema"))
+	Then(ctx, OutputContains("text: title"))
+	Then(ctx, BoardShowsTaskUnder("title: Migrate user table schema", "column: To Do"))
+	When(ctx, IRunKanbanDelete("task: "+ctx.LastTaskID(), "confirm: y"))
+	Then(ctx, OutputContains("text: git commit"))
+	Then(ctx, ExitCodeIs("code: 0"))
+	Then(ctx, BoardNotListsTask("title: Migrate user table schema"))
 }
