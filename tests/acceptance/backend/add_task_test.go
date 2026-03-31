@@ -36,6 +36,19 @@ func TestAddTask_TitleRequired(t *testing.T) {
 	Then(ctx, NoNewTaskInRepo())
 }
 
+// TestAddTask_FileFollowsFormat verifies that the task file created by the add-task
+// form follows Markdown + YAML front matter format (ADR-002) and that the task ID
+// follows the sequential TASK-NNN pattern.
+func TestAddTask_FileFollowsFormat(t *testing.T) {
+	ctx := NewWebContext(t)
+	Given(ctx, ARepoWithNoTasks())
+	Given(ctx, WithGitHubStub("token: valid-token-123", "login: alice", "display_name: Alice"))
+	Given(ctx, AnAuthenticatedUser("token: valid-token-123", "display_name: Alice"))
+	When(ctx, IAddTask("title: Fix login bug"))
+	Then(ctx, TaskFileIsValidFormat())
+	Then(ctx, TaskHasSequentialID())
+}
+
 // TestAddTask_AllFields verifies that an authenticated user can add a task with
 // all fields (title, description, priority, assignee) via the web form.
 // The task appears in the Todo column on the board and its file exists in the repo

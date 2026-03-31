@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/jmsargent/kanban/pkg/simpledsl"
@@ -108,6 +109,92 @@ func IAddTask(params ...string) Step {
 			}
 			ctx.LastBody = resp.Body
 			return nil
+		},
+	}
+}
+
+// TaskFileIsValidFormat asserts that the task file created in the repo follows
+// Markdown + YAML front matter format (ADR-002): starts with "---", contains
+// a YAML block with id:, title: fields, and is closed with "---".
+func TaskFileIsValidFormat(params ...string) Step {
+	return Step{
+		Description: "task file is valid format",
+		Run: func(ctx *WebContext) error {
+			if ctx.RepoDir == "" {
+				return fmt.Errorf("TaskFileIsValidFormat: RepoDir not set; call ARepoWithNoTasks first")
+			}
+			tasksDir := filepath.Join(ctx.RepoDir, ".kanban", "tasks")
+			entries, err := os.ReadDir(tasksDir)
+			if err != nil {
+				return fmt.Errorf("TaskFileIsValidFormat: read tasks dir: %w", err)
+			}
+			for _, entry := range entries {
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+					continue
+				}
+				content, err := os.ReadFile(filepath.Join(tasksDir, entry.Name()))
+				if err != nil {
+					return fmt.Errorf("TaskFileIsValidFormat: read file %s: %w", entry.Name(), err)
+				}
+				text := string(content)
+				if !strings.HasPrefix(text, "---\n") {
+					return fmt.Errorf("TaskFileIsValidFormat: file %s does not start with '---'", entry.Name())
+				}
+				rest := text[4:]
+				closeIdx := strings.Index(rest, "\n---")
+				if closeIdx < 0 {
+					return fmt.Errorf("TaskFileIsValidFormat: file %s has no closing '---' delimiter", entry.Name())
+				}
+				yamlBlock := rest[:closeIdx]
+				for _, required := range []string{"id:", "title:"} {
+					if !strings.Contains(yamlBlock, required) {
+						return fmt.Errorf("TaskFileIsValidFormat: file %s missing field %q in front matter", entry.Name(), required)
+					}
+				}
+				return nil
+			}
+			return fmt.Errorf("TaskFileIsValidFormat: no task .md file found in %s", tasksDir)
+		},
+	}
+}
+
+var sequentialIDPattern = regexp.MustCompile(`^TASK-\d{3}$`)
+
+// TaskHasSequentialID asserts that the task file in the repo has an ID matching
+// the TASK-NNN sequential pattern (zero-padded 3-digit number).
+func TaskHasSequentialID(params ...string) Step {
+	return Step{
+		Description: "task has sequential ID",
+		Run: func(ctx *WebContext) error {
+			if ctx.RepoDir == "" {
+				return fmt.Errorf("TaskHasSequentialID: RepoDir not set; call ARepoWithNoTasks first")
+			}
+			tasksDir := filepath.Join(ctx.RepoDir, ".kanban", "tasks")
+			entries, err := os.ReadDir(tasksDir)
+			if err != nil {
+				return fmt.Errorf("TaskHasSequentialID: read tasks dir: %w", err)
+			}
+			for _, entry := range entries {
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+					continue
+				}
+				content, err := os.ReadFile(filepath.Join(tasksDir, entry.Name()))
+				if err != nil {
+					return fmt.Errorf("TaskHasSequentialID: read file %s: %w", entry.Name(), err)
+				}
+				text := string(content)
+				idPattern := regexp.MustCompile(`(?m)^id:\s*(\S+)`)
+				matches := idPattern.FindStringSubmatch(text)
+				if matches == nil {
+					return fmt.Errorf("TaskHasSequentialID: no id: field found in %s", entry.Name())
+				}
+				id := strings.TrimSpace(matches[1])
+				if !sequentialIDPattern.MatchString(id) {
+					return fmt.Errorf("TaskHasSequentialID: id %q does not match TASK-NNN pattern in %s", id, entry.Name())
+				}
+				return nil
+			}
+			return fmt.Errorf("TaskHasSequentialID: no task .md file found in %s", tasksDir)
 		},
 	}
 }
