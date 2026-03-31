@@ -104,7 +104,7 @@ func CardDoesNotShow(params ...string) Step {
 			}
 			field := vals.Value("field")
 			marker := fmt.Sprintf(`data-field="%s"`, field)
-			if strings.Contains(ctx.LastBody, marker) {
+			if strings.Contains(stripStyleBlocks(ctx.LastBody), marker) {
 				return fmt.Errorf("CardDoesNotShow: field %q is present in card detail but should not be", field)
 			}
 			return nil
@@ -128,9 +128,17 @@ func findCardHref(body, title string) (string, error) {
 	return m[1], nil
 }
 
+// stripStyleBlocks removes all <style>...</style> blocks from body so that
+// CSS selectors like [data-field="x"] don't interfere with HTML attribute searches.
+func stripStyleBlocks(body string) string {
+	re := regexp.MustCompile(`(?s)<style[^>]*>.*?</style>`)
+	return re.ReplaceAllString(body, "")
+}
+
 // assertFieldValue checks that the body contains a data-field="<field>" element
 // whose text content includes expected.
 func assertFieldValue(body, field, expected string) error {
+	body = stripStyleBlocks(body)
 	marker := fmt.Sprintf(`data-field="%s"`, field)
 	idx := strings.Index(body, marker)
 	if idx < 0 {

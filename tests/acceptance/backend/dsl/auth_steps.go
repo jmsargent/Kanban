@@ -139,7 +139,7 @@ func ICanAddTasks(params ...string) Step {
 			if err != nil {
 				return fmt.Errorf("ICanAddTasks: GET /task/new: %w", err)
 			}
-			if strings.Contains(resp.Body, "token-entry") {
+			if strings.Contains(resp.Body, `id="token-entry"`) {
 				return fmt.Errorf("ICanAddTasks: reached auth form instead of add-task form — not authenticated")
 			}
 			return nil
@@ -196,7 +196,7 @@ func PromptedToAuthenticate(params ...string) Step {
 			if ctx.LastBody == "" {
 				return fmt.Errorf("PromptedToAuthenticate: no response recorded; call ITryToAddTask first")
 			}
-			if !strings.Contains(ctx.LastBody, "token-entry") {
+			if !strings.Contains(ctx.LastBody, `id="token-entry"`) {
 				return fmt.Errorf("expected token entry form but got:\n%s", ctx.LastBody)
 			}
 			return nil
@@ -261,7 +261,7 @@ func AuthenticationIsRejected(params ...string) Step {
 			if ctx.LastBody == "" {
 				return fmt.Errorf("AuthenticationIsRejected: no response recorded; call IAttemptToAuthenticate first")
 			}
-			if !strings.Contains(ctx.LastBody, "token-entry") {
+			if !strings.Contains(ctx.LastBody, `id="token-entry"`) {
 				return fmt.Errorf("AuthenticationIsRejected: expected token entry form but got:\n%s", ctx.LastBody)
 			}
 			if !strings.Contains(ctx.LastBody, "auth-error") {
@@ -286,7 +286,7 @@ func ICannotAddTasks(params ...string) Step {
 			if err != nil {
 				return fmt.Errorf("ICannotAddTasks: GET /task/new: %w", err)
 			}
-			if !strings.Contains(resp.Body, "token-entry") {
+			if !strings.Contains(resp.Body, `id="token-entry"`) {
 				return fmt.Errorf("ICannotAddTasks: expected auth form redirect but got:\n%s", resp.Body)
 			}
 			return nil
@@ -346,7 +346,7 @@ func AddTaskFormIsShown(params ...string) Step {
 			if err != nil {
 				return fmt.Errorf("AddTaskFormIsShown: GET /task/new: %w", err)
 			}
-			if strings.Contains(resp.Body, "token-entry") {
+			if strings.Contains(resp.Body, `id="token-entry"`) {
 				return fmt.Errorf("AddTaskFormIsShown: reached auth form instead of add-task form — session not persisted")
 			}
 			return nil

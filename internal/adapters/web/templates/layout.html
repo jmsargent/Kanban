@@ -3,6 +3,222 @@
 <head>
   <meta charset="UTF-8">
   <title>{{.Title}}</title>
+  <style>
+    :root {
+      --glass-bg: rgba(255, 255, 255, 0.45);
+      --glass-border: rgba(255, 255, 255, 0.3);
+      --text-color: #2d3436;
+      --accent-color: #6c5ce7;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-color);
+      background: linear-gradient(-45deg, #fef1fb, #f1f6fe, #f1fef5, #fefef1);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+      min-height: 100vh;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1 {
+      font-weight: 800;
+      font-size: 2.8rem;
+      margin-bottom: 2rem;
+      padding-left: 1rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #2d3436, #636e72);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .board-actions {
+      margin-bottom: 2rem;
+      padding-left: 1rem;
+    }
+
+    .add-task, button {
+      display: inline-block;
+      padding: 0.9rem 1.8rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      text-decoration: none;
+      color: var(--text-color);
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+      cursor: pointer;
+    }
+
+    .add-task:hover, button:hover {
+      background: rgba(255, 255, 255, 0.7);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+
+    .board {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      width: 100%;
+      padding-bottom: 2rem;
+      align-items: flex-start;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .column {
+      flex: 1;
+      min-width: 280px;
+      max-width: 450px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      padding: 1.8rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
+      min-height: 500px;
+    }
+
+    .column h2 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #636e72;
+      opacity: 0.8;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 20px;
+      padding: 1.4rem;
+      margin-bottom: 1.2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: scale(1.03) translateY(-6px);
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.07);
+    }
+
+    .card a {
+      text-decoration: none;
+      color: var(--text-color);
+      font-weight: 600;
+      font-size: 1.05rem;
+      display: block;
+      line-height: 1.4;
+    }
+
+    /* Card Detail Styling */
+    .card-detail, .token-entry, .add-task-form {
+      max-width: 700px;
+      margin: 2rem auto;
+      background: var(--glass-bg);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--glass-border);
+      border-radius: 36px;
+      padding: 3rem;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.08);
+    }
+
+    .token-entry form, .add-task-form form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .token-entry form div, .add-task-form form div {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    input, textarea {
+      padding: 0.8rem 1.2rem;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: rgba(255, 255, 255, 0.5);
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #636e72;
+    }
+
+    [data-field="id"] {
+      font-family: "SF Mono", "Menlo", monospace;
+      font-size: 0.85rem;
+      color: var(--accent-color);
+      opacity: 0.5;
+      margin-bottom: 0.8rem;
+    }
+
+    [data-field="title"] {
+      font-size: 3rem;
+      margin: 0 0 2rem 0;
+      letter-spacing: -0.04em;
+    }
+
+    [data-field="description"] {
+      font-size: 1.15rem;
+      line-height: 1.7;
+      color: #4b4b4b;
+      margin-bottom: 2.5rem;
+    }
+
+    [data-field="status"], [data-field="assignee"], [data-field="created_by"] {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 1.2rem;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 100px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-right: 0.8rem;
+      margin-bottom: 0.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    [data-field="status"] { background: #eef2ff; color: #4f46e5; }
+    [data-field="assignee"] { background: #fdf2f8; color: #db2777; }
+
+    /* Custom Scrollbar for the Board */
+    .board::-webkit-scrollbar { height: 10px; }
+    .board::-webkit-scrollbar-track { background: transparent; }
+    .board::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.05);
+      border-radius: 20px;
+      border: 3px solid transparent;
+      background-clip: content-box;
+    }
+  </style>
 </head>
 <body>
   <h1>{{.Title}}</h1>
