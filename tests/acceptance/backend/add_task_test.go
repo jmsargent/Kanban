@@ -61,6 +61,18 @@ func TestAddTask_CommittedAndPushed(t *testing.T) {
 	Then(ctx, RemoteRepoContainsTask("title: Push me to remote"))
 }
 
+// TestAddTask_UnauthenticatedRejected verifies that a direct POST to /task
+// without a valid session cookie is rejected: the server redirects to the
+// authentication page and no task file is created in the repository.
+func TestAddTask_UnauthenticatedRejected(t *testing.T) {
+	ctx := NewWebContext(t)
+	Given(ctx, ARepoWithNoTasks())
+	Given(ctx, WithGitHubStub("token: valid-token-123", "login: alice", "display_name: Alice"))
+	When(ctx, IAttemptToAddTaskDirectly("title: Sneaky task"))
+	Then(ctx, TaskCreationIsRejected())
+	Then(ctx, NoNewTaskInRepo())
+}
+
 // TestAddTask_AllFields verifies that an authenticated user can add a task with
 // all fields (title, description, priority, assignee) via the web form.
 // The task appears in the Todo column on the board and its file exists in the repo

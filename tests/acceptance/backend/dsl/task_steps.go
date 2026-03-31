@@ -13,7 +13,66 @@ import (
 	"time"
 
 	"github.com/jmsargent/kanban/pkg/simpledsl"
+	"github.com/jmsargent/kanban/tests/acceptance/backend/driver"
 )
+
+var iAttemptToAddTaskDirectlyDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+	simpledsl.NewOptionalArg("description"),
+	simpledsl.NewOptionalArg("priority"),
+	simpledsl.NewOptionalArg("assignee"),
+)
+
+// IAttemptToAddTaskDirectly POSTs to /task WITHOUT a session cookie, simulating
+// a direct unauthenticated request. It starts the server if not already running
+// (using the GitHub stub if configured). The response body is stored in
+// ctx.LastBody. Required param: "title: <title>".
+func IAttemptToAddTaskDirectly(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("I attempt to add a task directly (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *WebContext) error {
+			vals, err := iAttemptToAddTaskDirectlyDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("IAttemptToAddTaskDirectly: %w", err)
+			}
+			if err := ensureServerWithGitHubStub(ctx); err != nil {
+				return fmt.Errorf("IAttemptToAddTaskDirectly: %w", err)
+			}
+			// Fresh driver with no cookies — no session cookie will be sent.
+			freshDriver := driver.NewHTTPDriver(ctx.ServerURL)
+			formData := url.Values{
+				"title":       {vals.Value("title")},
+				"description": {vals.Value("description")},
+				"priority":    {vals.Value("priority")},
+				"assignee":    {vals.Value("assignee")},
+			}
+			resp, err := freshDriver.POST("/task", formData)
+			if err != nil {
+				return fmt.Errorf("IAttemptToAddTaskDirectly: POST /task: %w", err)
+			}
+			ctx.LastBody = resp.Body
+			return nil
+		},
+	}
+}
+
+// TaskCreationIsRejected asserts that the last response is the authentication
+// form (token-entry), confirming the server rejected the unauthenticated POST
+// and redirected to /auth/token rather than creating the task.
+func TaskCreationIsRejected(params ...string) Step {
+	return Step{
+		Description: "task creation is rejected",
+		Run: func(ctx *WebContext) error {
+			if ctx.LastBody == "" {
+				return fmt.Errorf("TaskCreationIsRejected: no response recorded; call IAttemptToAddTaskDirectly first")
+			}
+			if !strings.Contains(ctx.LastBody, "token-entry") {
+				return fmt.Errorf("TaskCreationIsRejected: expected auth form (token-entry) in response but got:\n%s", ctx.LastBody)
+			}
+			return nil
+		},
+	}
+}
 
 var taskCreationFailsDSL = simpledsl.NewDslParams(
 	simpledsl.NewOptionalArg("error"),
