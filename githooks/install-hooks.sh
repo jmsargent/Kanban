@@ -1,7 +1,7 @@
 #!/bin/sh
 # install-hooks.sh — install developer quality gate hooks for kanban-tasks
 #
-# Usage: cicd/install-hooks.sh
+# Usage: githook/install-hooks.sh
 #
 # Installs:
 #   .git/hooks/pre-commit  — runs all CI quality gates before each commit
@@ -16,12 +16,12 @@ HOOKS_DIR="$REPO_ROOT/.git/hooks"
 
 # Install pre-commit hook
 echo "Installing pre-commit hook..."
-cp "$REPO_ROOT/cicd/pre-commit" "$HOOKS_DIR/pre-commit"
+cp "$REPO_ROOT/githooks/pre-commit" "$HOOKS_DIR/pre-commit"
 chmod +x "$HOOKS_DIR/pre-commit"
 echo "Installed: .git/hooks/pre-commit"
 
 # Install commit-msg hook
 echo "Installing commit-msg hook..."
-cp "$REPO_ROOT/cicd/commit-msg" "$HOOKS_DIR/commit-msg"
+cp "$REPO_ROOT/githooks/commit-msg" "$HOOKS_DIR/commit-msg"
 chmod +x "$HOOKS_DIR/commit-msg"
 echo "Installed: .git/hooks/commit-msg"
