@@ -176,15 +176,15 @@ func (h *TokenSubmitHandler) validateGitHubToken(token string) bool {
 // It wraps RequireAuth so both routes require an authenticated session.
 type AddTaskHandler struct {
 	sessionKey []byte
-	addTask    *usecases.AddTask
+	addTask    usecases.TaskExecutor
 	repoDir    string
 	tmpl       *template.Template
 }
 
 // NewAddTaskHandler constructs an AddTaskHandler.
 // sessionKey is the 32-byte AES-256 key used to decrypt the session cookie.
-// addTask is the wired AddTask use case. repoDir is the repository root.
-func NewAddTaskHandler(sessionKey []byte, addTask *usecases.AddTask, repoDir string) http.Handler {
+// addTask is the wired task executor (AddTask or AddTaskAndPush). repoDir is the repository root.
+func NewAddTaskHandler(sessionKey []byte, addTask usecases.TaskExecutor, repoDir string) http.Handler {
 	tmpl := template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/add_task.html"))
 	h := &AddTaskHandler{sessionKey: sessionKey, addTask: addTask, repoDir: repoDir, tmpl: tmpl}
 	return RequireAuth(sessionKey, h)

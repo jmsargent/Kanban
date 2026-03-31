@@ -21,7 +21,7 @@ type Server struct {
 // githubAPIBaseURL is the GitHub API base URL for token validation (e.g.
 // "https://api.github.com"). Pass an empty string to use the default.
 // addTask may be nil — routes that require it will return 501 Not Implemented.
-func NewServer(addr string, getBoard BoardProvider, getTask TaskProvider, sessionKey []byte, githubAPIBaseURL string, addTask *usecases.AddTask, repoDir string) *Server {
+func NewServer(addr string, getBoard BoardProvider, getTask TaskProvider, sessionKey []byte, githubAPIBaseURL string, addTask usecases.TaskExecutor, repoDir string) *Server {
 	if sessionKey == nil {
 		sessionKey = make([]byte, 32) // zero key — insecure dev default
 	}
@@ -35,7 +35,7 @@ func NewServer(addr string, getBoard BoardProvider, getTask TaskProvider, sessio
 }
 
 // registerRoutes registers all HTTP routes on the mux.
-func (s *Server) registerRoutes(getBoard BoardProvider, getTask TaskProvider, addTask *usecases.AddTask, repoDir string) {
+func (s *Server) registerRoutes(getBoard BoardProvider, getTask TaskProvider, addTask usecases.TaskExecutor, repoDir string) {
 	// Public read routes — no auth required.
 	s.mux.Handle("/board", NewBoardHandler(getBoard))
 	s.mux.Handle("/card/{id}", NewCardDetailHandler(getTask))

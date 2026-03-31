@@ -49,6 +49,18 @@ func TestAddTask_FileFollowsFormat(t *testing.T) {
 	Then(ctx, TaskHasSequentialID())
 }
 
+// TestAddTask_CommittedAndPushed verifies that a new task is git-committed to the
+// local repository and pushed to the configured remote. After the add-task form is
+// submitted, the task file must be present in the bare remote repository.
+func TestAddTask_CommittedAndPushed(t *testing.T) {
+	ctx := NewWebContext(t)
+	Given(ctx, ARepoWithRemote())
+	Given(ctx, WithGitHubStub("token: valid-token-123", "login: alice", "display_name: Alice"))
+	Given(ctx, AnAuthenticatedUser("token: valid-token-123", "display_name: Alice"))
+	When(ctx, IAddTask("title: Push me to remote"))
+	Then(ctx, RemoteRepoContainsTask("title: Push me to remote"))
+}
+
 // TestAddTask_AllFields verifies that an authenticated user can add a task with
 // all fields (title, description, priority, assignee) via the web form.
 // The task appears in the Todo column on the board and its file exists in the repo

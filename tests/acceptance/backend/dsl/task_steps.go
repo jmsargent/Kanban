@@ -1,12 +1,16 @@
 package dsl
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/jmsargent/kanban/pkg/simpledsl"
 )
@@ -264,6 +268,66 @@ func TaskExistsInRepo(params ...string) Step {
 			}
 
 			return fmt.Errorf("TaskExistsInRepo: no task file found with title %q in %s", title, tasksDir)
+		},
+	}
+}
+
+var remoteRepoContainsTaskDSL = simpledsl.NewDslParams(
+	simpledsl.NewRequiredArg("title"),
+)
+
+// RemoteRepoContainsTask clones the bare remote (ctx.RemoteDir) into a temp
+// directory and asserts that a task file containing the given title exists.
+// Required param: "title: <title>".
+func RemoteRepoContainsTask(params ...string) Step {
+	return Step{
+		Description: fmt.Sprintf("remote repo contains task (%s)", strings.Join(params, ", ")),
+		Run: func(ctx *WebContext) error {
+			vals, err := remoteRepoContainsTaskDSL.Parse(params)
+			if err != nil {
+				return fmt.Errorf("RemoteRepoContainsTask: %w", err)
+			}
+			if ctx.RemoteDir == "" {
+				return fmt.Errorf("RemoteRepoContainsTask: RemoteDir not set; call ARepoWithRemote first")
+			}
+
+			cloneDir, err := os.MkdirTemp("", "kanban-remote-verify-*")
+			if err != nil {
+				return fmt.Errorf("RemoteRepoContainsTask: create temp dir: %w", err)
+			}
+			defer func() { _ = os.RemoveAll(cloneDir) }()
+
+			cloneCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			var buf bytes.Buffer
+			cmd := exec.CommandContext(cloneCtx, "git", "clone", ctx.RemoteDir, cloneDir)
+			cmd.Stdout = &buf
+			cmd.Stderr = &buf
+			if err := cmd.Run(); err != nil {
+				return fmt.Errorf("RemoteRepoContainsTask: git clone: %w\n%s", err, buf.String())
+			}
+
+			tasksDir := filepath.Join(cloneDir, ".kanban", "tasks")
+			entries, err := os.ReadDir(tasksDir)
+			if err != nil {
+				return fmt.Errorf("RemoteRepoContainsTask: read tasks dir in clone: %w", err)
+			}
+
+			title := vals.Value("title")
+			for _, entry := range entries {
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+					continue
+				}
+				content, err := os.ReadFile(filepath.Join(tasksDir, entry.Name()))
+				if err != nil {
+					continue
+				}
+				if strings.Contains(string(content), "title: "+title) {
+					return nil
+				}
+			}
+
+			return fmt.Errorf("RemoteRepoContainsTask: no task file with title %q found in remote clone %s", title, tasksDir)
 		},
 	}
 }

@@ -58,4 +58,3 @@ func TestScaffoldCompiles(t *testing.T) {
 	_ = dsl.Then
 	_ = dsl.And
 }
-

@@ -160,6 +160,42 @@ func (a *GitAdapter) Pull(repoDir string) error {
 	return nil
 }
 
+// Add stages the file at path in the repository at repoDir, equivalent to
+// `git add <path>`.
+func (a *GitAdapter) Add(repoDir, path string) error {
+	cmd := exec.Command("git", "add", path)
+	cmd.Dir = repoDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("git add: %w\n%s", err, out)
+	}
+	return nil
+}
+
+// Commit records a new commit in the repository at repoDir with the given
+// message, equivalent to `git commit -m <message>`.
+func (a *GitAdapter) Commit(repoDir, message string) error {
+	cmd := exec.Command("git", "commit", "-m", message)
+	cmd.Dir = repoDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("git commit: %w\n%s", err, out)
+	}
+	return nil
+}
+
+// Push sends committed changes to the configured remote (origin), equivalent
+// to `git push`.
+func (a *GitAdapter) Push(repoDir string) error {
+	cmd := exec.Command("git", "push")
+	cmd.Dir = repoDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("git push: %w\n%s", err, out)
+	}
+	return nil
+}
+
 // Compile-time interface compliance checks.
 var _ ports.GitPort = (*GitAdapter)(nil)
 var _ ports.RemoteGitPort = (*GitAdapter)(nil)

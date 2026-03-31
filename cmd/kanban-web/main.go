@@ -51,8 +51,17 @@ func main() {
 	taskRepo := filesystem.NewTaskRepository()
 	configRepo := filesystem.NewConfigRepository()
 	getBoardUC := usecases.NewGetBoard(configRepo, taskRepo)
-	addTaskUC := usecases.NewAddTask(configRepo, taskRepo)
 	remoteGit := gitadapter.NewGitAdapter()
+
+	// When a repo directory is provided, use AddTaskAndPush so that new tasks
+	// are committed and pushed to the remote. Without a repo (dev/preview mode)
+	// fall back to AddTask which only persists locally.
+	var addTaskUC usecases.TaskExecutor
+	if repoDir != "" {
+		addTaskUC = usecases.NewAddTaskAndPush(configRepo, taskRepo, remoteGit)
+	} else {
+		addTaskUC = usecases.NewAddTask(configRepo, taskRepo)
+	}
 
 	// Capture repoDir in the closure; it may be empty for backward-compat
 	// (board will return empty columns in that case).
