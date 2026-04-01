@@ -345,6 +345,49 @@ func TestAddTaskHandler_EmptyTitle_RerendersFormWithError(t *testing.T) {
 	}
 }
 
+// fakeErrorTaskRepo is an in-memory TaskRepository whose Save always returns an error.
+type fakeErrorTaskRepo struct{}
+
+func (r *fakeErrorTaskRepo) Save(_ string, _ domain.Task) error {
+	return fmt.Errorf("disk full")
+}
+func (r *fakeErrorTaskRepo) FindByID(_ string, _ string) (domain.Task, error) {
+	return domain.Task{}, nil
+}
+func (r *fakeErrorTaskRepo) ListAll(_ string) ([]domain.Task, error) { return nil, nil }
+func (r *fakeErrorTaskRepo) Update(_ string, _ domain.Task) error    { return nil }
+func (r *fakeErrorTaskRepo) Delete(_ string, _ string) error         { return nil }
+func (r *fakeErrorTaskRepo) NextID(_ string) (string, error)         { return "TASK-001", nil }
+
+func TestAddTaskHandler_ExecuteFailure_RerendersFormWithError(t *testing.T) {
+	sessionKey := []byte("test-cookie-key-must-be-32bytes!")
+	configRepo := &fakeConfigRepo{}
+	addTaskUC := usecases.NewAddTask(configRepo, &fakeErrorTaskRepo{})
+
+	handler := web.NewAddTaskHandler(sessionKey, addTaskUC, "")
+
+	cookieValue, err := web.EncryptSession(sessionKey, "ghp_token", "Alice")
+	if err != nil {
+		t.Fatalf("EncryptSession: %v", err)
+	}
+
+	form := strings.NewReader("title=Fix+the+bug")
+	req := httptest.NewRequest(http.MethodPost, "/task", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "kanban_session", Value: cookieValue})
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusSeeOther {
+		t.Fatal("expected no redirect when task executor fails")
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Failed to create task") {
+		t.Errorf("expected error message in response body, got:\n%s", body)
+	}
+}
+
 // assertColumnContains checks that the named column in body contains a card
 // with the given title.
 func assertColumnContains(t *testing.T, body, column, title string) {
