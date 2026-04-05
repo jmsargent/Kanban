@@ -11,6 +11,21 @@ import (
 	"github.com/jmsargent/kanban/internal/ports"
 )
 
+// gitCmd builds an exec.Cmd for git with git-specific environment variables
+// cleared. This prevents pre-commit hook variables (e.g. GIT_INDEX_FILE) from
+// leaking into temporary repositories created during tests.
+func gitCmd(args ...string) *exec.Cmd {
+	cmd := exec.Command("git", args...)
+	env := make([]string, 0, len(os.Environ()))
+	for _, e := range os.Environ() {
+		if len(e) < 4 || e[:4] != "GIT_" {
+			env = append(env, e)
+		}
+	}
+	cmd.Env = env
+	return cmd
+}
+
 // initRepo initialises a bare git repository in dir and configures user identity.
 func initRepo(t *testing.T, dir string) {
 	t.Helper()
@@ -19,7 +34,7 @@ func initRepo(t *testing.T, dir string) {
 		{"-C", dir, "config", "user.email", "test@example.com"},
 		{"-C", dir, "config", "user.name", "Test User"},
 	} {
-		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
+		if out, err := gitCmd(args...).CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %s", args, out)
 		}
 	}
@@ -36,7 +51,7 @@ func writeAndCommit(t *testing.T, dir, filename, content, message string) {
 		{"-C", dir, "add", filename},
 		{"-C", dir, "commit", "-m", message},
 	} {
-		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
+		if out, err := gitCmd(args...).CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %s", args, out)
 		}
 	}
@@ -45,7 +60,7 @@ func writeAndCommit(t *testing.T, dir, filename, content, message string) {
 // refSHA resolves a ref to its SHA in dir.
 func refSHA(t *testing.T, dir, ref string) string {
 	t.Helper()
-	out, err := exec.Command("git", "-C", dir, "rev-parse", ref).Output()
+	out, err := gitCmd("-C", dir, "rev-parse", ref).Output()
 	if err != nil {
 		t.Fatalf("rev-parse %s: %v", ref, err)
 	}

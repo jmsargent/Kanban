@@ -34,6 +34,25 @@ func NewServer(addr string, getBoard BoardProvider, getTask TaskProvider, sessio
 	return s
 }
 
+// NewGitHubAPIServer constructs a Server in github-api mode.
+// Only the /remote/board and /healthz routes are registered.
+func NewGitHubAPIServer(addr string, getRemoteBoard RemoteBoardExecutor, sessionKey []byte, githubAPIBaseURL string) *Server {
+	if sessionKey == nil {
+		sessionKey = make([]byte, 32)
+	}
+	if githubAPIBaseURL == "" {
+		githubAPIBaseURL = "https://api.github.com"
+	}
+	mux := http.NewServeMux()
+	s := &Server{addr: addr, mux: mux, sessionKey: sessionKey, githubAPIBaseURL: githubAPIBaseURL}
+	s.mux.Handle("/remote/board", NewRemoteBoardHandler(getRemoteBoard))
+	s.mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintln(w, "ok")
+	})
+	return s
+}
+
 // registerRoutes registers all HTTP routes on the mux.
 func (s *Server) registerRoutes(getBoard BoardProvider, getTask TaskProvider, addTask usecases.TaskExecutor, repoDir string) {
 	// Public read routes — no auth required.

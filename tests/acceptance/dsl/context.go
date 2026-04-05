@@ -3,6 +3,7 @@ package dsl
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -37,10 +38,16 @@ func NewContext(t *testing.T) *Context {
 		}
 		bin = abs
 	}
+	env := make([]string, 0, len(os.Environ()))
+	for _, e := range os.Environ() {
+		if !strings.HasPrefix(e, "GIT_") {
+			env = append(env, e)
+		}
+	}
 	return &Context{
 		t:       t,
 		binPath: bin,
-		env:     os.Environ(),
+		env:     env,
 	}
 }
 

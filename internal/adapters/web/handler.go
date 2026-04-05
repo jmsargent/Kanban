@@ -1,13 +1,17 @@
 package web
 
 import (
+	"errors"
+	"fmt"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/jmsargent/kanban/internal/domain"
+	"github.com/jmsargent/kanban/internal/ports"
 	"github.com/jmsargent/kanban/internal/usecases"
 )
 
@@ -292,8 +296,10 @@ func (h *BoardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Title   string
-		Columns []columnView
+		Title    string
+		Columns  []columnView
+		ReadOnly bool
+		PushURL  string
 	}{
 		Title:   "Kanban Board",
 		Columns: cols,
@@ -304,4 +310,99 @@ func (h *BoardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
 		log.Printf("ERROR: render board template: %v", err)
 	}
+}
+
+// RemoteBoardExecutor is the driving-side abstraction used by RemoteBoardHandler.
+type RemoteBoardExecutor interface {
+	Execute(owner, repo string) (domain.Board, error)
+}
+
+// RemoteBoardHandler serves GET /remote/board?owner=X&repo=Y.
+// It is read-only: no add/edit controls are rendered.
+type RemoteBoardHandler struct {
+	getRemoteBoard RemoteBoardExecutor
+	tmpl           *template.Template
+}
+
+// validOwnerRepo matches alphanumeric characters, hyphens, and dots (max 100 chars).
+var validOwnerRepo = regexp.MustCompile(`^[a-zA-Z0-9._-]{1,100}$`)
+
+// NewRemoteBoardHandler constructs a RemoteBoardHandler.
+func NewRemoteBoardHandler(getRemoteBoard RemoteBoardExecutor) *RemoteBoardHandler {
+	tmpl := template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/board.html"))
+	return &RemoteBoardHandler{getRemoteBoard: getRemoteBoard, tmpl: tmpl}
+}
+
+// ServeHTTP handles GET /remote/board?owner=X&repo=Y.
+func (h *RemoteBoardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	owner := r.URL.Query().Get("owner")
+	repo := r.URL.Query().Get("repo")
+
+	if !validOwnerRepo.MatchString(owner) || !validOwnerRepo.MatchString(repo) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprint(w, "<p>Invalid owner or repository name.</p>")
+		return
+	}
+
+	board, err := h.getRemoteBoard.Execute(owner, repo)
+	if err != nil {
+		h.renderError(w, err)
+		return
+	}
+
+	type columnView struct {
+		Label  string
+		Column string
+		Tasks  []domain.Task
+	}
+
+	cols := make([]columnView, 0, len(board.Columns))
+	for _, col := range board.Columns {
+		tasks := board.Tasks[domain.TaskStatus(col.Name)]
+		cols = append(cols, columnView{
+			Label:  col.Label,
+			Column: col.Label,
+			Tasks:  tasks,
+		})
+	}
+
+	data := struct {
+		Title    string
+		Columns  []columnView
+		ReadOnly bool
+		PushURL  string
+		Owner    string
+		Repo     string
+	}{
+		Title:    fmt.Sprintf("%s/%s", owner, repo),
+		Columns:  cols,
+		ReadOnly: true,
+		PushURL:  fmt.Sprintf("?owner=%s&repo=%s", owner, repo),
+		Owner:    owner,
+		Repo:     repo,
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
+		log.Printf("ERROR: render remote board template: %v", err)
+	}
+}
+
+func (h *RemoteBoardHandler) renderError(w http.ResponseWriter, err error) {
+	var msg string
+	switch {
+	case errors.Is(err, ports.ErrRepositoryNotFound):
+		msg = "Repository not found"
+	case errors.Is(err, ports.ErrNoBoardFound):
+		msg = "This repository has no kanban board"
+	case errors.Is(err, ports.ErrRateLimitExceeded):
+		msg = "GitHub API rate limit exceeded. Try again later."
+	default:
+		msg = "Failed to load board: " + err.Error()
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = fmt.Fprintf(w, "<p>%s</p>", msg)
 }

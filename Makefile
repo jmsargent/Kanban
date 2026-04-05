@@ -166,7 +166,7 @@ ci-static-analysis:
 	@go vet ./...
 	@golangci-lint run
 	@govulncheck ./...
-	# @make ci-dsl-check
+#	@make ci-dsl-check
 
 ## ci-unit-tests: run unit tests via gotestsum (CI step)
 ci-unit-tests:
@@ -175,7 +175,8 @@ ci-unit-tests:
 
 ## ci-build: build the kanban binary (CI step)
 ci-build:
-	@go build -o kanban ./cmd/kanban
+	@go build -buildvcs=false -o kanban ./cmd/kanban
+	@go build -buildvcs=false -o kanban-web ./cmd/kanban-web
 
 ## ci-set-env: export KANBAN_BIN for acceptance tests (CI step)
 ci-set-env:
@@ -231,6 +232,15 @@ ci-smoke-test-go-install:
 	@/tmp/kanban-smoke/kanban --help
 	@rm -rf /tmp/kanban-smoke
 	@echo "PASS: go install smoke test"
+
+build-run-web-local:
+	@go build ./cmd/kanban-web
+	@PORT=8080; \
+	until ! lsof -i :$$PORT > /dev/null; do \
+		PORT=$$((PORT + 1)); \
+	done; \
+	./kanban-web --port $$PORT --repo /Users/jonathansargent/kanban --cookie-key 485a35955f1663beafab45f9329c106e
+	@open -a "Google Chrome" http://localhost:$$PORT
 
 ## help: list available make targets
 help:

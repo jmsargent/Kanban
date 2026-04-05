@@ -82,6 +82,7 @@ func (d *RepoDriver) SetupBareRemote() {
 		defer cancel()
 		cmd := exec.CommandContext(ctx, "git", args...)
 		cmd.Dir = d.bareDir
+		cmd.Env = gitEnv()
 		var buf bytes.Buffer
 		cmd.Stdout = &buf
 		cmd.Stderr = &buf
@@ -111,6 +112,7 @@ func NewRepoDriverFromRemote(t *testing.T, bareRemoteDir string) *RepoDriver {
 	} {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		cmd := exec.CommandContext(ctx, "git", args...)
+		cmd.Env = gitEnv()
 		var buf bytes.Buffer
 		cmd.Stdout = &buf
 		cmd.Stderr = &buf
@@ -207,6 +209,19 @@ func (d *RepoDriver) TaskFileExists(id string) bool {
 	return err == nil
 }
 
+// gitEnv returns os.Environ() with GIT_* variables removed so that hooks
+// injected by a parent git process (e.g. GIT_INDEX_FILE set by pre-commit)
+// do not bleed into git commands run against temporary repositories.
+func gitEnv() []string {
+	env := make([]string, 0, len(os.Environ()))
+	for _, e := range os.Environ() {
+		if len(e) < 4 || e[:4] != "GIT_" {
+			env = append(env, e)
+		}
+	}
+	return env
+}
+
 // mustGit runs a git command in the repo directory and fails the test on error.
 func (d *RepoDriver) mustGit(args ...string) string {
 	d.t.Helper()
@@ -215,6 +230,7 @@ func (d *RepoDriver) mustGit(args ...string) string {
 
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = d.repoDir
+	cmd.Env = gitEnv()
 
 	var buf bytes.Buffer
 	cmd.Stdout = &buf

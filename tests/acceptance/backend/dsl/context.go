@@ -18,10 +18,21 @@ type WebContext struct {
 	Cookies       []*http.Cookie
 	LastResponse  *http.Response
 	LastBody      string
+	LastStatusCode int
 	LastDuration  time.Duration
 	RepoDir       string
 	RemoteDir     string // bare remote path; set by ARepoWithRemote
-	GitHubStubURL string // base URL of the GitHub API stub; set by WithGitHubStub
+	GitHubStubURL string // base URL of the GitHub API stub; set by WithGitHubStub or AGitHubAPIStubIsRunning
+
+	// GitHubAPIStub holds the stub driver for the github-api-board-viewer
+	// feature. Set by AGitHubAPIStubIsRunning so subsequent Given steps can
+	// register repo configurations on it.
+	GitHubAPIStub *driver.GitHubAPIStubDriver
+
+	// LastRequestedOwner and LastRequestedRepo record the owner/repo values
+	// used in the most recent AViewerEditsPageTitle step, for URL assertions.
+	LastRequestedOwner string
+	LastRequestedRepo  string
 }
 
 // NewWebContext constructs a WebContext for a test. The server is not started

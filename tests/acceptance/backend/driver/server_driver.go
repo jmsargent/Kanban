@@ -20,6 +20,7 @@ type ServerDriver struct {
 	url          string
 	binPath      string
 	repoDir      string
+	mode         string // "--mode" flag value: "git" or "github-api"; defaults to "git" when empty
 	syncInterval time.Duration
 	cookieKey    string
 	githubAPIURL string
@@ -39,6 +40,13 @@ func NewServerDriver(t *testing.T) *ServerDriver {
 // SetRepoDir configures the git repository directory the server will serve.
 func (d *ServerDriver) SetRepoDir(dir string) {
 	d.repoDir = dir
+}
+
+// SetMode sets the --mode flag value for the kanban-web binary.
+// Valid values are "git" and "github-api". When not set, the binary
+// defaults to "git" mode for backwards compatibility with existing tests.
+func (d *ServerDriver) SetMode(mode string) {
+	d.mode = mode
 }
 
 // SetGitHubAPIURL configures the GitHub API URL for token validation.
@@ -82,7 +90,7 @@ func (d *ServerDriver) Build() error {
 	buildCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(buildCtx, "go", "build", "-o", d.binPath, "./cmd/kanban-web")
+	cmd := exec.CommandContext(buildCtx, "go", "build", "-buildvcs=false", "-o", d.binPath, "./cmd/kanban-web")
 	cmd.Dir = projectRoot()
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -102,9 +110,17 @@ func (d *ServerDriver) Start(port int) error {
 
 	d.url = fmt.Sprintf("http://localhost:%d", port)
 
+	// Determine the mode. Existing git-mode tests do not call SetMode, so we
+	// default to "git" to preserve their behaviour.
+	mode := d.mode
+	if mode == "" {
+		mode = "git"
+	}
+
 	args := []string{
 		"--port", fmt.Sprintf("%d", port),
 		"--cookie-key", d.cookieKey,
+		"--mode", mode,
 	}
 	if d.repoDir != "" {
 		args = append(args, "--repo", d.repoDir)
@@ -114,7 +130,12 @@ func (d *ServerDriver) Start(port int) error {
 	d.cmd.Stdout = os.Stdout
 	d.cmd.Stderr = os.Stderr
 
-	env := os.Environ()
+	env := make([]string, 0, len(os.Environ()))
+	for _, e := range os.Environ() {
+		if len(e) < 4 || e[:4] != "GIT_" {
+			env = append(env, e)
+		}
+	}
 	if d.githubAPIURL != "" {
 		env = append(env, "KANBAN_WEB_GITHUB_API_URL="+d.githubAPIURL)
 	}

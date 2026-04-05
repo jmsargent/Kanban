@@ -1,13 +1,17 @@
 {{define "content"}}
+{{if not .ReadOnly}}
 <div class="board-actions">
   <a href="/task/new" class="add-task">Add Task</a>
 </div>
-<div class="board">
+{{end}}
+<div class="board"{{if .PushURL}} hx-push-url="{{.PushURL}}"{{end}}>
   {{range .Columns}}
   <div class="column" data-column="{{.Column}}">
     <h2>{{.Label}}</h2>
     {{range .Tasks}}
-    <div class="card" data-title="{{.Title}}"><a href="/card/{{.ID}}">{{.Title}}</a></div>
+    <div class="card" data-title="{{.Title}}">
+      {{if $.ReadOnly}}<span>{{.Title}}</span>{{else}}<a href="/card/{{.ID}}">{{.Title}}</a>{{end}}
+    </div>
     {{end}}
   </div>
   {{end}}

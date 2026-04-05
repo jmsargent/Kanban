@@ -1,0 +1,17 @@
+### GET request to example server
+GET https://examples.http-client.intellij.net/get
+    ?generated-in=GoLand
+
+###
+# curl -L
+#  -H "Accept: application/vnd.github.object"
+#  -H "Authorization: Bearer <YOUR-TOKEN>"
+#  -H "X-GitHub-Api-Version: 2026-03-10"
+#  https://api.github.com/repos/OWNER/REPO/contents/PATH
+GET https://api.github.com/repos/jmsargent/kanban/contents/.kanban/tasks
+Accept: application/vnd.github.object
+X-GitHub-Api-Version: 2026-03-10
+# Authorization: Bearer <YOUR-TOKEN>
+#
+###
+###

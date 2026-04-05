@@ -23,6 +23,8 @@ components:
     in: "internal/adapters/git"
   adapter-web:
     in: "internal/adapters/web"
+  adapter-githubapi:
+    in: "internal/adapters/githubapi"
   cmd:
     in: "cmd/kanban"
   cmd-web:
@@ -86,6 +88,13 @@ deps:
       - ports
       - domain
 
+  adapter-githubapi:
+    mayDependOn:
+      - ports
+      - domain
+    canUse:
+      - yaml
+
   cmd-web:
     mayDependOn:
       - domain
@@ -94,3 +103,4 @@ deps:
       - adapter-web
       - adapter-filesystem
       - adapter-git
+      - adapter-githubapi
