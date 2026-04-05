@@ -269,22 +269,7 @@ func (h *BoardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build a view-friendly structure: slice of column+tasks pairs in order.
-	type columnView struct {
-		Label  string
-		Column string // display name used in data-column attribute
-		Tasks  []domain.Task
-	}
-
-	cols := make([]columnView, 0, len(board.Columns))
-	for _, col := range board.Columns {
-		tasks := board.Tasks[domain.TaskStatus(col.Name)]
-		cols = append(cols, columnView{
-			Label:  col.Label,
-			Column: col.Label,
-			Tasks:  tasks,
-		})
-	}
+	cols := boardColumns(board)
 
 	// When no columns configured (e.g. empty board in tests), emit defaults.
 	if len(cols) == 0 {
@@ -310,6 +295,27 @@ func (h *BoardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
 		log.Printf("ERROR: render board template: %v", err)
 	}
+}
+
+// columnView is the template-friendly representation of a single board column.
+type columnView struct {
+	Label  string
+	Column string
+	Tasks  []domain.Task
+}
+
+// boardColumns converts a domain.Board into an ordered slice of columnView
+// values ready for template rendering.
+func boardColumns(board domain.Board) []columnView {
+	cols := make([]columnView, 0, len(board.Columns))
+	for _, col := range board.Columns {
+		cols = append(cols, columnView{
+			Label:  col.Label,
+			Column: col.Label,
+			Tasks:  board.Tasks[domain.TaskStatus(col.Name)],
+		})
+	}
+	return cols
 }
 
 // RemoteBoardExecutor is the driving-side abstraction used by RemoteBoardHandler.
@@ -351,21 +357,7 @@ func (h *RemoteBoardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type columnView struct {
-		Label  string
-		Column string
-		Tasks  []domain.Task
-	}
-
-	cols := make([]columnView, 0, len(board.Columns))
-	for _, col := range board.Columns {
-		tasks := board.Tasks[domain.TaskStatus(col.Name)]
-		cols = append(cols, columnView{
-			Label:  col.Label,
-			Column: col.Label,
-			Tasks:  tasks,
-		})
-	}
+	cols := boardColumns(board)
 
 	data := struct {
 		Title    string
