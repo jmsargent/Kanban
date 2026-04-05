@@ -367,7 +367,8 @@ func URLReflectsOwnerAndRepo(params ...string) Step {
 				return fmt.Errorf("URLReflectsOwnerAndRepo: no response recorded")
 			}
 
-			expectedPushURL := fmt.Sprintf(`hx-push-url="?owner=%s&repo=%s"`, owner, repo)
+			// Go's html/template HTML-escapes & → &amp; in attribute values.
+			expectedPushURL := fmt.Sprintf(`hx-push-url="?owner=%s&amp;repo=%s"`, owner, repo)
 			if !strings.Contains(ctx.LastBody, expectedPushURL) {
 				return fmt.Errorf("URLReflectsOwnerAndRepo: expected hx-push-url attribute %q not found in response", expectedPushURL)
 			}

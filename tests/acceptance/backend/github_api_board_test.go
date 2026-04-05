@@ -38,7 +38,6 @@ func TestRemoteBoard_ViewerSeesTasksFromPublicRepository(t *testing.T) {
 // public repository with a .kanban/tasks/ directory but no task files renders
 // three empty columns without an error message.
 func TestRemoteBoard_EmptyRepositoryShowsThreeEmptyColumns(t *testing.T) {
-	t.Skip("not yet implemented")
 	ctx := NewWebContext(t)
 	Given(ctx, APublicRepoWithNoTasks("owner: example-org", "repo: empty-project"))
 	When(ctx, AViewerRequestsRemoteBoard("owner: example-org", "repo: empty-project"))
@@ -52,7 +51,6 @@ func TestRemoteBoard_EmptyRepositoryShowsThreeEmptyColumns(t *testing.T) {
 // title (owner/repo) and confirming fires the correct board request and the
 // response includes the shareable URL parameters.
 func TestRemoteBoard_PageTitleEditTriggersRefresh(t *testing.T) {
-	t.Skip("not yet implemented")
 	ctx := NewWebContext(t)
 	Given(ctx, APublicRepoWithTasks(
 		"owner: acme", "repo: backend",
@@ -72,7 +70,6 @@ func TestRemoteBoard_PageTitleEditTriggersRefresh(t *testing.T) {
 // that does not exist on GitHub causes the board area to display "Repository
 // not found".
 func TestRemoteBoard_InvalidOwnerShowsRepositoryNotFound(t *testing.T) {
-	t.Skip("not yet implemented")
 	ctx := NewWebContext(t)
 	When(ctx, AViewerRequestsRemoteBoard("owner: no-such-user-xyz", "repo: any-repo"))
 	Then(ctx, BoardAreaShowsMessage("message: Repository not found"))
@@ -81,7 +78,6 @@ func TestRemoteBoard_InvalidOwnerShowsRepositoryNotFound(t *testing.T) {
 // TestRemoteBoard_InvalidRepoNameShowsRepositoryNotFound verifies that a valid
 // owner but a non-existent repository name shows "Repository not found".
 func TestRemoteBoard_InvalidRepoNameShowsRepositoryNotFound(t *testing.T) {
-	t.Skip("not yet implemented")
 	ctx := NewWebContext(t)
 	When(ctx, AViewerRequestsRemoteBoard("owner: torvalds", "repo: this-repo-does-not-exist"))
 	Then(ctx, BoardAreaShowsMessage("message: Repository not found"))
@@ -91,7 +87,6 @@ func TestRemoteBoard_InvalidRepoNameShowsRepositoryNotFound(t *testing.T) {
 // private repository is indistinguishable from a non-existent one — "Repository
 // not found" is shown and no information about repo existence is disclosed.
 func TestRemoteBoard_PrivateRepositoryShowsRepositoryNotFound(t *testing.T) {
-	t.Skip("not yet implemented")
 	ctx := NewWebContext(t)
 	Given(ctx, APrivateRepository("owner: private-org", "repo: secret-project"))
 	When(ctx, AViewerRequestsRemoteBoard("owner: private-org", "repo: secret-project"))
@@ -103,7 +98,6 @@ func TestRemoteBoard_PrivateRepositoryShowsRepositoryNotFound(t *testing.T) {
 // repository has no kanban board" rather than three empty columns.
 // Uses golang/go — a large, well-known public repo confirmed to have no kanban board.
 func TestRemoteBoard_RepoWithNoKanbanFolderShowsNoBoardMessage(t *testing.T) {
-	t.Skip("not yet implemented")
 	ctx := NewWebContext(t)
 	When(ctx, AViewerRequestsRemoteBoard("owner: golang", "repo: go"))
 	Then(ctx, BoardAreaShowsMessage("message: This repository has no kanban board"))
@@ -113,7 +107,6 @@ func TestRemoteBoard_RepoWithNoKanbanFolderShowsNoBoardMessage(t *testing.T) {
 // GitHub API rate limit is exhausted, the board area shows a clear message
 // asking the viewer to try again later rather than a blank or broken board.
 func TestRemoteBoard_RateLimitExceededShowsRetryMessage(t *testing.T) {
-	t.Skip("not yet implemented")
 	ctx := NewWebContext(t)
 	Given(ctx, AGitHubRateLimitIsExceeded("owner: popular-org", "repo: popular-repo"))
 	When(ctx, AViewerRequestsRemoteBoard("owner: popular-org", "repo: popular-repo"))

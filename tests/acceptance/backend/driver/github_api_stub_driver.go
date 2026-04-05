@@ -46,6 +46,7 @@ func NewGitHubAPIStubDriver() *GitHubAPIStubDriver {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /repos/{owner}/{repo}/contents/.kanban/tasks", d.handleContentsListing)
+	mux.HandleFunc("GET /repos/{owner}/{repo}", d.handleRepoCheck)
 	mux.HandleFunc("GET /files/{owner}/{repo}/{filename}", d.handleFileDownload)
 
 	d.server = httptest.NewServer(mux)
@@ -122,6 +123,27 @@ func (d *GitHubAPIStubDriver) AddRateLimitedRepo(owner, repo string) {
 type StubTaskFile struct {
 	Filename string // e.g. "TASK-001.md"
 	Content  string // raw Markdown with YAML front matter
+}
+
+// handleRepoCheck serves GET /repos/{owner}/{repo}.
+// Returns 200 if the repo is known and not flagged as notFound, 404 otherwise.
+// The adapter calls this endpoint when the contents listing returns 404 to
+// distinguish "repo not found" from "repo exists but no .kanban/tasks/ folder".
+func (d *GitHubAPIStubDriver) handleRepoCheck(w http.ResponseWriter, r *http.Request) {
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+
+	d.mu.RLock()
+	stub, known := d.repos[owner+"/"+repo]
+	d.mu.RUnlock()
+
+	if !known || stub.notFound {
+		http.Error(w, `{"message":"Not Found"}`, http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = fmt.Fprintf(w, `{"full_name":"%s/%s"}`, owner, repo)
 }
 
 // handleContentsListing serves GET /repos/{owner}/{repo}/contents/.kanban/tasks.

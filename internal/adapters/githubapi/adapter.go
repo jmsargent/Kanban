@@ -111,7 +111,10 @@ func (a *Adapter) fetchTasks(owner, repo string) ([]domain.Task, error) {
 
 	switch resp.StatusCode {
 	case http.StatusNotFound:
-		return nil, ports.ErrRepositoryNotFound
+		// 404 from the contents endpoint is ambiguous: the repo itself may not
+		// exist, or the repo exists but has no .kanban/tasks/ directory.
+		// A second call to /repos/{owner}/{repo} resolves the distinction.
+		return nil, a.classifyNotFound(owner, repo)
 	case http.StatusForbidden:
 		if resp.Header.Get("X-RateLimit-Remaining") == "0" {
 			return nil, ports.ErrRateLimitExceeded
@@ -200,6 +203,23 @@ func parseTaskFile(data []byte) (domain.Task, error) {
 		Assignee:  fm.Assignee,
 		CreatedBy: fm.CreatedBy,
 	}, nil
+}
+
+// classifyNotFound resolves a 404 from the contents endpoint into the correct
+// sentinel error by checking whether the repository itself exists.
+// 200 from /repos/{owner}/{repo} → repo exists, no .kanban/tasks/ → ErrNoBoardFound
+// 404 from /repos/{owner}/{repo} → repo does not exist → ErrRepositoryNotFound
+func (a *Adapter) classifyNotFound(owner, repo string) error {
+	url := fmt.Sprintf("%s/repos/%s/%s", a.baseURL, owner, repo)
+	resp, err := a.httpClient.Get(url)
+	if err != nil {
+		return ports.ErrRepositoryNotFound
+	}
+	defer func() { _, _ = io.Copy(io.Discard, resp.Body); _ = resp.Body.Close() }()
+	if resp.StatusCode == http.StatusOK {
+		return ports.ErrNoBoardFound
+	}
+	return ports.ErrRepositoryNotFound
 }
 
 // compile-time interface check
